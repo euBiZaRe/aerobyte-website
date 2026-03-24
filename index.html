@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="AeroByte: Next-Gen Model Training with Advanced Analytics and Unlimited VRAM Options">
+    <title>AeroByte Premium | Next-Gen Model Training</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">AeroByte<span class="accent">.pro</span></div>
+            <ul class="nav-links">
+                <li><a href="index.html#features">Features</a></li>
+                <li><a href="index.html#pricing">Pricing</a></li>
+                <li><a href="index.html#download">Download</a></li>
+                <li><a href="faq.html">FAQ</a></li>
+                <li><a href="#" class="btn-primary login-btn">Sign In</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <header class="hero">
+        <div class="hero-content">
+            <div class="badge">AeroByte v1.2 PROFESSIONAL</div>
+            <h1 class="main-title">Next-Gen <br> <span class="gradient-text">Model Training</span></h1>
+            <p class="subtitle">Unlock professional-grade reinforcement learning with integrated GigaLearn infrastructure, unlimited VRAM options, and our Advanced Visualizer Pro.</p>
+            <div class="hero-actions">
+                <a href="#pricing" class="btn-primary glow-btn">Upgrade to Pro</a>
+                <a href="#features" class="btn-secondary">Explore Features</a>
+            </div>
+        </div>
+        <div class="hero-graphic">
+            <div class="orb orb-1"></div>
+            <div class="orb orb-2"></div>
+            <div class="glass-panel">
+                <div class="metric">
+                    <span class="metric-val">100%</span>
+                    <span class="metric-label">VRAM Utilization</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-val">60 FPS</span>
+                    <span class="metric-label">Visualizer Sync</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <section id="features" class="features-section">
+        <h2 class="section-title">Unlock <span class="gradient-text">Better Models</span></h2>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🚀</div>
+                <h3>Unlimited VRAM Support</h3>
+                <p>Bypass hardware limitations by utilizing cloud-synced VRAM optimization. Train larger models without OOM errors.</p>
+            </div>
+            <div class="feature-card glass-featured">
+                <div class="feature-icon">🧠</div>
+                <h3>GigaLearn Integration</h3>
+                <p>Native integration with GigaLearn infrastructure for unparalleled reinforcement learning convergence rates.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">👁️</div>
+                <h3>Advanced Visualizer Pro</h3>
+                <p>Zero-crash OpenGL and DirectX rendering with 3D stadium playback, offering pinpoint debug telemetry.</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="download" class="download-section" style="max-width: 1000px; margin: 0 auto; padding: 100px 20px; text-align: center;">
+        <div class="glass-panel" style="padding: 60px; border-radius: 24px;">
+            <h2 class="section-title" style="margin-bottom: 20px;">Get Started with <span class="gradient-text">AeroByte</span></h2>
+            <p class="subtitle" style="margin-bottom: 40px;">Download the native software straight from our repository to your local machine.</p>
+            <!-- Direct GitHub zipball link for the specified release tag automatically triggers a download -->
+            <a href="https://github.com/x84kjbyf2c-stack/AeroByte-Studio/archive/refs/tags/AeroByteStudios.zip" download class="btn-primary glow-btn" style="padding: 15px 30px; font-size: 1.2rem; display: inline-block;">
+                ⬇️ Download AeroByte (Direct)
+            </a>
+            <p style="margin-top: 20px; color: var(--text-muted); font-size: 0.9rem;">*Requires Windows 10/11 x64 and a dedicated GPU.</p>
+        </div>
+    </section>
+
+    <section id="pricing" class="pricing-section">
+        <h2 class="section-title">Elevate Your <span class="gradient-text">Training</span></h2>
+        <div class="pricing-grid">
+            <div class="pricing-card">
+                <h3>Basic</h3>
+                <div class="price">Free</div>
+                <ul class="plan-features">
+                    <li>Standard bot training presets</li>
+                    <li>Limited local VRAM usage</li>
+                    <li>Basic visualizer telemetry</li>
+                    <li>Community support</li>
+                </ul>
+                <button class="btn-secondary plan-btn">Current Plan</button>
+            </div>
+            <div class="pricing-card pro-card">
+                <div class="popular-badge">Most Popular</div>
+                <h3>Professional</h3>
+                <div class="price">$15<span class="period">/mo</span></div>
+                <ul class="plan-features pro-features">
+                    <li><strong>GigaLearn Infrastructure</strong></li>
+                    <li><strong>Unlimited VRAM Scaling</strong></li>
+                    <li><strong>Advanced Visualizer Pro</strong></li>
+                    <li>Premium 24/7 Support</li>
+                </ul>
+                <button class="btn-primary glow-btn plan-btn checkout-trigger">Upgrade to Pro</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Checkout Modal -->
+    <div id="checkoutModal" class="modal-overlay hidden">
+        <div class="modal-container">
+            <button class="close-modal">&times;</button>
+            <div class="modal-header">
+                <h2>Upgrade to <span class="gradient-text">AeroByte Pro</span></h2>
+                <p>Unlock the ultimate training experience.</p>
+            </div>
+            <form class="checkout-form" id="checkoutForm">
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" placeholder="you@example.com" required>
+                </div>
+                <div class="form-group">
+                    <label>Card Information</label>
+                    <div class="card-input-wrapper">
+                        <input type="text" placeholder="Card number" required>
+                        <div class="card-sub-inputs">
+                            <input type="text" placeholder="MM/YY" required>
+                            <input type="text" placeholder="CVC" required>
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" class="btn-primary full-width glow-btn pay-btn">Pay $15.00</button>
+            </form>
+            <div class="secure-badge">🔒 Secure Stripe Checkout</div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="footer-content">
+            <div class="logo">AeroByte<span class="accent">.pro</span></div>
+            <p>&copy; 2026 AeroByte Software. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>

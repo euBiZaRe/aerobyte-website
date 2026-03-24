@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="AeroByte: FAQ for Next-Gen Model Training">
+    <title>AeroByte Premium | FAQ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">AeroByte<span class="accent">.pro</span></div>
+            <ul class="nav-links">
+                <li><a href="index.html#features">Features</a></li>
+                <li><a href="index.html#pricing">Pricing</a></li>
+                <li><a href="index.html#download">Download</a></li>
+                <li><a href="faq.html">FAQ</a></li>
+                <li><a href="#" class="btn-primary login-btn">Sign In</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <header class="hero faq-hero" style="min-height: 40vh; padding-top: 150px; padding-bottom: 20px;">
+        <div class="hero-content" style="max-width: 800px; margin: 0 auto; text-align: center;">
+            <h1 class="main-title">Frequently Asked <span class="gradient-text">Questions</span></h1>
+            <p class="subtitle">Got questions about our model training infrastructure? We've got answers.</p>
+        </div>
+    </header>
+
+    <section id="faq" class="faq-section" style="max-width: 800px; margin: 0 auto; padding: 40px 20px 100px;">
+        <div class="faq-grid" style="display: flex; flex-direction: column; gap: 20px;">
+            
+            <div class="feature-card glass-featured text-left" style="padding: 30px;">
+                <h3 style="margin-bottom: 10px; color: var(--text-main);">What is GigaLearn Integration?</h3>
+                <p style="color: var(--text-muted);">GigaLearn Integration connects your local Rocket League bot training (via RLGym) directly to our massive cloud reinforcement learning clusters. It allows your model to converge up to 10x faster by parallelizing environment steps across hundreds of instances instead of relying on a single local GPU.</p>
+            </div>
+
+            <div class="feature-card text-left" style="padding: 30px;">
+                <h3 style="margin-bottom: 10px; color: var(--text-main);">How does the "Unlimited VRAM Scaling" work?</h3>
+                <p style="color: var(--text-muted);">Our Professional tier offloads the heaviest neural network operations (like large transformer or recurrent model memory loads) to our cloud cluster dynamically. This prevents the common CUDA Out of Memory (OOM) errors often seen on local hardware like the 11GB GPUs when running intensive "KILLER" preset configs.</p>
+            </div>
+
+            <div class="feature-card text-left" style="padding: 30px;">
+                <h3 style="margin-bottom: 10px; color: var(--text-main);">Can I migrate from the Community/Basic plan to Pro without losing my models?</h3>
+                <p style="color: var(--text-muted);">Absolutely. Your custom checkpoints and pre-trained models seamlessly sync when you upgrade to Pro. There are no format conversions required; simply log into your AeroByte account through the software, and your local workspace will be linked to the cloud.</p>
+            </div>
+
+            <div class="feature-card text-left" style="padding: 30px;">
+                <h3 style="margin-bottom: 10px; color: var(--text-main);">Is AeroByte Trainer suitable for beginners?</h3>
+                <p style="color: var(--text-muted);">Yes! We provide built-in training presets that work perfectly out of the box. You don't need any prior machine learning or Python experience to get started.</p>
+            </div>
+
+            <div class="feature-card text-left" style="padding: 30px;">
+                <h3 style="margin-bottom: 10px; color: var(--text-main);">Can I use custom bots or scripts?</h3>
+                <p style="color: var(--text-muted);">Absolutely. AeroByte supports custom Python scripts and integrates seamlessly with popular community bots and custom model files.</p>
+            </div>
+
+            <div class="feature-card glass-featured text-left" style="padding: 30px;">
+                <h3 style="margin-bottom: 10px; color: var(--text-main);">How do I cancel my subscription?</h3>
+                <p style="color: var(--text-muted);">You can manage your subscription or cancel at any time directly through your account dashboard. You will retain access to the Professional features until the end of your current billing cycle.</p>
+            </div>
+
+        </div>
+    </section>
+
+    <footer>
+        <div class="footer-content">
+            <div class="logo">AeroByte<span class="accent">.pro</span></div>
+            <p>&copy; 2026 AeroByte Software. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
