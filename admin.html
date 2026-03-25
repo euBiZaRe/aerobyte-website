@@ -54,7 +54,14 @@
     <header class="hero" style="min-height: 10vh; padding-top: 130px; padding-bottom: 20px;">
         <div class="hero-content" style="max-width: 1000px; margin: 0 auto; text-align: left;">
             <p style="color:#ff4d4d; font-weight:bold; letter-spacing:2px; text-transform:uppercase; margin-bottom:5px;">🛡️ Administrator Level 0</p>
-            <h1 class="main-title" style="font-size: 3rem;">Master <span class="gradient-text">Database</span></h1>
+            <div style="display:flex; justify-content:space-between; align-items:flex-end;">
+                <h1 class="main-title" style="font-size: 3rem; margin:0;">Master <span class="gradient-text">Database</span></h1>
+                <div>
+                    <label for="importUsersFile" class="btn-secondary" style="cursor:pointer; padding:10px 20px; font-size:0.9rem;">Sync Auth JSON</label>
+                    <input type="file" id="importUsersFile" accept=".json" style="display:none;">
+                </div>
+            </div>
+            <p id="importStatus" style="color:#10B981; margin-top:15px; font-size:0.9rem; display:none;"></p>
         </div>
     </header>
 

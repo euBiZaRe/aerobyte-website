@@ -399,6 +399,59 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 });
             }
+
+            // Bulk Auth Synchronizer Logic
+            const importFile = document.getElementById('importUsersFile');
+            const importStatus = document.getElementById('importStatus');
+            if (importFile && importStatus) {
+                importFile.addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+
+                    importStatus.style.display = 'block';
+                    importStatus.style.color = '#fff';
+                    importStatus.textContent = 'Parsing JSON file... please do not refresh the page.';
+
+                    const reader = new FileReader();
+                    reader.onload = async (event) => {
+                        try {
+                            const data = JSON.parse(event.target.result);
+                            if (!data.users || !Array.isArray(data.users)) {
+                                throw new Error("Invalid file format. Make sure you downloaded the 'JSON' export from Firebase Authentication.");
+                            }
+
+                            let count = 0;
+                            importStatus.textContent = `Synchronizing ${data.users.length} accounts to database...`;
+
+                            // Write missing accounts to Firestore gracefully
+                            for (const u of data.users) {
+                                if (u.email && u.localId) {
+                                    // { merge: true } prevents overwriting someone's existing Premium plan with Free!
+                                    await setDoc(doc(db, "users", u.localId), {
+                                        email: u.email,
+                                        plan: "Free"
+                                    }, { merge: true });
+                                    count++;
+                                }
+                            }
+
+                            importStatus.style.color = '#10B981';
+                            importStatus.textContent = `Successfully injected ${count} users into Firestore! Reloading...`;
+                            
+                            setTimeout(() => {
+                                importStatus.style.display = 'none';
+                                getUsers(); // Refresh UI instantly
+                            }, 3000);
+
+                        } catch (err) {
+                            console.error(err);
+                            importStatus.style.color = '#ff4d4d';
+                            importStatus.textContent = 'Error parsing file: ' + err.message;
+                        }
+                    };
+                    reader.readAsText(file);
+                });
+            }
         }
     });
 
