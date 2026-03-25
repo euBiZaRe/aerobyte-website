@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="AeroByte: Premium Features and Capabilities">
+    <title>AeroByte Premium | Features</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .features-page-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 40px;
+        }
+        .feature-category {
+            margin-bottom: 60px;
+        }
+        .premium-badge {
+            display: inline-block;
+            background: var(--gradient-glow);
+            color: #fff;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+        }
+        .core-badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">AeroByte<span class="accent">.shop</span></a>
+            <ul class="nav-links">
+                <li><a href="features.html">Features</a></li>
+                <li><a href="index.html#pricing">Pricing</a></li>
+                <li><a href="index.html#download">Download</a></li>
+                <li><a href="faq.html">FAQ</a></li>
+                <li><a href="#" class="btn-primary login-btn">Sign In</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <header class="hero" style="min-height: 20vh; padding-top: 150px; padding-bottom: 20px;">
+        <div class="hero-content" style="max-width: 800px; margin: 0 auto; text-align: center;">
+            <h1 class="main-title">Powerful <span class="gradient-text">Features</span></h1>
+            <p class="subtitle" style="margin-top:20px;">Discover the cutting-edge technology behind the AeroByte infrastructure.</p>
+        </div>
+    </header>
+
+    <section class="profile-section" style="max-width: 1100px; margin: 0 auto; padding: 40px 20px 100px;">
+        
+        <div class="feature-category">
+            <h2 class="section-title" style="text-align:left;">Premium <span class="gradient-text">Capabilities</span></h2>
+            <p style="color:var(--text-muted); margin-bottom: 20px;">Exclusive tools and infrastructure available only to AeroByte Pro subscribers.</p>
+            <div class="features-page-grid">
+                <div class="feature-card glass-featured">
+                    <span class="premium-badge">Exclusive</span>
+                    <div class="feature-icon">🚀</div>
+                    <h3>GigaLearn Infrastructure</h3>
+                    <p>Native integration with backend GigaLearn supercomputing servers for unparalleled reinforcement learning convergence rates.</p>
+                </div>
+                <div class="feature-card glass-featured">
+                    <span class="premium-badge">Exclusive</span>
+                    <div class="feature-icon">🧠</div>
+                    <h3>Unlimited VRAM Scaling</h3>
+                    <p>Bypass local consumer hardware limitations by offloading complex operations, completely avoiding OOM (Out of Memory) errors.</p>
+                </div>
+                <div class="feature-card glass-featured">
+                    <span class="premium-badge">Exclusive</span>
+                    <div class="feature-icon">👁️</div>
+                    <h3>Advanced Visualizer Pro</h3>
+                    <p>Experience zero-crash OpenGL and DirectX rendering in a dedicated window, offering pinpoint debug telemetry for stadium playback.</p>
+                </div>
+                <div class="feature-card glass-featured">
+                    <span class="premium-badge">Exclusive</span>
+                    <div class="feature-icon">⚖️</div>
+                    <h3>AeroByte Bot Comparator</h3>
+                    <p>Directly pit two neural network models head-to-head in a visually simulated environment to perfectly gauge their improvement rates.</p>
+                </div>
+                <div class="feature-card glass-featured">
+                    <span class="premium-badge">Exclusive</span>
+                    <div class="feature-icon">🛡️</div>
+                    <h3>Pro Security Tokens</h3>
+                    <p>Securely lock down robust algorithms and restricted presets using our native authorization key systems.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="feature-category">
+            <h2 class="section-title" style="text-align:left;">Core <span style="color:#fff;">Features</span></h2>
+            <p style="color:var(--text-muted); margin-bottom: 20px;">The foundational tools available structurally on the basic tier.</p>
+            <div class="features-page-grid">
+                <div class="feature-card">
+                    <span class="core-badge">Standard</span>
+                    <div class="feature-icon">⚙️</div>
+                    <h3>Standard Training Presets</h3>
+                    <p>Access our community-driven starter presets for standard bot training loops and hyperparameter tuning.</p>
+                </div>
+                <div class="feature-card">
+                    <span class="core-badge">Standard</span>
+                    <div class="feature-icon">📊</div>
+                    <h3>Basic Visualizer Telemetry</h3>
+                    <p>Hook into simple logging and data exporting without hardware-accelerated 3D playback.</p>
+                </div>
+                <div class="feature-card">
+                    <span class="core-badge">Standard</span>
+                    <div class="feature-icon">🤝</div>
+                    <h3>Community Support</h3>
+                    <p>Join the growing developer ecosystem sharing open-source models and best practices.</p>
+                </div>
+            </div>
+        </div>
+
+    </section>
+
+    <footer>
+        <div class="footer-content">
+            <a href="index.html" class="logo">AeroByte<span class="accent">.shop</span></a>
+            <p>&copy; 2026 AeroByte Software. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script type="module" src="script.js"></script>
+</body>
+</html>
