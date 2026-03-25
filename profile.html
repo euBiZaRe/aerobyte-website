@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="AeroByte: Your Profile">
+    <title>AeroByte Premium | Profile</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">AeroByte<span class="accent">.pro</span></a>
+            <ul class="nav-links">
+                <li><a href="index.html#features">Features</a></li>
+                <li><a href="index.html#pricing">Pricing</a></li>
+                <li><a href="index.html#download">Download</a></li>
+                <li><a href="faq.html">FAQ</a></li>
+                <li><a href="#" class="btn-primary login-btn">Profile</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <header class="hero" style="min-height: 20vh; padding-top: 150px; padding-bottom: 20px;">
+        <div class="hero-content" style="max-width: 800px; margin: 0 auto; text-align: center;">
+            <h1 class="main-title">Your <span class="gradient-text">Profile</span></h1>
+        </div>
+    </header>
+
+    <section id="profile" class="profile-section" style="max-width: 800px; margin: 0 auto; padding: 40px 20px 100px;">
+        <div class="profile-dashboard glass-panel">
+            <div class="profile-header">
+                <h2>Account Details</h2>
+                <div class="user-email-display" id="profileEmail">Loading...</div>
+            </div>
+            
+            <div class="profile-plan-info">
+                <div class="plan-label">Current Plan</div>
+                <div class="plan-badge basic-badge">Free</div>
+            </div>
+            
+            <div class="profile-actions">
+                <a href="index.html#pricing" class="btn-primary glow-btn upgrade-cta">Upgrade to Professional</a>
+                <button class="btn-secondary profile-logout-btn" id="profileLogoutBtn">Sign Out</button>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="footer-content">
+            <a href="index.html" class="logo">AeroByte<span class="accent">.pro</span></a>
+            <p>&copy; 2026 AeroByte Software. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script type="module" src="script.js"></script>
+</body>
+</html>

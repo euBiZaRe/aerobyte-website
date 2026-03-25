@@ -91,17 +91,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Open Auth Modal
     const openAuthModal = (e) => {
-        if(e) e.preventDefault();
-        // If user is already logged in, this button acts as sign out
+        // If user is already logged in, we let the href navigate naturally to profile
         if(auth.currentUser) {
-            signOut(auth).then(() => {
-                alert('You have successfully signed out.');
-            }).catch((error) => {
-                console.error('Sign Out Error', error);
-            });
             return;
         }
         
+        if(e) e.preventDefault();
         if (authModal) {
             authModal.classList.add('active');
             document.body.style.overflow = 'hidden';
@@ -199,22 +194,47 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Auth State Listener
     onAuthStateChanged(auth, (user) => {
+        // Redirect if on profile page and not logged in
+        const isProfilePage = window.location.pathname.includes('profile.html');
+        if (isProfilePage && !user) {
+            window.location.href = 'index.html';
+            return;
+        }
+
         loginBtns.forEach(btn => {
             if (user) {
-                btn.textContent = 'Sign Out (' + user.email.split('@')[0] + ')';
+                btn.textContent = 'Profile';
+                btn.href = 'profile.html';
                 btn.style.background = 'transparent';
-                btn.style.border = '1px solid #ff4d4d';
-                btn.style.color = '#ff4d4d';
+                btn.style.border = '1px solid var(--border-color)';
+                btn.style.color = 'var(--text-main)';
                 btn.style.boxShadow = 'none';
             } else {
                 btn.textContent = 'Sign In';
+                btn.href = '#';
                 btn.style.background = 'var(--gradient-glow)';
                 btn.style.border = 'none';
                 btn.style.color = '#fff';
                 btn.style.boxShadow = '0 4px 15px rgba(138, 43, 226, 0.3)';
             }
         });
+
+        // Profile Page specific logic
+        if (isProfilePage && user) {
+            const profileEmail = document.getElementById('profileEmail');
+            if (profileEmail) profileEmail.textContent = user.email;
+        }
     });
+
+    // Profile Page Logout Button
+    const profileLogoutBtn = document.getElementById('profileLogoutBtn');
+    if (profileLogoutBtn) {
+        profileLogoutBtn.addEventListener('click', () => {
+            signOut(auth).then(() => {
+                window.location.href = 'index.html';
+            }).catch(console.error);
+        });
+    }
 
     // Smooth Scrolling for anchor links
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
