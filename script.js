@@ -23,6 +23,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const checkoutForm = document.getElementById('checkoutForm');
     const payBtn = document.querySelector('.pay-btn');
     const isProfilePage = window.location.pathname.includes('profile.html');
+    const loginBtns = document.querySelectorAll('.login-btn');
+
+    // --- IMMEDIATE UI FIX (FLICKER PROTECTION) ---
+    if (localStorage.getItem('isLoggedIn') === 'true') {
+        loginBtns.forEach(btn => {
+            btn.textContent = 'Profile';
+            btn.href = 'profile.html';
+            btn.style.background = 'transparent';
+            btn.style.border = '1px solid var(--border-color)';
+            btn.style.color = 'var(--text-main)';
+            btn.style.boxShadow = 'none';
+        });
+    }
 
     // Open Modal Function
     const openModal = (e) => {
