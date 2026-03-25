@@ -2,7 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCl-SEIc2IWYFvz5mdUJSe8WNsrHoI1tsc",
+  apiKey: "AIzaSyCl-SEIc2IWYFvz5mdUJsE8WNsrHoI1tsc",
   authDomain: "aerobytebot.firebaseapp.com",
   projectId: "aerobytebot",
   storageBucket: "aerobytebot.firebasestorage.app",
