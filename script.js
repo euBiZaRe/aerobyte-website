@@ -167,30 +167,45 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Open Auth Modal
     const openAuthModal = (e) => {
-        // If user is already logged in, we let the href navigate naturally to profile
-        if(auth.currentUser) {
-            return;
-        }
-        
+        if(auth.currentUser) return;
         if(e) e.preventDefault();
-        if (authModal) {
-            authModal.classList.add('active');
+        const modal = document.getElementById('authModal');
+        if (modal) {
+            modal.classList.remove('hidden'); // Hardening: ensure hidden class doesn't block
+            modal.classList.add('active');
             document.body.style.overflow = 'hidden';
         }
     };
 
     // Close Auth Modal
     const closeAuthModalFn = () => {
-        if (!authModal) return;
-        authModal.classList.remove('active');
+        const modal = document.getElementById('authModal');
+        if (!modal) return;
+        modal.classList.remove('active');
         document.body.style.overflow = 'auto';
         setTimeout(() => {
-            if (authForm) authForm.reset();
-            if (authErrorMsg) authErrorMsg.style.display = 'none';
+            const form = document.getElementById('authForm');
+            const error = document.getElementById('authErrorMsg');
+            if (form) form.reset();
+            if (error) error.style.display = 'none';
         }, 300);
     };
 
-    if (loginBtns) loginBtns.forEach(btn => btn.addEventListener('click', openAuthModal));
+    // --- EVENT DELEGATION (Fixes "Sign In button not working") ---
+    document.body.addEventListener('click', (e) => {
+        if (e.target.classList.contains('login-btn')) {
+            openAuthModal(e);
+        }
+        if (e.target.closest('#copyKeyBtn')) {
+            const key = document.getElementById('licenseKeyDisplay').innerText;
+            navigator.clipboard.writeText(key).then(() => {
+                const icon = e.target.closest('#copyKeyBtn').querySelector('i');
+                icon.className = 'fas fa-check';
+                setTimeout(() => { icon.className = 'fas fa-copy'; }, 2000);
+            });
+        }
+    });
+
     if (closeAuthBtn) closeAuthBtn.addEventListener('click', closeAuthModalFn);
     
     if (authModal) {
@@ -326,6 +341,21 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     
                     planBadge.textContent = plan + " Plan";
+
+                    // License Key Logic
+                    const licenseKeyContainer = document.getElementById('licenseKeyContainer');
+                    const licenseKeyDisplay = document.getElementById('licenseKeyDisplay');
+                    if (licenseKeyContainer && licenseKeyDisplay) {
+                        if (plan !== "Free") {
+                            licenseKeyContainer.style.display = "block";
+                            // Generate a consistent key based on UID suffix
+                            const keySuffix = user.uid.substring(0, 4).toUpperCase();
+                            const planPrefix = plan.substring(0, 2).toUpperCase();
+                            licenseKeyDisplay.textContent = `AB-${planPrefix}-${keySuffix}-2026`;
+                        } else {
+                            licenseKeyContainer.style.display = "none";
+                        }
+                    }
 
                     // Handle Countdown for Trial and Premium
                     let countdownText = "";

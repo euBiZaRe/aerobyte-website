@@ -49,9 +49,19 @@
                 </div>
             </div>
 
-            <div class="profile-plan-info">
-                <div class="plan-label">Current Plan</div>
-                <div class="plan-badge basic-badge">Free</div>
+            <div class="profile-plan-info" style="display: flex; justify-content: space-between; align-items: center; gap: 20px;">
+                <div style="flex: 1;">
+                    <div class="plan-label">Current Plan</div>
+                    <div class="plan-badge basic-badge">Free</div>
+                </div>
+                <!-- Your Key Section (Visible for non-free users) -->
+                <div id="licenseKeyContainer" style="display: none; flex: 1; text-align: right;">
+                    <div class="plan-label">Your License Key</div>
+                    <div style="display: flex; align-items: center; gap: 8px; justify-content: flex-end;">
+                        <code id="licenseKeyDisplay" style="background: rgba(255,255,255,0.05); padding: 5px 10px; border-radius: 6px; font-family: monospace; border: 1px solid rgba(255,255,255,0.1); color: var(--secondary);">AB-XXXX-XXXX</code>
+                        <button id="copyKeyBtn" style="background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.9rem;" title="Copy Key"><i class="fas fa-copy"></i></button>
+                    </div>
+                </div>
             </div>
 
             <div class="profile-discord-info"
