@@ -138,15 +138,57 @@ document.addEventListener('DOMContentLoaded', () => {
             payBtn.disabled = true;
             
             setTimeout(() => {
-                // Simulate success state
-                payBtn.textContent = 'Payment Successful! ✓';
-                payBtn.style.background = '#10B981'; // Success green
-                
-                // Close modal after success
-                setTimeout(() => {
-                    closeModal();
-                    alert('Thank you for upgrading to AeroByte Professional! Your premium model training features have been unlocked.');
-                }, 1500);
+                // --- AUTOMATED FULFILLMENT ---
+                const finalizeCheckout = async () => {
+                    if (auth.currentUser) {
+                        const uid = auth.currentUser.uid;
+                        const plan = "Premium";
+                        const expiresAt = Date.now() + (30 * 24 * 60 * 60 * 1000); // 30 Days
+
+                        // Generate Key
+                        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+                        const rand = (len) => Array.from({length: len}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+                        const newKey = `AB-PR-${rand(4)}-${rand(4)}-2026`;
+
+                        try {
+                            // 1. Update User Doc
+                            await updateDoc(doc(db, "users", uid), {
+                                plan: plan,
+                                expiresAt: expiresAt,
+                                licenseKey: newKey
+                            });
+                            // 2. Register Global License
+                            await setDoc(doc(db, "licenses", newKey), {
+                                userId: uid,
+                                plan: plan,
+                                status: "active",
+                                createdAt: Date.now()
+                            });
+                            
+                            payBtn.textContent = 'Payment Successful! ✓';
+                            payBtn.style.background = '#10B981';
+                            
+                            setTimeout(() => {
+                                closeModal();
+                                alert('Thank you for upgrading to AeroByte Professional! Your Premium License Key has been generated and added to your profile.');
+                                if (window.location.pathname.includes('profile.html')) {
+                                    window.location.reload(); // Refresh if on profile
+                                } else {
+                                    window.location.href = 'profile.html'; // Go to profile to see the key
+                                }
+                            }, 1500);
+                        } catch(err) {
+                            alert("Fulfillment Error: User authenticated but database update failed. (" + err.message + ")");
+                            payBtn.textContent = 'Pay $15.00';
+                            payBtn.disabled = false;
+                        }
+                    } else {
+                        alert("Please Sign In first to complete your purchase!");
+                        payBtn.textContent = 'Pay $15.00';
+                        payBtn.disabled = false;
+                    }
+                };
+                finalizeCheckout();
                 
             }, 1500);
         });
