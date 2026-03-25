@@ -368,10 +368,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (licenseKeyContainer && licenseKeyDisplay) {
                         if (plan !== "Free") {
                             licenseKeyContainer.style.display = "block";
-                            // Generate a consistent key based on UID suffix
-                            const keySuffix = user.uid.substring(0, 4).toUpperCase();
-                            const planPrefix = plan.substring(0, 2).toUpperCase();
-                            const actualKey = `AB-${planPrefix}-${keySuffix}-2026`;
+                            const actualKey = userData.licenseKey || "AB-WAIT-FOR-ADMIN-2026";
                             
                             licenseKeyDisplay.setAttribute('data-key', actualKey);
                             licenseKeyDisplay.textContent = '••••••••'; // Stay hidden by default
@@ -570,9 +567,14 @@ document.addEventListener('DOMContentLoaded', () => {
                             expiresText = "N/A";
                         }
 
+                        const keyDisplay = data.licenseKey ? 
+                            `<code style="font-family:monospace; background:rgba(255,255,255,0.05); padding:2px 6px; border-radius:4px;">${data.licenseKey}</code>` : 
+                            `<button class="btn-primary action-gen-key" data-uid="${docSnap.id}" data-plan="${data.plan}" style="padding:4px 8px; font-size:0.7rem; background:transparent; border:1px solid var(--secondary); color:var(--secondary);">Generate</button>`;
+
                         tr.innerHTML = `
                             <td>${data.email}</td>
                             <td><span class="plan-badge ${data.plan==='Premium'?'':'basic-badge'}" style="${data.plan==='Premium'?'background:var(--gradient-glow);border:none;color:#fff;':''}">${data.plan}</span></td>
+                            <td>${keyDisplay}</td>
                             <td style="${expiresText==='Expired!'?'color:#ff4d4d':''}">${expiresText}</td>
                             <td style="display:flex; gap:10px;">
                                 <select class="action-plan" data-uid="${docSnap.id}">
@@ -628,6 +630,42 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 tbody.addEventListener('click', async (e) => {
+                    // --- GENERATE KEY HANDLER ---
+                    if (e.target.classList.contains('action-gen-key')) {
+                        const uid = e.target.getAttribute('data-uid');
+                        const plan = e.target.getAttribute('data-plan');
+                        if (plan === 'Free') {
+                            alert("Cannot generate keys for Free users.");
+                            return;
+                        }
+
+                        const genKey = () => {
+                            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+                            const rand = (len) => Array.from({length: len}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+                            const p = plan.substring(0, 2).toUpperCase();
+                            return `AB-${p}-${rand(4)}-${rand(4)}-2026`;
+                        };
+
+                        const newKey = genKey();
+                        e.target.textContent = 'Generating...';
+                        
+                        try {
+                            await updateDoc(doc(db, "users", uid), { licenseKey: newKey });
+                            // Also register in global licenses collection for app-lookup
+                            await setDoc(doc(db, "licenses", newKey), {
+                                userId: uid,
+                                plan: plan,
+                                status: "active",
+                                createdAt: Date.now()
+                            });
+                            getUsers(); // Refresh
+                        } catch(err) {
+                            alert("Error generating key: " + err.message);
+                            e.target.textContent = 'Generate';
+                        }
+                        return;
+                    }
+
                     if (e.target.classList.contains('action-save')) {
                         const uid = e.target.getAttribute('data-uid');
                         const parent = e.target.parentElement;
