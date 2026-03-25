@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, collection, query, where, getDocs, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { getFirestore, doc, setDoc, getDoc, collection, query, where, getDocs, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCl-SEIc2IWYFvz5mdUJsE8WNsrHoI1tsc",
@@ -327,6 +327,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 </select>
                                 <input type="number" class="action-custom" placeholder="Days" style="display:none; width:80px; padding:5px; border-radius:4px; border:1px solid var(--border-color); background:rgba(0,0,0,0.5); color:#fff;">
                                 <button class="btn-primary action-save" data-uid="${docSnap.id}" style="padding:6px 12px; font-size:0.8rem; border-radius:6px;">Save</button>
+                                <button class="action-delete" data-uid="${docSnap.id}" data-email="${data.email}" style="padding:6px 12px; font-size:0.8rem; border-radius:6px; background:rgba(255,77,77,0.1); border:1px solid #ff4d4d; color:#ff4d4d; cursor:pointer; font-weight:bold;">Delete</button>
                             </td>
                         `;
                         tbody.appendChild(tr);
@@ -395,6 +396,26 @@ document.addEventListener('DOMContentLoaded', () => {
                             console.error(err);
                             alert("Error saving: " + err.message);
                             e.target.textContent = 'Save';
+                        }
+                    }
+
+                    if (e.target.classList.contains('action-delete')) {
+                        const uid = e.target.getAttribute('data-uid');
+                        const email = e.target.getAttribute('data-email');
+                        
+                        if (confirm(`Are you sure you want to remove ${email} from the database? This will reset their plan to Free.`)) {
+                            e.target.textContent = 'Deleting...';
+                            e.target.disabled = true;
+                            
+                            try {
+                                await deleteDoc(doc(db, "users", uid));
+                                setTimeout(() => getUsers(), 500); // Reload table
+                            } catch (err) {
+                                console.error(err);
+                                alert("Error deleting user: " + err.message);
+                                e.target.textContent = 'Delete';
+                                e.target.disabled = false;
+                            }
                         }
                     }
                 });
