@@ -1,0 +1,9 @@
+# Firebase & Discord Secrets
+serviceAccountKey.json
+discord_sync_bot.py
+discord_sync_bot_universal.py
+*.json
+!package.json
+!manifest.json
+node_modules/
+.env

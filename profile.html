@@ -1,13 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="AeroByte: Your Profile">
     <title>AeroByte Premium | Profile</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Outfit:wght@800;900&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
     <nav class="navbar">
         <div class="nav-container">
@@ -17,6 +21,9 @@
                 <li><a href="index.html#pricing">Pricing</a></li>
                 <li><a href="index.html#download">Download</a></li>
                 <li><a href="faq.html">FAQ</a></li>
+                <li><a href="credits.html">Credits</a></li>
+                <li><a href="https://discord.com/invite/tDp5hTQrzM" target="_blank" title="Join Our Server"
+                        style="font-size: 1.2rem; color: #5865F2;"><i class="fab fa-discord"></i></a></li>
                 <li><a href="#" class="btn-primary login-btn">Profile</a></li>
             </ul>
         </div>
@@ -30,36 +37,55 @@
 
     <section id="profile" class="profile-section" style="max-width: 800px; margin: 0 auto; padding: 40px 20px 100px;">
         <div class="profile-dashboard glass-panel">
-            <div class="profile-header">
-                <h2>Account Details</h2>
-                <div class="user-email-display" id="profileEmail">Loading...</div>
+            <div class="profile-header" style="text-align: center; margin-bottom: 30px;">
+                <div class="status-indicator"
+                    style="display: inline-flex; align-items: center; gap: 8px; background: rgba(16, 185, 129, 0.1); color: #10B981; padding: 5px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px;">
+                    <span
+                        style="width: 8px; height: 8px; background: #10B981; border-radius: 50%; box-shadow: 0 0 10px #10B981;"></span>
+                    Logged In
+                </div>
+                <h2 style="font-size: 1.8rem; margin-bottom: 5px;">Welcome Back</h2>
+                <div class="user-email-display" id="profileEmail" style="opacity: 0.7; font-size: 1.1rem;">Loading...
+                </div>
             </div>
-            
+
             <div class="profile-plan-info">
                 <div class="plan-label">Current Plan</div>
                 <div class="plan-badge basic-badge">Free</div>
             </div>
 
-            <div class="profile-discord-info" style="margin-top: 30px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.05); text-align: left;">
-                <label for="discordIdInput" style="display: block; color: var(--text-muted); font-size: 0.85rem; margin-bottom: 8px;">Discord User ID (For Role Sync)</label>
-                <div style="display: flex; gap: 10px;">
-                    <input type="text" id="discordIdInput" placeholder="Ex: 123456789012345678" style="flex: 1; padding: 10px 15px; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.3); color: #fff;">
-                    <button id="saveDiscordBtn" class="btn-primary" style="padding: 10px 20px; font-size: 0.9rem; border-radius: 8px;">Save</button>
+            <div class="profile-discord-info"
+                style="margin-top: 30px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.05); text-align: left;">
+                <label style="display: block; color: var(--text-muted); font-size: 0.85rem; margin-bottom: 8px;">Discord
+                    Integration</label>
+                <div id="discordLinkContainer"
+                    style="display: flex; flex-direction: column; gap: 15px; align-items: flex-start;">
+                    <button id="linkDiscordBtn" class="btn-primary"
+                        style="padding: 10px 20px; font-size: 0.9rem; border-radius: 8px; background: #5865F2; border: none; font-weight: bold; cursor: pointer;">
+                        Link Discord Account
+                    </button>
+                    <p id="discordStatusMsg"
+                        style="margin: 0; font-size: 0.85rem; display: none; color: #10B981; font-weight: 600;"></p>
                 </div>
-                <p id="discordStatusMsg" style="margin-top: 10px; font-size: 0.8rem; display: none;"></p>
-                <p style="color: var(--text-muted); font-size: 0.75rem; margin-top: 8px;">To find your ID: User Settings -> Advanced -> Turn on Developer Mode. Then right-click your profile and "Copy User ID".</p>
+                <p style="color: var(--text-muted); font-size: 0.75rem; margin-top: 12px; line-height: 1.4;">Automate
+                    your roles! Linking your Discord account will sync your AeroByte subscription to your community
+                    profile instantly.</p>
             </div>
-            
+
             <div class="profile-actions">
                 <a href="index.html#pricing" class="btn-primary glow-btn upgrade-cta">Upgrade to Professional</a>
                 <button class="btn-secondary profile-logout-btn" id="profileLogoutBtn">Sign Out</button>
             </div>
 
             <!-- Secret Admin Dashboard Route -->
-            <div id="adminPanelLaunch" style="display: none; margin-top: 40px; padding-top: 30px; border-top: 1px solid rgba(255,255,255,0.1); text-align: center;">
+            <div id="adminPanelLaunch"
+                style="display: none; margin-top: 40px; padding-top: 30px; border-top: 1px solid rgba(255,255,255,0.1); text-align: center;">
                 <h3 style="color: #ff4d4d; margin-bottom: 15px; font-size: 1.2rem;">🛡️ Administrator God-Mode</h3>
-                <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 25px;">Enter the restricted database interface to inspect, manage, and distribute premium subscriptions.</p>
-                <a href="admin.html" class="btn-primary" style="display:inline-block; border: 1px solid #ff4d4d; background: rgba(255,77,77,0.1); color: #ff4d4d; border-radius: 8px; padding: 12px 35px; font-weight: bold; text-decoration:none;">Open Admin Dashboard</a>
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 25px;">Enter the restricted
+                    database interface to inspect, manage, and distribute premium subscriptions.</p>
+                <a href="admin.html" class="btn-primary"
+                    style="display:inline-block; border: 1px solid #ff4d4d; background: rgba(255,77,77,0.1); color: #ff4d4d; border-radius: 8px; padding: 12px 35px; font-weight: bold; text-decoration:none;">Open
+                    Admin Dashboard</a>
             </div>
         </div>
     </section>
@@ -67,10 +93,16 @@
     <footer>
         <div class="footer-content">
             <a href="index.html" class="logo">AeroByte<span class="accent">.shop</span></a>
+            <div
+                style="margin: 10px 0; display: flex; gap: 20px; justify-content: center; font-size: 0.9rem; opacity: 0.7;">
+                <a href="faq.html" style="color: #fff; text-decoration: none;">FAQ</a>
+                <a href="credits.html" style="color: #fff; text-decoration: none;">Credits</a>
+            </div>
             <p>&copy; 2026 AeroByte Software. All rights reserved.</p>
         </div>
     </footer>
 
     <script type="module" src="script.js"></script>
 </body>
+
 </html>

@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeModalBtn = document.querySelector('.close-modal');
     const checkoutForm = document.getElementById('checkoutForm');
     const payBtn = document.querySelector('.pay-btn');
+    const isProfilePage = window.location.pathname.includes('profile.html');
 
     // Open Modal Function
     const openModal = (e) => {
@@ -206,7 +207,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Auth State Listener
     onAuthStateChanged(auth, (user) => {
         // Redirect if on profile page and not logged in
-        const isProfilePage = window.location.pathname.includes('profile.html');
         if (isProfilePage && !user) {
             window.location.href = 'index.html';
             return;
@@ -241,21 +241,23 @@ document.addEventListener('DOMContentLoaded', () => {
             if (planBadge) {
                 planBadge.textContent = "Loading...";
                 getDoc(doc(db, "users", user.uid)).then(async (userDoc) => {
+                    let userData = { plan: "Free" };
                     let plan = "Free";
                     if (userDoc.exists()) {
-                        let userData = userDoc.data();
+                        userData = userDoc.data();
                         plan = userData.plan || "Free";
                         
                         // Self-enforcing Expiration Downgrader!
                         if (plan === "Premium" && userData.expiresAt) {
                             if (Date.now() > userData.expiresAt) {
-                                plan = "Free"; // Terminate access locally and overwrite it globally!
+                                plan = "Free"; 
                                 await updateDoc(doc(db, "users", user.uid), { plan: "Free", expiresAt: null });
                             }
                         }
                     } else {
-                        // Self-healing for old accounts that registered before database was added
-                        await setDoc(doc(db, "users", user.uid), { email: user.email, plan: "Free" });
+                        // Self-healing for new accounts
+                        userData = { email: user.email, plan: "Free" };
+                        await setDoc(doc(db, "users", user.uid), userData);
                     }
                     
                     planBadge.textContent = plan + " Plan";
@@ -313,10 +315,103 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (upgradeCta) upgradeCta.style.display = "inline-block";
                     }
 
-                    // Discord ID Loading
-                    const discordIdInput = document.getElementById('discordIdInput');
-                    if (discordIdInput && userData.discordId) {
-                        discordIdInput.value = userData.discordId;
+                    // Discord Integration Status
+                    const discordLinkContainer = document.getElementById('discordLinkContainer');
+                    const discordStatusMsg = document.getElementById('discordStatusMsg');
+                    const linkDiscordBtn = document.getElementById('linkDiscordBtn');
+
+                    if (userData.discordId) {
+                        if (linkDiscordBtn) {
+                            linkDiscordBtn.innerHTML = 'Re-link';
+                            linkDiscordBtn.style.padding = '5px 15px';
+                            linkDiscordBtn.style.fontSize = '0.75rem';
+                            linkDiscordBtn.style.width = 'auto';
+                            linkDiscordBtn.style.alignSelf = 'flex-start';
+                        }
+                        if (discordStatusMsg) {
+                            const avatarUrl = userData.discordAvatar 
+                                ? `https://cdn.discordapp.com/avatars/${userData.discordId}/${userData.discordAvatar}.png`
+                                : '';
+                            
+                            const initials = (userData.discordUsername || "A").charAt(0).toUpperCase();
+
+                            discordStatusMsg.innerHTML = `
+                                <div style="display: flex; align-items: center; gap: 12px; background: rgba(88, 101, 242, 0.1); padding: 10px; border-radius: 12px; border: 1px solid rgba(88, 101, 242, 0.2);">
+                                    ${avatarUrl 
+                                        ? `<img src="${avatarUrl}" style="width: 36px; height: 36px; border-radius: 50%; border: 2px solid #5865F2;">` 
+                                        : `<div style="width: 36px; height: 36px; border-radius: 50%; background: #5865F2; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #fff; font-size: 1.1rem; border: 2px solid rgba(255,255,255,0.1);">${initials}</div>`
+                                    }
+                                    <div style="text-align: left;">
+                                        <div style="font-weight: 700; color: #fff; font-size: 0.95rem;">${userData.discordUsername || "Verified Account"}</div>
+                                        <div style="font-size: 0.75rem; color: #10B981;">● Account Connected</div>
+                                    </div>
+                                </div>
+                            `;
+                            discordStatusMsg.style.display = 'block';
+                            discordStatusMsg.style.color = 'inherit';
+                        }
+                    }
+
+                    // --- Handle OAuth Redirect Result (Inside Auth Listener) ---
+                    const hash = window.location.hash;
+                    if (hash.includes('access_token=') && isProfilePage) {
+                        const params = new URLSearchParams(hash.substring(1));
+                        const accessToken = params.get('access_token');
+                        
+                        if (accessToken) {
+                            // Clean URL instantly
+                            window.history.replaceState({}, document.title, window.location.pathname);
+                            
+                            if (discordStatusMsg) {
+                                discordStatusMsg.textContent = 'Verifying Discord account...';
+                                discordStatusMsg.style.display = 'block';
+                                discordStatusMsg.style.color = '#fff';
+                            }
+
+                            // Fetch Discord Profile
+                            fetch('https://discord.com/api/users/@me', {
+                                headers: { 'Authorization': `Bearer ${accessToken}` }
+                            })
+                            .then(res => res.json())
+                            .then(async discordUser => {
+                                if (!discordUser.id) throw new Error("Discord API error");
+
+                                // Save to Firebase
+                                await updateDoc(doc(db, "users", user.uid), {
+                                    discordId: discordUser.id,
+                                    discordUsername: discordUser.username,
+                                    discordAvatar: discordUser.avatar || null
+                                });
+
+                                if (discordStatusMsg) {
+                                    const tempAvatar = discordUser.avatar 
+                                        ? `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png?size=256`
+                                        : '';
+                                    
+                                    discordStatusMsg.innerHTML = `
+                                        <div style="display: flex; align-items: center; gap: 12px; background: rgba(88, 101, 242, 0.2); padding: 10px; border-radius: 12px; border: 2px solid #5865F2;">
+                                            ${tempAvatar 
+                                                ? `<img src="${tempAvatar}" style="width: 36px; height: 36px; border-radius: 50%; border: 2px solid #5865F2;">` 
+                                                : `<div style="width: 36px; height: 36px; border-radius: 50%; background: #5865F2; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #fff;">${discordUser.username.charAt(0).toUpperCase()}</div>`
+                                            }
+                                            <div style="text-align: left;">
+                                                <div style="font-weight: 700; color: #fff; font-size: 0.95rem;">${discordUser.username}</div>
+                                                <div style="font-size: 0.75rem; color: #10B981;">● Saving Profile...</div>
+                                            </div>
+                                        </div>
+                                    `;
+                                    
+                                    setTimeout(() => window.location.reload(), 1500);
+                                }
+                            })
+                            .catch(err => {
+                                console.error("Discord Link Error:", err);
+                                if (discordStatusMsg) {
+                                    discordStatusMsg.textContent = `Error: ${err.message || "Connection Failed"}`;
+                                    discordStatusMsg.style.color = '#ff4d4d';
+                                }
+                            });
+                        }
                     }
                 }).catch(err => {
                     console.error("Error fetching plan:", err);
@@ -527,41 +622,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Profile Page Logout Button
-    const saveDiscordBtn = document.getElementById('saveDiscordBtn');
-    if (saveDiscordBtn) {
-        saveDiscordBtn.addEventListener('click', async () => {
-            const discordId = document.getElementById('discordIdInput').value.trim();
-            const statusMsg = document.getElementById('discordStatusMsg');
-            const user = auth.currentUser;
+    // --- DISCORD OAUTH LOGIC ---
+    const DISCORD_CLIENT_ID = '1486472707825467463';
+    // Automatically detect redirect URI based on environment
+    const REDIRECT_URI = window.location.origin + window.location.pathname;
 
-            if (!user) return;
-            if (!discordId) {
-                alert("Please enter a valid Discord ID.");
-                return;
-            }
-
-            saveDiscordBtn.textContent = 'Saving...';
-            saveDiscordBtn.disabled = true;
-
-            try {
-                await updateDoc(doc(db, "users", user.uid), {
-                    discordId: discordId
-                });
-                statusMsg.style.color = '#10B981';
-                statusMsg.textContent = 'Discord ID linked! Your roles will sync shortly.';
-                statusMsg.style.display = 'block';
-            } catch (error) {
-                console.error(error);
-                statusMsg.style.color = '#ff4d4d';
-                statusMsg.textContent = 'Error: ' + error.message;
-                statusMsg.style.display = 'block';
-            } finally {
-                saveDiscordBtn.textContent = 'Save';
-                saveDiscordBtn.disabled = false;
-            }
+    const linkDiscordBtn = document.getElementById('linkDiscordBtn');
+    if (linkDiscordBtn) {
+        linkDiscordBtn.addEventListener('click', () => {
+            const oauthUrl = `https://discord.com/api/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=token&scope=identify`;
+            window.location.href = oauthUrl;
         });
     }
+
+    // (Discord OAuth handle moved inside Auth Listener for reliability)
 
     const profileLogoutBtn = document.getElementById('profileLogoutBtn');
     if (profileLogoutBtn) {
