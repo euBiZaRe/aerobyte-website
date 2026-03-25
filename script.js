@@ -214,6 +214,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         loginBtns.forEach(btn => {
             if (user) {
+                localStorage.setItem('isLoggedIn', 'true');
                 btn.textContent = 'Profile';
                 btn.href = 'profile.html';
                 btn.style.background = 'transparent';
@@ -221,6 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 btn.style.color = 'var(--text-main)';
                 btn.style.boxShadow = 'none';
             } else {
+                localStorage.removeItem('isLoggedIn');
                 btn.textContent = 'Sign In';
                 btn.href = '#';
                 btn.style.background = 'var(--gradient-glow)';
