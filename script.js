@@ -196,13 +196,33 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target.classList.contains('login-btn')) {
             openAuthModal(e);
         }
-        if (e.target.closest('#copyKeyBtn')) {
-            const key = document.getElementById('licenseKeyDisplay').innerText;
-            navigator.clipboard.writeText(key).then(() => {
-                const icon = e.target.closest('#copyKeyBtn').querySelector('i');
-                icon.className = 'fas fa-check';
-                setTimeout(() => { icon.className = 'fas fa-copy'; }, 2000);
-            });
+        
+        // --- LICENSE KEY TOGGLE/COPY LOGIC ---
+        const keyDisplay = document.getElementById('licenseKeyDisplay');
+        const toggleBtn = document.getElementById('toggleKeyBtn');
+        const copyBtn = e.target.closest('#copyKeyBtn');
+
+        // Toggle Visibility (Clicking text or eye icon)
+        if (e.target === keyDisplay || e.target.closest('#toggleKeyBtn')) {
+            const isHidden = keyDisplay.textContent.includes('•');
+            const actualKey = keyDisplay.getAttribute('data-key');
+            keyDisplay.textContent = isHidden ? actualKey : '••••••••';
+            const icon = document.querySelector('#toggleKeyBtn i');
+            if (icon) icon.className = isHidden ? 'fas fa-eye-slash' : 'fas fa-eye';
+            if (toggleBtn) toggleBtn.title = isHidden ? 'Hide Key' : 'Show Key';
+        }
+
+        // Copy Key (Always copies the REAL key even if hidden)
+        if (copyBtn) {
+            const actualKey = keyDisplay.getAttribute('data-key');
+            if (actualKey) {
+                navigator.clipboard.writeText(actualKey).then(() => {
+                    const icon = copyBtn.querySelector('i');
+                    const originalClass = icon.className;
+                    icon.className = 'fas fa-check';
+                    setTimeout(() => { icon.className = originalClass; }, 2000);
+                });
+            }
         }
     });
 
@@ -351,7 +371,10 @@ document.addEventListener('DOMContentLoaded', () => {
                             // Generate a consistent key based on UID suffix
                             const keySuffix = user.uid.substring(0, 4).toUpperCase();
                             const planPrefix = plan.substring(0, 2).toUpperCase();
-                            licenseKeyDisplay.textContent = `AB-${planPrefix}-${keySuffix}-2026`;
+                            const actualKey = `AB-${planPrefix}-${keySuffix}-2026`;
+                            
+                            licenseKeyDisplay.setAttribute('data-key', actualKey);
+                            licenseKeyDisplay.textContent = '••••••••'; // Stay hidden by default
                         } else {
                             licenseKeyContainer.style.display = "none";
                         }
