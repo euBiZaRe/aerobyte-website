@@ -676,6 +676,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 tbody.addEventListener('click', async (e) => {
                     // --- GENERATE KEY HANDLER ---
+                    // --- ADMIN LICENSE MASK TOGGLE ---
+                    if (e.target.classList.contains('admin-license-mask')) {
+                        const mask = e.target;
+                        const key = mask.getAttribute('data-key');
+                        mask.textContent = mask.textContent.includes('•') ? key : '••••••••';
+                        return;
+                    }
+
                     if (e.target.classList.contains('action-gen-key')) {
                         const uid = e.target.getAttribute('data-uid');
                         const plan = e.target.getAttribute('data-plan');
