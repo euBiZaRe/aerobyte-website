@@ -259,16 +259,64 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     
                     planBadge.textContent = plan + " Plan";
-                    if (plan === "Premium") {
-                        planBadge.style.background = "var(--gradient-glow)";
-                        planBadge.style.border = "none";
-                        planBadge.style.color = "#fff";
+
+                    // Handle Countdown for Trial and Premium
+                    let countdownText = "";
+                    if (userData.expiresAt) {
+                        const now = Date.now();
+                        const diff = userData.expiresAt - now;
+                        if (diff > 0) {
+                            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                            if (plan === "Trial") {
+                                countdownText = `Trial ends in: ${days}d, ${hours}h`;
+                            } else if (plan === "Premium") {
+                                countdownText = `Premium expires in: ${days}d`;
+                            }
+                        }
+                    }
+
+                    // Define Tier Styles
+                    const tierStyles = {
+                        "Owner": { background: "linear-gradient(135deg, #FFD700, #FF4500)", color: "#fff", border: "none" },
+                        "Media": { background: "linear-gradient(135deg, #00FFFF, #1E90FF)", color: "#fff", border: "none" },
+                        "Premium": { background: "var(--gradient-glow)", color: "#fff", border: "none" },
+                        "Trial": { background: "linear-gradient(135deg, #C0C0C0, #E5E4E2)", color: "#333", border: "none" }
+                    };
+
+                    if (tierStyles[plan]) {
+                        const style = tierStyles[plan];
+                        planBadge.style.background = style.background;
+                        planBadge.style.border = style.border;
+                        planBadge.style.color = style.color;
                         planBadge.classList.remove('basic-badge');
-                        if (upgradeCta) upgradeCta.style.display = "none";
+                        
+                        // Show countdown if applicable
+                        if (countdownText) {
+                            const countdownEl = document.createElement('div');
+                            countdownEl.style.fontSize = "0.8rem";
+                            countdownEl.style.marginTop = "8px";
+                            countdownEl.style.color = "var(--text-muted)";
+                            countdownEl.textContent = countdownText;
+                            planBadge.parentElement.appendChild(countdownEl);
+                        }
+
+                        // Hide Upgrade CTA for high tiers
+                        if (["Premium", "Owner", "Media"].includes(plan)) {
+                            if (upgradeCta) upgradeCta.style.display = "none";
+                        } else {
+                            if (upgradeCta) upgradeCta.style.display = "inline-block";
+                        }
                     } else {
                         planBadge.style.cssText = "";
                         planBadge.classList.add('basic-badge');
                         if (upgradeCta) upgradeCta.style.display = "inline-block";
+                    }
+
+                    // Discord ID Loading
+                    const discordIdInput = document.getElementById('discordIdInput');
+                    if (discordIdInput && userData.discordId) {
+                        discordIdInput.value = userData.discordId;
                     }
                 }).catch(err => {
                     console.error("Error fetching plan:", err);
@@ -316,9 +364,12 @@ document.addEventListener('DOMContentLoaded', () => {
                             <td style="display:flex; gap:10px;">
                                 <select class="action-plan" data-uid="${docSnap.id}">
                                     <option value="Premium" ${data.plan==='Premium'?'selected':''}>Premium</option>
-                                    <option value="Free" ${data.plan!=='Premium'?'selected':''}>Free</option>
+                                    <option value="Trial" ${data.plan==='Trial'?'selected':''}>Trial</option>
+                                    <option value="Media" ${data.plan==='Media'?'selected':''}>Media</option>
+                                    <option value="Owner" ${data.plan==='Owner'?'selected':''}>Owner</option>
+                                    <option value="Free" ${data.plan!=='Premium' && data.plan!=='Trial' && data.plan!=='Media' && data.plan!=='Owner'?'selected':''}>Free</option>
                                 </select>
-                                <select class="action-duration" style="${data.plan!=='Premium'?'display:none;':''}">
+                                <select class="action-duration" style="${data.plan!=='Premium' && data.plan!=='Trial'?'display:none;':''}">
                                     <option value="lifetime">Lifetime</option>
                                     <option value="30">30 Days</option>
                                     <option value="90">90 Days</option>
@@ -345,7 +396,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (e.target.classList.contains('action-plan')) {
                         const durationSelect = e.target.parentElement.querySelector('.action-duration');
                         const customInput = e.target.parentElement.querySelector('.action-custom');
-                        if (e.target.value === 'Premium') {
+                        if (e.target.value === 'Premium' || e.target.value === 'Trial') {
                             durationSelect.style.display = 'inline-block';
                             if(durationSelect.value === 'custom') customInput.style.display = 'inline-block';
                         } else {
@@ -374,10 +425,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         e.target.textContent = 'Saving...';
                         
                         let expiresAt = null;
-                        if (planVal === 'Premium' && durationVal !== 'lifetime') {
+                        if ((planVal === 'Premium' || planVal === 'Trial') && durationVal !== 'lifetime') {
                             let days = durationVal === 'custom' ? parseInt(customVal) : parseInt(durationVal);
                             if (!days || isNaN(days) || days < 1) {
-                                alert("Please enter a valid number of days for custom duration.");
+                                alert("Please enter a valid number of days.");
                                 e.target.textContent = 'Save';
                                 return;
                             }
@@ -477,6 +528,41 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Profile Page Logout Button
+    const saveDiscordBtn = document.getElementById('saveDiscordBtn');
+    if (saveDiscordBtn) {
+        saveDiscordBtn.addEventListener('click', async () => {
+            const discordId = document.getElementById('discordIdInput').value.trim();
+            const statusMsg = document.getElementById('discordStatusMsg');
+            const user = auth.currentUser;
+
+            if (!user) return;
+            if (!discordId) {
+                alert("Please enter a valid Discord ID.");
+                return;
+            }
+
+            saveDiscordBtn.textContent = 'Saving...';
+            saveDiscordBtn.disabled = true;
+
+            try {
+                await updateDoc(doc(db, "users", user.uid), {
+                    discordId: discordId
+                });
+                statusMsg.style.color = '#10B981';
+                statusMsg.textContent = 'Discord ID linked! Your roles will sync shortly.';
+                statusMsg.style.display = 'block';
+            } catch (error) {
+                console.error(error);
+                statusMsg.style.color = '#ff4d4d';
+                statusMsg.textContent = 'Error: ' + error.message;
+                statusMsg.style.display = 'block';
+            } finally {
+                saveDiscordBtn.textContent = 'Save';
+                saveDiscordBtn.disabled = false;
+            }
+        });
+    }
+
     const profileLogoutBtn = document.getElementById('profileLogoutBtn');
     if (profileLogoutBtn) {
         profileLogoutBtn.addEventListener('click', () => {

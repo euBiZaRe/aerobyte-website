@@ -39,6 +39,16 @@
                 <div class="plan-label">Current Plan</div>
                 <div class="plan-badge basic-badge">Free</div>
             </div>
+
+            <div class="profile-discord-info" style="margin-top: 30px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.05); text-align: left;">
+                <label for="discordIdInput" style="display: block; color: var(--text-muted); font-size: 0.85rem; margin-bottom: 8px;">Discord User ID (For Role Sync)</label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="discordIdInput" placeholder="Ex: 123456789012345678" style="flex: 1; padding: 10px 15px; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.3); color: #fff;">
+                    <button id="saveDiscordBtn" class="btn-primary" style="padding: 10px 20px; font-size: 0.9rem; border-radius: 8px;">Save</button>
+                </div>
+                <p id="discordStatusMsg" style="margin-top: 10px; font-size: 0.8rem; display: none;"></p>
+                <p style="color: var(--text-muted); font-size: 0.75rem; margin-top: 8px;">To find your ID: User Settings -> Advanced -> Turn on Developer Mode. Then right-click your profile and "Copy User ID".</p>
+            </div>
             
             <div class="profile-actions">
                 <a href="index.html#pricing" class="btn-primary glow-btn upgrade-cta">Upgrade to Professional</a>
