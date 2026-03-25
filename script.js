@@ -47,34 +47,38 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Event Listeners for closing modal
-    closeModalBtn.addEventListener('click', closeModal);
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            closeModal();
-        }
-    });
+    if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
+    if (modal) {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeModal();
+            }
+        });
+    }
 
     // Handle Form Submission (Simulated Checkout)
-    checkoutForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        
-        // Simulate processing state
-        payBtn.textContent = 'Processing...';
-        payBtn.disabled = true;
-        
-        setTimeout(() => {
-            // Simulate success state
-            payBtn.textContent = 'Payment Successful! ✓';
-            payBtn.style.background = '#10B981'; // Success green
+    if (checkoutForm) {
+        checkoutForm.addEventListener('submit', (e) => {
+            e.preventDefault();
             
-            // Close modal after success
+            // Simulate processing state
+            payBtn.textContent = 'Processing...';
+            payBtn.disabled = true;
+            
             setTimeout(() => {
-                closeModal();
-                alert('Thank you for upgrading to AeroByte Professional! Your premium model training features have been unlocked.');
+                // Simulate success state
+                payBtn.textContent = 'Payment Successful! ✓';
+                payBtn.style.background = '#10B981'; // Success green
+                
+                // Close modal after success
+                setTimeout(() => {
+                    closeModal();
+                    alert('Thank you for upgrading to AeroByte Professional! Your premium model training features have been unlocked.');
+                }, 1500);
+                
             }, 1500);
-            
-        }, 1500);
-    });
+        });
+    }
 
     // --- Authentication Logic ---
     const authModal = document.getElementById('authModal');
