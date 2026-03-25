@@ -302,6 +302,19 @@ a:hover {
     background: rgba(30, 36, 56, 0.8);
 }
 
+.feature.login-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(138, 43, 226, 0.4);
+}
+
+/* Auth State Hardening (Flicker Protection) */
+.login-btn[data-auth="logged-in"] {
+    background: transparent !important;
+    border: 1px solid var(--border-color) !important;
+    color: var(--text-main) !important;
+    box-shadow: none !important;
+}
+
 .glass-featured {
     background: var(--glass-bg);
     border: 1px solid rgba(0, 240, 255, 0.3);

@@ -27,14 +27,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- IMMEDIATE UI FIX (FLICKER PROTECTION) ---
     if (localStorage.getItem('isLoggedIn') === 'true') {
-        loginBtns.forEach(btn => {
-            btn.textContent = 'Profile';
-            btn.href = 'profile.html';
-            btn.style.background = 'transparent';
-            btn.style.border = '1px solid var(--border-color)';
-            btn.style.color = 'var(--text-main)';
-            btn.style.boxShadow = 'none';
-        });
+            loginBtns.forEach(btn => {
+                btn.textContent = 'Profile';
+                btn.href = 'profile.html';
+                btn.setAttribute('data-auth', 'logged-in');
+            });
     }
 
     // Open Modal Function
@@ -230,18 +227,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 localStorage.setItem('isLoggedIn', 'true');
                 btn.textContent = 'Profile';
                 btn.href = 'profile.html';
-                btn.style.background = 'transparent';
-                btn.style.border = '1px solid var(--border-color)';
-                btn.style.color = 'var(--text-main)';
-                btn.style.boxShadow = 'none';
+                btn.setAttribute('data-auth', 'logged-in');
             } else {
                 localStorage.removeItem('isLoggedIn');
                 btn.textContent = 'Sign In';
                 btn.href = '#';
-                btn.style.background = 'var(--gradient-glow)';
-                btn.style.border = 'none';
-                btn.style.color = '#fff';
-                btn.style.boxShadow = '0 4px 15px rgba(138, 43, 226, 0.3)';
+                btn.removeAttribute('data-auth');
             }
         });
 
