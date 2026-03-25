@@ -360,7 +360,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         await setDoc(doc(db, "users", user.uid), userData);
                     }
                     
-                    planBadge.textContent = plan + " Plan";
+                    planBadge.textContent = plan === "Owner" ? "Owner" : plan + " Plan";
 
                     // License Key Logic
                     const licenseKeyContainer = document.getElementById('licenseKeyContainer');
