@@ -718,7 +718,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         
                         e.target.textContent = 'Resetting...';
                         try {
-                            await updateDoc(doc(db, "licenses", key), { hwid: null });
+                            await setDoc(doc(db, "licenses", key), { hwid: null }, { merge: true });
                             alert("HWID Reset Successful!");
                             getUsers();
                         } catch(err) {
