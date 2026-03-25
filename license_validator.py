@@ -5,6 +5,17 @@ import time
 # --- AERO_BYTE LICENSE VALIDATOR (CLIENT-SIDE SIMULATION) ---
 # This script demonstrates how your application can verify keys.
 
+import subprocess
+
+def get_hwid():
+    # Returns a unique Windows Hardware ID
+    try:
+        cmd = 'wmic csproduct get uuid'
+        uuid = subprocess.check_output(cmd, shell=True).decode().split('\n')[1].strip()
+        return uuid
+    except:
+        return "UNKNOWN_HWID"
+
 def validate_license(key_to_check):
     # 1. Initialize Firebase (Ensure you have your serviceAccountKey.json)
     if not firebase_admin._apps:
@@ -15,6 +26,7 @@ def validate_license(key_to_check):
             return f"❌ Configuration Error: Please ensure 'serviceAccountKey.json' is present. ({e})"
 
     db = firestore.client()
+    current_hwid = get_hwid()
 
     print(f"🔍 Validating License: {key_to_check}...")
 
@@ -27,9 +39,18 @@ def validate_license(key_to_check):
 
     lic_data = lic_doc.to_dict()
     user_id = lic_data.get('userId')
+    registered_hwid = lic_data.get('hwid') # Hardware ID bound to this key
     
     if not user_id:
         return "❌ Corrupt License: No user associated with this key."
+
+    # --- HWID LOCKING CHECK ---
+    if not registered_hwid:
+        # First-time use: Bind this key to this computer's HWID
+        lic_ref.update({'hwid': current_hwid})
+        print(f"🔗 First-run detected. Binding license to this hardware...")
+    elif registered_hwid != current_hwid:
+        return "❌ HWID Mismatch: This license is already in use on another computer.\nPlease contact support to reset your HWID."
 
     # 3. Check the user's actual subscription status and expiry
     user_ref = db.collection('users').document(user_id)

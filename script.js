@@ -610,7 +610,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
 
                         const keyDisplay = data.licenseKey ? 
-                            `<code style="font-family:monospace; background:rgba(255,255,255,0.05); padding:2px 6px; border-radius:4px;">${data.licenseKey}</code>` : 
+                            `<div style="display:flex; flex-direction:column; gap:5px;">
+                                <code style="font-family:monospace; background:rgba(255,255,255,0.05); padding:2px 6px; border-radius:4px;">${data.licenseKey}</code>
+                                <button class="action-reset-hwid" data-uid="${docSnap.id}" data-key="${data.licenseKey}" style="padding:2px 6px; font-size:0.6rem; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:var(--text-muted); cursor:pointer; border-radius:4px;">Reset HWID</button>
+                             </div>` : 
                             `<button class="btn-primary action-gen-key" data-uid="${docSnap.id}" data-plan="${data.plan}" style="padding:4px 8px; font-size:0.7rem; background:transparent; border:1px solid var(--secondary); color:var(--secondary);">Generate</button>`;
 
                         tr.innerHTML = `
@@ -704,6 +707,23 @@ document.addEventListener('DOMContentLoaded', () => {
                         } catch(err) {
                             alert("Error generating key: " + err.message);
                             e.target.textContent = 'Generate';
+                        }
+                        return;
+                    }
+
+                    // --- RESET HWID HANDLER ---
+                    if (e.target.classList.contains('action-reset-hwid')) {
+                        const key = e.target.getAttribute('data-key');
+                        if (!confirm("Are you sure you want to reset the HWID for this license? The user will be able to bind it to a new PC on their next launch.")) return;
+                        
+                        e.target.textContent = 'Resetting...';
+                        try {
+                            await updateDoc(doc(db, "licenses", key), { hwid: null });
+                            alert("HWID Reset Successful!");
+                            getUsers();
+                        } catch(err) {
+                            alert("Error resetting HWID: " + err.message);
+                            e.target.textContent = 'Reset HWID';
                         }
                         return;
                     }
