@@ -145,10 +145,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         const plan = "Premium";
                         const expiresAt = Date.now() + (30 * 24 * 60 * 60 * 1000); // 30 Days
 
-                        // Generate Key
+                        // Generate Key (4-4-4-4 unscrambled)
                         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
                         const rand = (len) => Array.from({length: len}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-                        const newKey = `AB-PR-${rand(4)}-${rand(4)}-2026`;
+                        const newKey = `${rand(4)}-${rand(4)}-${rand(4)}-${rand(4)}`;
 
                         try {
                             // 1. Update User Doc
