@@ -1,5 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc, collection, query, where, getDocs, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCl-SEIc2IWYFvz5mdUJsE8WNsrHoI1tsc",
@@ -13,6 +14,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+const db = getFirestore(app);
 
 document.addEventListener('DOMContentLoaded', () => {
     const modal = document.getElementById('checkoutModal');
@@ -178,7 +180,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
             } else {
                 createUserWithEmailAndPassword(auth, email, password)
-                    .then((userCredential) => {
+                    .then(async (userCredential) => {
+                        const user = userCredential.user;
+                        await setDoc(doc(db, "users", user.uid), {
+                            email: user.email,
+                            plan: "Free"
+                        });
                         closeAuthModalFn();
                         alert('Account created successfully! Welcome to AeroByte.');
                     })
@@ -227,6 +234,44 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isProfilePage && user) {
             const profileEmail = document.getElementById('profileEmail');
             if (profileEmail) profileEmail.textContent = user.email;
+
+            // Fetch user plan from Firestore
+            const planBadge = document.querySelector('.plan-badge');
+            const upgradeCta = document.querySelector('.upgrade-cta');
+            if (planBadge) {
+                planBadge.textContent = "Loading...";
+                getDoc(doc(db, "users", user.uid)).then(async (userDoc) => {
+                    let plan = "Free";
+                    if (userDoc.exists()) {
+                        plan = userDoc.data().plan || "Free";
+                    } else {
+                        // Self-healing for old accounts that registered before database was added
+                        await setDoc(doc(db, "users", user.uid), { email: user.email, plan: "Free" });
+                    }
+                    
+                    planBadge.textContent = plan + " Plan";
+                    if (plan === "Premium") {
+                        planBadge.style.background = "var(--gradient-glow)";
+                        planBadge.style.border = "none";
+                        planBadge.style.color = "#fff";
+                        planBadge.classList.remove('basic-badge');
+                        if (upgradeCta) upgradeCta.style.display = "none";
+                    } else {
+                        planBadge.style.cssText = "";
+                        planBadge.classList.add('basic-badge');
+                        if (upgradeCta) upgradeCta.style.display = "inline-block";
+                    }
+                }).catch(err => {
+                    console.error("Error fetching plan:", err);
+                    planBadge.textContent = "Free Plan";
+                });
+            }
+
+            // Reveal Admin Panel
+            if (user.email === 'aerobytebot@gmail.com') {
+                const adminPanel = document.getElementById('adminPanel');
+                if (adminPanel) adminPanel.style.display = 'block';
+            }
         }
     });
 
@@ -258,4 +303,44 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
+
+    // Admin Update User Plan Logic
+    const adminUpdateBtn = document.getElementById('adminUpdateBtn');
+    if (adminUpdateBtn) {
+        adminUpdateBtn.addEventListener('click', async () => {
+            const targetEmail = document.getElementById('adminUserEmail').value.trim();
+            const targetPlan = document.getElementById('adminPlanSelect').value;
+            const statusMsg = document.getElementById('adminStatusMsg');
+            
+            if (!targetEmail) return;
+            statusMsg.style.display = 'block';
+            statusMsg.style.color = '#fff';
+            statusMsg.textContent = "Searching database...";
+
+            try {
+                const usersRef = collection(db, "users");
+                const q = query(usersRef, where("email", "==", targetEmail));
+                const querySnapshot = await getDocs(q);
+
+                if (querySnapshot.empty) {
+                    statusMsg.style.color = '#ff4d4d';
+                    statusMsg.textContent = "User not found. They must log in at least once!";
+                    return;
+                }
+
+                querySnapshot.forEach(async (docSnapshot) => {
+                    await updateDoc(doc(db, "users", docSnapshot.id), {
+                        plan: targetPlan
+                    });
+                });
+
+                statusMsg.style.color = '#10B981';
+                statusMsg.textContent = `Successfully updated ${targetEmail} to ${targetPlan} Plan! Refresh your page to see if you updated yourself.`;
+            } catch (error) {
+                console.error(error);
+                statusMsg.style.color = '#ff4d4d';
+                statusMsg.textContent = "Error updating user: " + error.message;
+            }
+        });
+    }
 });
