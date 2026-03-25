@@ -612,7 +612,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         const keyDisplay = data.licenseKey ? 
                             `<div style="display:flex; flex-direction:column; gap:5px;">
                                 <code class="admin-license-mask" data-key="${data.licenseKey}" style="font-family:monospace; background:rgba(255,255,255,0.05); padding:2px 6px; border-radius:4px; cursor:pointer;" title="Click to Peek">••••••••</code>
-                                <button class="action-reset-hwid" data-uid="${docSnap.id}" data-key="${data.licenseKey}" style="padding:2px 6px; font-size:0.6rem; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:var(--text-muted); cursor:pointer; border-radius:4px;">Reset HWID</button>
+                                <div style="display:flex; gap:5px;">
+                                    <button class="action-reset-hwid" data-uid="${docSnap.id}" data-key="${data.licenseKey}" style="padding:2px 6px; font-size:0.6rem; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:var(--text-muted); cursor:pointer; border-radius:4px;">Reset HWID</button>
+                                    <button class="action-regen-key" data-uid="${docSnap.id}" data-key="${data.licenseKey}" data-plan="${data.plan}" style="padding:2px 6px; font-size:0.6rem; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:var(--text-muted); cursor:pointer; border-radius:4px;">Regen Key</button>
+                                </div>
                              </div>` : 
                             `<button class="btn-primary action-gen-key" data-uid="${docSnap.id}" data-plan="${data.plan}" style="padding:4px 8px; font-size:0.7rem; background:transparent; border:1px solid var(--secondary); color:var(--secondary);">Generate</button>`;
 
@@ -732,6 +735,47 @@ document.addEventListener('DOMContentLoaded', () => {
                         } catch(err) {
                             alert("Error resetting HWID: " + err.message);
                             e.target.textContent = 'Reset HWID';
+                        }
+                        return;
+                    }
+
+                    // --- REGENERATE KEY HANDLER ---
+                    if (e.target.classList.contains('action-regen-key')) {
+                        const uid = e.target.getAttribute('data-uid');
+                        const oldKey = e.target.getAttribute('data-key');
+                        const plan = e.target.getAttribute('data-plan');
+                        
+                        if (!confirm("Are you sure you want to regenerate this key? The old key will stop working immediately.")) return;
+
+                        const genKey = () => {
+                            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+                            const rand = (len) => Array.from({length: len}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+                            const p = plan.substring(0, 2).toUpperCase();
+                            return `AB-${p}-${rand(4)}-${rand(4)}-2026`;
+                        };
+
+                        const newKey = genKey();
+                        e.target.textContent = 'Regenerating...';
+                        
+                        try {
+                            // 1. Delete old global license
+                            if (oldKey) {
+                                await deleteDoc(doc(db, "licenses", oldKey));
+                            }
+                            // 2. Update User Doc with new key
+                            await updateDoc(doc(db, "users", uid), { licenseKey: newKey });
+                            // 3. Create new global license
+                            await setDoc(doc(db, "licenses", newKey), {
+                                userId: uid,
+                                plan: plan,
+                                status: "active",
+                                createdAt: Date.now()
+                            });
+                            alert("Key Successfully Regenerated!");
+                            getUsers(); // Refresh
+                        } catch(err) {
+                            alert("Error regenerating key: " + err.message);
+                            e.target.textContent = 'Regen Key';
                         }
                         return;
                     }
