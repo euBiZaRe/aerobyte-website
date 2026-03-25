@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="AeroByte: Protected Administrator Page">
+    <title>AeroByte Premium | Admin Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .admin-table {
+            width: 100%;
+            border-collapse: collapse;
+            color: #fff;
+            font-size: 0.95rem;
+        }
+        .admin-table th, .admin-table td {
+            text-align: left;
+            padding: 15px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .admin-table th {
+            background: rgba(0,0,0,0.3);
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            letter-spacing: 1px;
+        }
+        
+        /* Ensures action dropdowns and inputs blend seamlessly with the dark theme */
+        .admin-table select, .admin-table input {
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background: rgba(0,0,0,0.4);
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">AeroByte<span class="accent">.shop</span></a>
+            <ul class="nav-links">
+                <li><a href="features.html">Features</a></li>
+                <li><a href="index.html#pricing">Pricing</a></li>
+                <li><a href="index.html#download">Download</a></li>
+                <li><a href="faq.html">FAQ</a></li>
+                <li><a href="#" class="btn-primary login-btn">Profile</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <header class="hero" style="min-height: 10vh; padding-top: 130px; padding-bottom: 20px;">
+        <div class="hero-content" style="max-width: 1000px; margin: 0 auto; text-align: left;">
+            <p style="color:#ff4d4d; font-weight:bold; letter-spacing:2px; text-transform:uppercase; margin-bottom:5px;">🛡️ Administrator Level 0</p>
+            <h1 class="main-title" style="font-size: 3rem;">Master <span class="gradient-text">Database</span></h1>
+        </div>
+    </header>
+
+    <section class="admin-dashboard" style="max-width: 1100px; margin: 0 auto; padding: 20px 20px 100px;">
+        <div class="glass-panel" style="overflow-x: auto; padding: 0;">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>User Email</th>
+                        <th>Current Plan</th>
+                        <th>Expires In</th>
+                        <th>Administration Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="adminUsersTbody">
+                    <tr><td colspan="4" style="text-align:center; padding: 40px; color: var(--text-muted);">Securely fetching records from Firestore...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <footer>
+        <div class="footer-content">
+            <a href="index.html" class="logo">AeroByte<span class="accent">.shop</span></a>
+            <p>&copy; 2026 AeroByte Software. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script type="module" src="script.js"></script>
+</body>
+</html>

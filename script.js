@@ -243,7 +243,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 getDoc(doc(db, "users", user.uid)).then(async (userDoc) => {
                     let plan = "Free";
                     if (userDoc.exists()) {
-                        plan = userDoc.data().plan || "Free";
+                        let userData = userDoc.data();
+                        plan = userData.plan || "Free";
+                        
+                        // Self-enforcing Expiration Downgrader!
+                        if (plan === "Premium" && userData.expiresAt) {
+                            if (Date.now() > userData.expiresAt) {
+                                plan = "Free"; // Terminate access locally and overwrite it globally!
+                                await updateDoc(doc(db, "users", user.uid), { plan: "Free", expiresAt: null });
+                            }
+                        }
                     } else {
                         // Self-healing for old accounts that registered before database was added
                         await setDoc(doc(db, "users", user.uid), { email: user.email, plan: "Free" });
@@ -269,8 +278,126 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Reveal Admin Panel
             if (user.email === 'aerobytebot@gmail.com') {
-                const adminPanel = document.getElementById('adminPanel');
-                if (adminPanel) adminPanel.style.display = 'block';
+                const adminPanelLaunch = document.getElementById('adminPanelLaunch');
+                if (adminPanelLaunch) adminPanelLaunch.style.display = 'block';
+            }
+        }
+
+        // Dedicated Admin Page Specific Logic
+        const isAdminPage = window.location.pathname.includes('admin.html');
+        if (isAdminPage) {
+            if (!user || user.email !== 'aerobytebot@gmail.com') {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            const tbody = document.getElementById('adminUsersTbody');
+            const getUsers = async () => {
+                if(!tbody) return;
+                try {
+                    const snapshot = await getDocs(collection(db, "users"));
+                    tbody.innerHTML = '';
+                    snapshot.forEach(docSnap => {
+                        const data = docSnap.data();
+                        const tr = document.createElement('tr');
+                        
+                        let expiresText = "Never (Lifetime)";
+                        if (data.plan === "Premium" && data.expiresAt) {
+                            const daysLeft = Math.ceil((data.expiresAt - Date.now()) / (1000 * 60 * 60 * 24));
+                            expiresText = daysLeft > 0 ? `${daysLeft} Days` : "Expired!";
+                        } else if (data.plan === "Free") {
+                            expiresText = "N/A";
+                        }
+
+                        tr.innerHTML = `
+                            <td>${data.email}</td>
+                            <td><span class="plan-badge ${data.plan==='Premium'?'':'basic-badge'}" style="${data.plan==='Premium'?'background:var(--gradient-glow);border:none;color:#fff;':''}">${data.plan}</span></td>
+                            <td style="${expiresText==='Expired!'?'color:#ff4d4d':''}">${expiresText}</td>
+                            <td style="display:flex; gap:10px;">
+                                <select class="action-plan" data-uid="${docSnap.id}">
+                                    <option value="Premium" ${data.plan==='Premium'?'selected':''}>Premium</option>
+                                    <option value="Free" ${data.plan!=='Premium'?'selected':''}>Free</option>
+                                </select>
+                                <select class="action-duration" style="${data.plan!=='Premium'?'display:none;':''}">
+                                    <option value="lifetime">Lifetime</option>
+                                    <option value="30">30 Days</option>
+                                    <option value="90">90 Days</option>
+                                    <option value="365">1 Year</option>
+                                    <option value="custom">Custom</option>
+                                </select>
+                                <input type="number" class="action-custom" placeholder="Days" style="display:none; width:80px; padding:5px; border-radius:4px; border:1px solid var(--border-color); background:rgba(0,0,0,0.5); color:#fff;">
+                                <button class="btn-primary action-save" data-uid="${docSnap.id}" style="padding:6px 12px; font-size:0.8rem; border-radius:6px;">Save</button>
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                } catch(e) {
+                    console.error("Admin error:", e);
+                    tbody.innerHTML = `<tr><td colspan="4" style="color:#ff4d4d;">Error loading users: ${e.message}</td></tr>`;
+                }
+            };
+            getUsers();
+
+            // Admin Event Listeners for Dynamic Table Elements
+            if(tbody) {
+                tbody.addEventListener('change', (e) => {
+                    if (e.target.classList.contains('action-plan')) {
+                        const durationSelect = e.target.parentElement.querySelector('.action-duration');
+                        const customInput = e.target.parentElement.querySelector('.action-custom');
+                        if (e.target.value === 'Premium') {
+                            durationSelect.style.display = 'inline-block';
+                            if(durationSelect.value === 'custom') customInput.style.display = 'inline-block';
+                        } else {
+                            durationSelect.style.display = 'none';
+                            customInput.style.display = 'none';
+                        }
+                    }
+                    if (e.target.classList.contains('action-duration')) {
+                        const customInput = e.target.parentElement.querySelector('.action-custom');
+                        if (e.target.value === 'custom') {
+                            customInput.style.display = 'inline-block';
+                        } else {
+                            customInput.style.display = 'none';
+                        }
+                    }
+                });
+
+                tbody.addEventListener('click', async (e) => {
+                    if (e.target.classList.contains('action-save')) {
+                        const uid = e.target.getAttribute('data-uid');
+                        const parent = e.target.parentElement;
+                        const planVal = parent.querySelector('.action-plan').value;
+                        const durationVal = parent.querySelector('.action-duration').value;
+                        const customVal = parent.querySelector('.action-custom').value;
+                        
+                        e.target.textContent = 'Saving...';
+                        
+                        let expiresAt = null;
+                        if (planVal === 'Premium' && durationVal !== 'lifetime') {
+                            let days = durationVal === 'custom' ? parseInt(customVal) : parseInt(durationVal);
+                            if (!days || isNaN(days) || days < 1) {
+                                alert("Please enter a valid number of days for custom duration.");
+                                e.target.textContent = 'Save';
+                                return;
+                            }
+                            expiresAt = Date.now() + (days * 24 * 60 * 60 * 1000);
+                        }
+
+                        try {
+                            await updateDoc(doc(db, "users", uid), {
+                                plan: planVal,
+                                expiresAt: expiresAt
+                            });
+                            e.target.textContent = 'Saved!';
+                            e.target.style.background = '#10B981';
+                            setTimeout(() => getUsers(), 1000); // Reload table instantly
+                        } catch(err) {
+                            console.error(err);
+                            alert("Error saving: " + err.message);
+                            e.target.textContent = 'Save';
+                        }
+                    }
+                });
             }
         }
     });
@@ -303,44 +430,4 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
-
-    // Admin Update User Plan Logic
-    const adminUpdateBtn = document.getElementById('adminUpdateBtn');
-    if (adminUpdateBtn) {
-        adminUpdateBtn.addEventListener('click', async () => {
-            const targetEmail = document.getElementById('adminUserEmail').value.trim();
-            const targetPlan = document.getElementById('adminPlanSelect').value;
-            const statusMsg = document.getElementById('adminStatusMsg');
-            
-            if (!targetEmail) return;
-            statusMsg.style.display = 'block';
-            statusMsg.style.color = '#fff';
-            statusMsg.textContent = "Searching database...";
-
-            try {
-                const usersRef = collection(db, "users");
-                const q = query(usersRef, where("email", "==", targetEmail));
-                const querySnapshot = await getDocs(q);
-
-                if (querySnapshot.empty) {
-                    statusMsg.style.color = '#ff4d4d';
-                    statusMsg.textContent = "User not found. They must log in at least once!";
-                    return;
-                }
-
-                querySnapshot.forEach(async (docSnapshot) => {
-                    await updateDoc(doc(db, "users", docSnapshot.id), {
-                        plan: targetPlan
-                    });
-                });
-
-                statusMsg.style.color = '#10B981';
-                statusMsg.textContent = `Successfully updated ${targetEmail} to ${targetPlan} Plan! Refresh your page to see if you updated yourself.`;
-            } catch (error) {
-                console.error(error);
-                statusMsg.style.color = '#ff4d4d';
-                statusMsg.textContent = "Error updating user: " + error.message;
-            }
-        });
-    }
 });
