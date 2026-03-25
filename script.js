@@ -99,7 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Authentication Logic ---
     const authModal = document.getElementById('authModal');
     const closeAuthBtn = document.querySelector('.close-auth-modal');
-    const loginBtns = document.querySelectorAll('.login-btn');
+    // loginBtns is already declared at the top of DOMContentLoaded
     const authForm = document.getElementById('authForm');
     const tabLogin = document.getElementById('tabLogin');
     const tabSignup = document.getElementById('tabSignup');
