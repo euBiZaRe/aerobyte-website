@@ -17,6 +17,65 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 document.addEventListener('DOMContentLoaded', () => {
+    // --- DYNAMIC MODAL INJECTION ---
+    const injectModals = () => {
+        if (!document.getElementById('authModal')) {
+            const authHTML = `
+                <div id="authModal" class="modal-overlay">
+                    <div class="modal-container">
+                        <button class="close-modal close-auth-modal">&times;</button>
+                        <div class="modal-header">
+                            <h2>Welcome to <span class="gradient-text">AeroByte</span></h2>
+                            <p id="authSubtitle">Sign in to your account.</p>
+                        </div>
+                        <div class="auth-tabs">
+                            <button class="auth-tab active" id="tabLogin">Log In</button>
+                            <button class="auth-tab" id="tabSignup">Sign Up</button>
+                        </div>
+                        <form class="auth-form" id="authForm">
+                            <div class="form-group">
+                                <label>Email Address</label>
+                                <input type="email" id="authEmail" placeholder="you@example.com" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Password</label>
+                                <input type="password" id="authPassword" placeholder="••••••••" required>
+                            </div>
+                            <button type="submit" class="btn-primary full-width glow-btn pay-btn" id="authSubmitBtn">Log In</button>
+                        </form>
+                        <div id="authErrorMsg" style="color: #ff4d4d; margin-top: 15px; text-align: center; font-size: 0.9rem; display: none;"></div>
+                        <div class="secure-badge" id="authStatusText">🔒 Secure Firebase Authentication</div>
+                    </div>
+                </div>`;
+            document.body.insertAdjacentHTML('beforeend', authHTML);
+        }
+
+        if (!document.getElementById('checkoutModal')) {
+            const checkoutHTML = `
+                <div id="checkoutModal" class="modal-overlay">
+                    <div class="modal-container">
+                        <button class="close-modal">&times;</button>
+                        <div class="modal-header">
+                            <h2>Upgrade to <span class="gradient-text">Professional</span></h2>
+                            <p>Unlock 100% hardware utilization and cloud-offloaded training.</p>
+                        </div>
+                        <form id="checkoutForm">
+                            <div class="form-group">
+                                <label>Card Details</label>
+                                <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; color: var(--text-muted); font-size: 0.9rem;">
+                                    This is a secure simulation. No real card info required.
+                                </div>
+                            </div>
+                            <button type="submit" class="btn-primary full-width glow-btn pay-btn">Pay $15.00</button>
+                        </form>
+                        <div class="secure-badge">🔒 Secure Stripe Checkout</div>
+                    </div>
+                </div>`;
+            document.body.insertAdjacentHTML('beforeend', checkoutHTML);
+        }
+    };
+    injectModals();
+
     const modal = document.getElementById('checkoutModal');
     const checkoutTriggers = document.querySelectorAll('.checkout-trigger');
     const closeModalBtn = document.querySelector('.close-modal');
