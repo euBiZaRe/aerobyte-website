@@ -84,16 +84,48 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>`;
             document.body.insertAdjacentHTML('beforeend', checkoutHTML);
         }
+
+        if (!document.getElementById('promoResultModal')) {
+            const promoResultHTML = `
+                <div id="promoResultModal" class="modal-overlay">
+                    <div class="modal-container" style="max-width: 400px; text-align: center;">
+                        <button class="close-modal close-promo-res">&times;</button>
+                        <div class="modal-header">
+                            <div style="font-size: 3rem; margin-bottom: 15px;">🎁</div>
+                            <h2>Code <span class="gradient-text">Generated</span></h2>
+                            <p>One-time use giveaway code created.</p>
+                        </div>
+                        <div style="background: rgba(88, 101, 242, 0.1); padding: 20px; border-radius: 16px; border: 2px dashed #5865F2; margin: 20px 0;">
+                            <div id="generatedCodeDisplay" style="font-family: 'Outfit', sans-serif; font-size: 2rem; font-weight: 900; letter-spacing: 4px; color: #fff; margin-bottom: 10px;">########</div>
+                            <div id="generatedDurationDisplay" style="font-size: 0.9rem; color: var(--text-muted);">Duration: 30 Days</div>
+                        </div>
+                        <button id="copyPromoBtn" class="btn-primary full-width glow-btn" style="background: #5865F2;">
+                            <i class="fas fa-copy"></i> Copy Code
+                        </button>
+                        <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 20px;">The code will stop working as soon as it is redeemed once.</p>
+                    </div>
+                </div>`;
+            document.body.insertAdjacentHTML('beforeend', promoResultHTML);
+        }
     };
     injectModals();
 
     const modal = document.getElementById('checkoutModal');
+    const promoResModal = document.getElementById('promoResultModal');
     const checkoutTriggers = document.querySelectorAll('.checkout-trigger');
-    const closeModalBtn = document.querySelector('.close-modal');
+    const closeModalBtns = document.querySelectorAll('.close-modal');
     const checkoutForm = document.getElementById('checkoutForm');
     const payBtn = document.querySelector('.pay-btn');
     const isProfilePage = window.location.pathname.includes('profile.html');
     const loginBtns = document.querySelectorAll('.login-btn');
+
+    // Global Close Button Handler
+    closeModalBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+             document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
+             document.body.style.overflow = 'auto';
+        });
+    });
 
     // Promo Code Redemption Logic
     const handleRedeem = async () => {
@@ -1087,7 +1119,22 @@ document.addEventListener('DOMContentLoaded', () => {
                         });
                         
                         console.log("✅ Code Saved:", newCode);
-                        alert(`🎁 New Giveaway Code Generated!\n\nCode: ${newCode}\nDuration: ${days} Days\n\nCopy this code and give it to the user. It will work exactly once.`);
+                        
+                        // --- SHOW PREMIUM MODAL ---
+                        const promoResModal = document.getElementById('promoResultModal');
+                        const codeDisplay = document.getElementById('generatedCodeDisplay');
+                        const durationDisplay = document.getElementById('generatedDurationDisplay');
+                        
+                        if (promoResModal && codeDisplay && durationDisplay) {
+                            codeDisplay.textContent = newCode;
+                            durationDisplay.textContent = `Duration: ${days} Days`;
+                            promoResModal.classList.add('active');
+                            document.body.style.overflow = 'hidden';
+                        } else {
+                            // Fallback if modal isn't injected for some reason
+                            alert(`🎁 Code Generated: ${newCode}\nDuration: ${days} Days`);
+                        }
+
                         genBtn.textContent = 'Generate One-Time Code';
                         genBtn.disabled = false;
                     } catch (err) {
@@ -1095,6 +1142,23 @@ document.addEventListener('DOMContentLoaded', () => {
                         alert("Error generating code: " + err.message);
                         genBtn.textContent = 'Generate One-Time Code';
                         genBtn.disabled = false;
+                    }
+                }
+
+                // --- COPY PROMO CODE HANDLER ---
+                if (e.target && e.target.id === 'copyPromoBtn') {
+                    const codeDisplay = document.getElementById('generatedCodeDisplay');
+                    if (codeDisplay) {
+                        const code = codeDisplay.textContent;
+                        navigator.clipboard.writeText(code).then(() => {
+                            const originalBtnContent = e.target.innerHTML;
+                            e.target.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                            e.target.style.background = '#10B981';
+                            setTimeout(() => {
+                                e.target.innerHTML = originalBtnContent;
+                                e.target.style.background = '#5865F2';
+                            }, 2000);
+                        });
                     }
                 }
             });
