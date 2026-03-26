@@ -29,12 +29,73 @@
         }
         
         /* Ensures action dropdowns and inputs blend seamlessly with the dark theme */
-        .admin-table select, .admin-table input {
-            padding: 8px;
-            border-radius: 6px;
-            border: 1px solid var(--border-color);
-            background: rgba(0,0,0,0.4);
+        /* Admin Sidebar Utility Styles */
+        .admin-sidebar {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 400px;
+            height: 100vh;
+            background: rgba(11, 15, 25, 0.9);
+            backdrop-filter: blur(25px);
+            border-left: 1px solid rgba(88, 101, 242, 0.3);
+            z-index: 2000;
+            padding: 40px 30px;
+            transform: translateX(100%);
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            box-shadow: -10px 0 30px rgba(0,0,0,0.5);
+        }
+        .admin-sidebar.active {
+            transform: translateX(0);
+        }
+        .admin-sidebar-toggle {
+            position: fixed;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #5865F2;
             color: #fff;
+            padding: 20px 12px;
+            border-radius: 12px 0 0 12px;
+            cursor: pointer;
+            z-index: 2001;
+            box-shadow: -4px 0 15px rgba(88, 101, 242, 0.4);
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            font-weight: 800;
+            letter-spacing: 2px;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+        }
+        .admin-sidebar-toggle:hover {
+            padding-right: 20px;
+        }
+        .sidebar-close {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 1.2rem;
+        }
+        .sidebar-section {
+            background: rgba(255,255,255,0.03);
+            padding: 25px;
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .sidebar-label {
+            font-size: 0.75rem;
+            color: #5865F2;
+            font-weight: 800;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            letter-spacing: 1px;
+            display: block;
         }
     </style>
 </head>
@@ -116,37 +177,39 @@
         </div>
     </section>
 
-    <!-- Administration Utilities (Global Controls) -->
-    <section class="admin-tools" style="max-width: 1100px; margin: 40px auto 100px; padding: 0 20px;">
-        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
-            <div style="width: 10px; height: 10px; border-radius: 50%; background: #5865F2; box-shadow: 0 0 8px #5865F2;"></div>
-            <h2 style="font-size: 1.2rem; margin: 0; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted);">Administration <span class="gradient-text">Utilities</span></h2>
+
+    <!-- Admin Sidebar Panel -->
+    <div class="admin-sidebar-toggle" id="sidebarToggle">ADMIN UTILITIES</div>
+    <aside class="admin-sidebar" id="adminSidebar">
+        <div class="sidebar-close" id="sidebarClose"><i class="fas fa-times"></i></div>
+        <div style="margin-top: 20px;">
+            <h2 style="font-size: 1.5rem; margin-bottom: 5px;">Admin <span class="gradient-text">Tools</span></h2>
+            <p style="color: var(--text-muted); font-size: 0.85rem;">Global database and key management.</p>
         </div>
-        <div class="glass-panel" style="display: flex; gap: 30px; align-items: center; justify-content: space-between; padding: 30px; border: 1px solid rgba(88, 101, 242, 0.3); background: rgba(88, 101, 242, 0.03);">
-            <div>
-                 <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px;">Database Sync</p>
-                 <button id="refreshBtn" class="btn-secondary" style="margin: 0; padding: 12px 30px; font-weight: 700; background: rgba(255,255,255,0.03);">🔄 Refresh Local Data</button>
-            </div>
 
-            <div style="height: 60px; width: 1px; background: rgba(255,255,255,0.1);"></div>
+        <div class="sidebar-section">
+            <span class="sidebar-label">Database Sync</span>
+            <button id="refreshBtn" class="btn-secondary" style="width: 100%; padding: 15px; font-weight: 700; background: rgba(255,255,255,0.03);">🔄 Fetch Latest Data</button>
+        </div>
 
-            <div style="flex: 1; max-width: 500px;">
-                 <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px;">Giveaway Code Generator</p>
-                 <div style="display: flex; align-items: center; gap: 15px; background: rgba(0,0,0,0.4); padding: 15px 25px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05);">
-                        <div style="display: flex; flex-direction: column;">
-                            <span style="font-size: 0.7rem; color: #5865F2; font-weight: 800; text-transform: uppercase; margin-bottom: 4px;">Duration</span>
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <input type="number" id="promoDays" value="30" style="width: 70px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff; border-radius: 6px; padding: 8px 12px; font-weight: 800; font-size: 1.1rem;">
-                                <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">DAYS</span>
-                            </div>
-                        </div>
-                        <div style="flex: 1; text-align: right;">
-                            <button id="genPromoBtn" class="btn-primary" style="margin: 0; padding: 12px 25px; font-weight: 800; background: #5865F2; box-shadow: 0 4px 20px rgba(88, 101, 242, 0.4);">Generate Prize Code</button>
-                        </div>
-                 </div>
+        <div class="sidebar-section">
+            <span class="sidebar-label">Giveaway Generator</span>
+            <div style="display: flex; flex-direction: column; gap: 15px;">
+                <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
+                    <span style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; display: block;">Plan Duration</span>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <input type="number" id="promoDays" value="30" style="flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff; border-radius: 6px; padding: 10px; font-weight: 800; font-size: 1.2rem; text-align: center;">
+                        <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">DAYS</span>
+                    </div>
+                </div>
+                <button id="genPromoBtn" class="btn-primary" style="width: 100%; padding: 15px; font-weight: 800; background: #5865F2; box-shadow: 0 4px 20px rgba(88, 101, 242, 0.4);">Generate Prize Code</button>
             </div>
         </div>
-    </section>
+
+        <div style="margin-top: auto; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 0.75rem; color: var(--text-muted); text-align: center;">
+            🛡️ AeroByte Administrator Access <br> Level 0 Restricted Session
+        </div>
+    </aside>
 
     <footer>
         <div class="footer-content">

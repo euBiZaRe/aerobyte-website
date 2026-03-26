@@ -772,6 +772,16 @@ document.addEventListener('DOMContentLoaded', () => {
         // Dedicated Admin Page Specific Logic
         const isAdminPage = window.location.pathname.includes('admin.html');
         if (isAdminPage) {
+            // Sidebar Toggle Logic
+            const sidebar = document.getElementById('adminSidebar');
+            const toggle = document.getElementById('sidebarToggle');
+            const close = document.getElementById('sidebarClose');
+
+            if (sidebar && toggle) {
+                toggle.addEventListener('click', () => sidebar.classList.add('active'));
+                if (close) close.addEventListener('click', () => sidebar.classList.remove('active'));
+            }
+
             if (!user || (user.email !== 'aerobytebot@gmail.com' && user.email !== 'adamfrawi@gmail.com')) {
                 window.location.href = 'index.html';
                 return;
