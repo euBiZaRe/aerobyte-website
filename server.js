@@ -48,7 +48,7 @@ app.post('/webhook', express.raw({type: 'application/json'}), async (req, res) =
         // 2. Generate Real License Key
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
         const rand = (len) => Array.from({length: len}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-        const newKey = `AB-PR-${rand(4)}-${rand(4)}-2026`;
+        const newKey = `${rand(4)}-${rand(4)}-${rand(4)}-${rand(4)}`;
 
         try {
             // Update User Profile

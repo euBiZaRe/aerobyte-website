@@ -163,7 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Generate Key
                 const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
                 const rand = (len) => Array.from({length: len}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-                const newKey = `AB-GIVE-${rand(4)}-${rand(4)}-2026`;
+                const newKey = `${rand(4)}-${rand(4)}-${rand(4)}-${rand(4)}`;
 
                 // 1. Fulfill
                 await updateDoc(doc(db, "users", uid), {
@@ -274,7 +274,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         // Generate Key (4-4-4-4 unscrambled)
                         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
                         const rand = (len) => Array.from({length: len}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-                        const newKey = `AB-PR-${rand(4)}-${rand(4)}-2026`;
+                        const newKey = `${rand(4)}-${rand(4)}-${rand(4)}-${rand(4)}`;
 
                         try {
                             // 1. Update User Doc
@@ -1027,8 +1027,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const genKey = () => {
                             const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
                             const rand = (len) => Array.from({length: len}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-                            const p = plan.substring(0, 2).toUpperCase();
-                            return `AB-${p}-${rand(4)}-${rand(4)}-2026`;
+                            return `${rand(4)}-${rand(4)}-${rand(4)}-${rand(4)}`;
                         };
 
                         const newKey = genKey();
@@ -1079,8 +1078,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const genKey = () => {
                             const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
                             const rand = (len) => Array.from({length: len}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-                            const p = plan.substring(0, 2).toUpperCase();
-                            return `AB-${p}-${rand(4)}-${rand(4)}-2026`;
+                            return `${rand(4)}-${rand(4)}-${rand(4)}-${rand(4)}`;
                         };
 
                         const newKey = genKey();
