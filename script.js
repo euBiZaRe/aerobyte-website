@@ -642,11 +642,37 @@ document.addEventListener('DOMContentLoaded', () => {
                         const tr = document.createElement('tr');
                         
                         let expiresText = "Never (Lifetime)";
-                        if (data.plan === "Premium" && data.expiresAt) {
-                            const daysLeft = Math.ceil((data.expiresAt - Date.now()) / (1000 * 60 * 60 * 24));
-                            expiresText = daysLeft > 0 ? `${daysLeft} Days` : "Expired!";
-                        } else if (data.plan === "Free") {
+                        const expiresAtMs = Number(data.expiresAt);
+                        if ((data.plan === "Premium" || data.plan === "Trial") && expiresAtMs > 0) {
+                            const diff = expiresAtMs - Date.now();
+                            if (diff > 0) {
+                                const d = Math.floor(diff / 86400000);
+                                const h = Math.floor((diff % 86400000) / 3600000);
+                                const m = Math.floor((diff % 3600000) / 60000);
+                                expiresText = d > 0 ? `${d}d ${h}h` : h > 0 ? `${h}h ${m}m` : `${m}m`;
+                            } else {
+                                expiresText = "Expired!";
+                            }
+                        } else if (data.plan === "Free" || data.plan === "Media" || data.plan === "Owner") {
                             expiresText = "N/A";
+                        }
+
+                        // --- LAST TRIAL USED ---
+                        const lastTrialAt = Number(data.lastTrialAt);
+                        const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
+                        let lastTrialText = "Never";
+                        let lastTrialStyle = "color: var(--text-muted);";
+                        if (lastTrialAt && lastTrialAt > 0) {
+                            const trialDate = new Date(lastTrialAt);
+                            const timeAgoMs = Date.now() - lastTrialAt;
+                            const formattedDate = trialDate.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+                            const formattedTime = trialDate.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+                            const onCooldown = timeAgoMs < SIX_HOURS_MS;
+                            const hoursAgo = Math.floor(timeAgoMs / 3600000);
+                            const minsAgo = Math.floor((timeAgoMs % 3600000) / 60000);
+                            const agoText = hoursAgo > 0 ? `${hoursAgo}h ${minsAgo}m ago` : `${minsAgo}m ago`;
+                            lastTrialText = `${formattedDate} ${formattedTime}<br><span style="font-size:0.7rem;">${agoText}</span>`;
+                            if (onCooldown) lastTrialStyle = "color: #f59e0b; font-weight: 600;"; // amber = on cooldown
                         }
 
                         const keyDisplay = data.licenseKey ? 
@@ -666,6 +692,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <td><span class="plan-badge ${data.plan==='Premium'?'':'basic-badge'}" style="${data.plan==='Premium'?'background:var(--gradient-glow);border:none;color:#fff;':''}">${data.plan}</span></td>
                             <td>${keyDisplay}</td>
                             <td style="${expiresText==='Expired!'?'color:#ff4d4d':''}">${expiresText}</td>
+                            <td style="${lastTrialStyle}">${lastTrialText}</td>
                             <td style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
                                 <select class="action-plan" data-uid="${docSnap.id}">
                                     <option value="Premium" ${data.plan==='Premium'?'selected':''}>Premium</option>
@@ -690,7 +717,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                 } catch(e) {
                     console.error("Admin error:", e);
-                    tbody.innerHTML = `<tr><td colspan="4" style="color:#ff4d4d;">Error loading users: ${e.message}</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="6" style="color:#ff4d4d;">Error loading users: ${e.message}</td></tr>`;
                 }
             };
             getUsers();
