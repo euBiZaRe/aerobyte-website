@@ -149,6 +149,13 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (promoDoc.exists()) {
                 const promoData = promoDoc.data();
+                if (promoData.used) {
+                    promoError.textContent = "This code has already been redeemed.";
+                    promoError.style.display = 'block';
+                    redeemBtn.textContent = 'Redeem Code';
+                    redeemBtn.disabled = false;
+                    return;
+                }
                 const uid = auth.currentUser.uid;
                 const durationDays = promoData.days || 30;
                 const expiresAt = Date.now() + (durationDays * 24 * 60 * 60 * 1000);
@@ -172,8 +179,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     createdAt: Date.now()
                 });
 
-                // 2. DELETE the code (one-time use)
-                await deleteDoc(doc(db, "promo_codes", code));
+                // Update the code to mark as used (keeps in history for 24h)
+                await updateDoc(doc(db, "promo_codes", code), {
+                    used: true,
+                    usedBy: auth.currentUser.email,
+                    usedAt: Date.now()
+                });
 
                 alert(`Success! Giveaway code redeemed for ${durationDays} days of Premium.`);
                 window.location.reload();
@@ -783,30 +794,70 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!recentTbody) return;
                 try {
                     const twentyFourHoursAgo = Date.now() - (24 * 60 * 60 * 1000);
-                    const q = query(collection(db, "licenses"), where("createdAt", ">", twentyFourHoursAgo));
-                    const querySnapshot = await getDocs(q);
                     
-                    if (querySnapshot.empty) {
+                    // 1. Fetch recent Licenses
+                    const qLic = query(collection(db, "licenses"), where("createdAt", ">", twentyFourHoursAgo));
+                    const licSnap = await getDocs(qLic);
+                    
+                    // 2. Fetch recent Promo Codes (Unused or Used in last 24h)
+                    // Note: Firestore doesn't support complex OR across fields easily, so we merge
+                    const qPromo = query(collection(db, "promo_codes"), where("createdAt", ">", twentyFourHoursAgo));
+                    const promoSnap = await getDocs(qPromo);
+                    
+                    const combined = [];
+                    
+                    // Process Licenses
+                    licSnap.forEach(d => {
+                        combined.push({ 
+                            id: d.id, 
+                            type: 'License', 
+                            time: d.data().createdAt, 
+                            user: d.data().userId, 
+                            plan: d.data().plan,
+                            status: 'Activated'
+                        });
+                    });
+                    
+                    // Process Promos
+                    promoSnap.forEach(d => {
+                        const data = d.data();
+                        combined.push({
+                            id: d.id,
+                            type: 'Promo Code',
+                            time: data.createdAt,
+                            user: data.usedBy || 'Waiting...',
+                            plan: `${data.days}d Plan`,
+                            status: data.used ? 'Redeemed' : 'Available'
+                        });
+                    });
+
+                    if (combined.length === 0) {
                         recentTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 30px; color: var(--text-muted);">No activity recorded in the last 24 hours.</td></tr>';
                         return;
                     }
 
                     recentTbody.innerHTML = '';
+                    
+                    // Resolve user emails from current dashboard data if possible, or fetch
                     const userDocs = await getDocs(collection(db, "users"));
                     const userMap = {};
-                    userDocs.forEach(doc => { userMap[doc.id] = doc.data().email || "Unknown"; });
+                    userDocs.forEach(doc => { userMap[doc.id] = doc.data().email; });
 
-                    const sortedDocs = querySnapshot.docs.sort((a, b) => b.data().createdAt - a.data().createdAt);
-                    sortedDocs.forEach(licDoc => {
-                        const data = licDoc.data();
+                    combined.sort((a, b) => b.time - a.time);
+
+                    combined.forEach(item => {
                         const tr = document.createElement('tr');
-                        const activatedDate = new Date(data.createdAt).toLocaleString();
-                        const userEmail = userMap[data.userId] || `UID: ${data.userId.substring(0,8)}...`;
+                        const timeStr = new Date(item.time).toLocaleString();
+                        const displayUser = userMap[item.user] || item.user;
+                        const statusColor = item.status === 'Available' ? '#3B82F6' : '#10B981';
+                        
                         tr.innerHTML = `
-                            <td style="color: #10B981; font-family: monospace; font-weight: bold;">${licDoc.id}</td>
-                            <td>${userEmail}</td>
-                            <td><span class="plan-badge">${data.plan || 'Premium'}</span></td>
-                            <td style="color: var(--text-muted); font-size: 0.85rem;">${activatedDate}</td>
+                            <td style="color: #10B981; font-family: monospace; font-weight: bold;">${item.id}</td>
+                            <td>${displayUser}</td>
+                            <td><span class="plan-badge" style="font-size:0.7rem;">${item.type}: ${item.plan}</span></td>
+                            <td style="color: var(--text-muted); font-size: 0.85rem;">
+                                <span style="color:${statusColor}; font-weight:bold;">${item.status}</span> @ ${timeStr}
+                            </td>
                         `;
                         recentTbody.appendChild(tr);
                     });
