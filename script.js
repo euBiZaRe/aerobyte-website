@@ -788,9 +788,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const tbody = document.getElementById('adminUsersTbody');
-            const recentTbody = document.getElementById('recentActivityTbody');
+            let globalActivity = []; // Store activity for Master DB mapping
 
             const getRecentActivity = async () => {
+                const activityContent = document.getElementById('activityContent');
                 if (!recentTbody) return;
                 try {
                     const twentyFourHoursAgo = Date.now() - (24 * 60 * 60 * 1000);
@@ -830,6 +831,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             status: data.used ? 'Redeemed' : 'Available'
                         });
                     });
+
+                    combined.forEach(d => globalActivity.push(d));
 
                     if (combined.length === 0) {
                         recentTbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 30px; color: var(--text-muted);">No activity recorded in the last 24 hours.</td></tr>';
@@ -874,33 +877,18 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             // Activity Table Delegated Deletion
-            if (recentTbody) {
-                recentTbody.addEventListener('click', async (e) => {
-                    const deleteBtn = e.target.closest('.action-delete-activity');
-                    if (!deleteBtn) return;
-
-                    const docId = deleteBtn.getAttribute('data-id');
-                    const collectionName = deleteBtn.getAttribute('data-col');
-                    const type = deleteBtn.getAttribute('data-type');
-                    
-                    const confirmMsg = type === 'License' 
-                        ? `WARNING: Deleting an active LICENSE (${docId}) will deactivate the user's software. Are you sure?`
-                        : `Are you sure you want to remove this Promo Code record (${docId})? It will be permanently deleted.`;
-
-                    if (confirm(confirmMsg)) {
-                        deleteBtn.style.opacity = '0.5';
-                        deleteBtn.disabled = true;
-                        try {
-                            await deleteDoc(doc(db, collectionName, docId));
-                            getRecentActivity(); // Refresh activity log
-                        } catch (err) {
-                            console.error("Delete Error:", err);
-                            alert("Error deleting: " + err.message);
-                            deleteBtn.style.opacity = '1';
-                            deleteBtn.disabled = false;
-                        }
+            // Toggle Activity Log
+            const activityToggle = document.getElementById('activityToggle');
+            const activityContent = document.getElementById('activityContent');
+            const activityChevron = document.getElementById('activityChevron');
+            if (activityToggle && activityContent) {
+                activityToggle.onclick = () => {
+                    const isHidden = activityContent.style.display === 'none';
+                    activityContent.style.display = isHidden ? 'block' : 'none';
+                    if (activityChevron) {
+                        activityChevron.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(-90deg)';
                     }
-                });
+                };
             }
 
             const getUsers = async () => {
@@ -959,6 +947,18 @@ document.addEventListener('DOMContentLoaded', () => {
                                  </div>` : 
                                 `<button class="btn-primary action-gen-key" data-uid="${docSnap.id}" data-plan="${data.plan}" style="padding:4px 8px; font-size:0.7rem; background:transparent; border:1px solid var(--secondary); color:var(--secondary);">Generate</button>`);
 
+                        // --- STATUS / TIME MAPPING ---
+                        const userActivity = globalActivity.filter(a => a.user === docSnap.id);
+                        let statusText = `<span style="color:var(--text-muted); font-size:0.75rem;">No recent activity</span>`;
+                        if (userActivity.length > 0) {
+                            userActivity.sort((a,b) => b.time - a.time);
+                            const last = userActivity[0];
+                            const timeAgo = Math.floor((Date.now() - last.time) / 60000);
+                            const timeStr = timeAgo < 60 ? `${timeAgo}m ago` : `${Math.floor(timeAgo/60)}h ago`;
+                            const statusColor = last.status === 'Available' ? '#3B82F6' : '#10B981';
+                            statusText = `<div style="line-height:1.2;"><span style="color:${statusColor}; font-weight:bold; font-size:0.8rem;">${last.status}</span><br><span style="font-size:0.7rem; color:var(--text-muted);">${timeStr}</span></div>`;
+                        }
+
                         const inputStyle = `width:52px; padding:4px; border-radius:4px; border:1px solid var(--border-color); background:rgba(0,0,0,0.5); color:#fff; font-size:0.75rem;`;
                         const hasDuration = data.plan === 'Premium' || data.plan === 'Trial';
                         tr.innerHTML = `
@@ -967,7 +967,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             <td>${keyDisplay}</td>
                             <td style="${expiresText==='Expired!'?'color:#ff4d4d':''}">${expiresText}</td>
                             <td style="${lastTrialStyle}">${lastTrialText}</td>
-                            <td style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+                            <td>${statusText}</td>
+                            <td style="display:flex; gap:6px; align-items:center; flex-wrap:wrap; text-align:right; justify-content:flex-end;">
                                 <select class="action-plan" data-uid="${docSnap.id}">
                                     <option value="Premium" ${data.plan==='Premium'?'selected':''}>Premium</option>
                                     <option value="Trial" ${data.plan==='Trial'?'selected':''}>Trial</option>
@@ -994,7 +995,29 @@ document.addEventListener('DOMContentLoaded', () => {
                     tbody.innerHTML = `<tr><td colspan="6" style="color:#ff4d4d;">Error loading users: ${e.message}</td></tr>`;
                 }
             };
-            getUsers();
+            
+            // Re-order fetching to ensure activity is available for Master DB
+            const initDashboard = async () => {
+                await getRecentActivity();
+                await getUsers();
+            };
+            initDashboard();
+
+            // Unified Search Handler
+            const userSearch = document.getElementById('userSearch');
+            if (userSearch) {
+                userSearch.addEventListener('input', (e) => {
+                    const term = e.target.value.toLowerCase();
+                    const rows = tbody.querySelectorAll('tr');
+                    rows.forEach(row => {
+                        const emailCell = row.cells[0];
+                        if (emailCell) {
+                            const email = emailCell.textContent.toLowerCase();
+                            row.style.display = email.includes(term) ? '' : 'none';
+                        }
+                    });
+                });
+            }
 
             // Admin Event Listeners for Dynamic Table Elements
             if(tbody) {
