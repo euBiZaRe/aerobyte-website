@@ -857,7 +857,7 @@ footer {
 
 /* Specific Column Widths for Master Database */
 .admin-table th:nth-child(1), .admin-table td:nth-child(1) { width: 18%; } /* Email */
-.admin-table th:nth-child(2), .admin-table td:nth-child(2) { width: 8%; } /* Plan */
+.admin-table th:nth-child(2), .admin-table td:nth-child(2) { width: 12%; } /* Plan - Increased for no-wrap */
 .admin-table th:nth-child(3), .admin-table td:nth-child(3) { width: 15%; } /* Key */
 .admin-table th:nth-child(4), .admin-table td:nth-child(4) { width: 8%; } /* Expires */
 .admin-table th:nth-child(5), .admin-table td:nth-child(5) { width: 10%; } /* Last Trial */
@@ -868,12 +868,21 @@ footer {
     height: 32px;
     padding: 0 8px !important;
     font-size: 0.75rem !important;
+    line-height: 32px;
+    vertical-align: middle;
+    box-sizing: border-box;
+    display: inline-block;
 }
 
 .action-save, .action-delete {
     height: 32px;
     padding: 0 12px !important;
     font-size: 0.7rem !important;
+    line-height: normal;
+    vertical-align: middle;
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
 }
 
 .duration-inputs input {
