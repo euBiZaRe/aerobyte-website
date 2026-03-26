@@ -955,9 +955,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             };
 
-            // Activity Table Delegated Deletion
-            if (recentTbody) {
-                recentTbody.addEventListener('click', async (e) => {
+            const rTbody = document.getElementById('recentActivityTbody');
+            if (rTbody) {
+                rTbody.addEventListener('click', async (e) => {
                     const deleteBtn = e.target.closest('.action-delete-activity');
                     if (!deleteBtn) return;
 
@@ -974,7 +974,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         deleteBtn.disabled = true;
                         try {
                             await deleteDoc(doc(db, collectionName, docId));
-                            getRecentActivity(); // Refresh activity log
+                            refreshDashboard(); // Refresh UI
                         } catch (err) {
                             console.error("Delete Error:", err);
                             alert("Error deleting: " + err.message);
@@ -992,7 +992,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (activityToggle && activityContent) {
                 activityToggle.onclick = () => {
                     const isHidden = activityContent.style.display === 'none';
-                    activityContent.style.display = isHidden ? 'block' : 'none';
+                    activityContent.style.display = isHidden ? '' : 'none';
                     if (activityChevron) {
                         activityChevron.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(-90deg)';
                     }
