@@ -157,8 +157,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
                 const uid = auth.currentUser.uid;
-                const durationDays = promoData.days || 30;
-                const expiresAt = Date.now() + (durationDays * 24 * 60 * 60 * 1000);
+                
+                // --- GRANULAR DURATION CALCULATION ---
+                let durationMs = 0;
+                if (promoData.durationMs) {
+                    durationMs = promoData.durationMs;
+                } else {
+                    // Legacy Fallback
+                    const durationDays = promoData.days || 30;
+                    durationMs = durationDays * 24 * 60 * 60 * 1000;
+                }
+
+                const expiresAt = Date.now() + durationMs;
 
                 // Generate Key
                 const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -186,7 +196,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     usedAt: Date.now()
                 });
 
-                alert(`Success! Giveaway code redeemed for ${durationDays} days of Premium.`);
+                // Format alert message based on available data
+                let successMsg = `Success! Giveaway code redeemed.`;
+                if (promoData.durationMs) {
+                    successMsg = `Success! Giveaway code redeemed for ${promoData.days||0}d ${promoData.hours||0}h ${promoData.mins||0}m of Premium.`;
+                } else {
+                    successMsg = `Success! Giveaway code redeemed for ${promoData.days||30} days of Premium.`;
+                }
+                alert(successMsg);
                 window.location.reload();
             } else {
                 promoError.textContent = "Invalid or already used code.";
@@ -1332,8 +1349,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (e.target && e.target.id === 'genPromoBtn') {
                     console.log("🎁 Giveaway Gen Triggered");
                     const genBtn = e.target;
-                    const promoDaysInput = document.getElementById('promoDays');
-                    const days = parseInt(promoDaysInput?.value) || 30;
+                    const dInput = document.getElementById('promoDays');
+                    const hInput = document.getElementById('promoHours');
+                    const mInput = document.getElementById('promoMins');
+                    
+                    const days = parseInt(dInput?.value) || 0;
+                    const hours = parseInt(hInput?.value) || 0;
+                    const mins = parseInt(mInput?.value) || 0;
+                    
+                    const totalMs = (days * 24 * 60 * 60 * 1000) + (hours * 60 * 60 * 1000) + (mins * 60 * 1000);
+                    if (totalMs <= 0) {
+                        alert("Please enter a valid duration.");
+                        return;
+                    }
                     
                     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; 
                     const newCode = Array.from({length: 8}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
@@ -1346,7 +1374,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (!auth.currentUser) throw new Error("Not authenticated");
 
                         await setDoc(doc(db, "promo_codes", newCode), {
+                            durationMs: totalMs,
                             days: days,
+                            hours: hours,
+                            mins: mins,
                             createdAt: Date.now(),
                             createdBy: auth.currentUser.email
                         });
@@ -1360,7 +1391,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         
                         if (promoResModal && codeDisplay && durationDisplay) {
                             codeDisplay.textContent = newCode;
-                            durationDisplay.textContent = `Duration: ${days} Days`;
+                            durationDisplay.textContent = `Duration: ${days}d ${hours}h ${mins}m`;
                             promoResModal.classList.add('active');
                             document.body.style.overflow = 'hidden';
                         } else {

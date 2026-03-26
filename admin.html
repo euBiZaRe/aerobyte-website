@@ -197,10 +197,20 @@
             <span class="sidebar-label">Giveaway Generator</span>
             <div style="display: flex; flex-direction: column; gap: 15px;">
                 <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
-                    <span style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; display: block;">Plan Duration</span>
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <input type="number" id="promoDays" value="30" style="flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff; border-radius: 6px; padding: 10px; font-weight: 800; font-size: 1.2rem; text-align: center;">
-                        <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">DAYS</span>
+                    <span style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 12px; display: block;">Plan Duration</span>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+                        <div style="text-align: center;">
+                            <input type="number" id="promoDays" value="30" min="0" style="width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff; border-radius: 6px; padding: 8px; font-weight: 800; font-size: 1.1rem; text-align: center; margin-bottom: 4px;">
+                            <span style="font-size: 0.6rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Days</span>
+                        </div>
+                        <div style="text-align: center;">
+                            <input type="number" id="promoHours" value="0" min="0" max="23" style="width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff; border-radius: 6px; padding: 8px; font-weight: 800; font-size: 1.1rem; text-align: center; margin-bottom: 4px;">
+                            <span style="font-size: 0.6rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Hours</span>
+                        </div>
+                        <div style="text-align: center;">
+                            <input type="number" id="promoMins" value="0" min="0" max="59" style="width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff; border-radius: 6px; padding: 8px; font-weight: 800; font-size: 1.1rem; text-align: center; margin-bottom: 4px;">
+                            <span style="font-size: 0.6rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Mins</span>
+                        </div>
                     </div>
                 </div>
                 <button id="genPromoBtn" class="btn-primary" style="width: 100%; padding: 15px; font-weight: 800; background: #5865F2; box-shadow: 0 4px 20px rgba(88, 101, 242, 0.4);">Generate Prize Code</button>
