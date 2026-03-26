@@ -860,7 +860,9 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <span style="color:${statusColor}; font-weight:bold;">${item.status}</span> @ ${timeStr}
                             </td>
                             <td style="text-align:right;">
-                                <button class="action-delete-activity" data-id="${item.id}" data-col="${collectionName}" data-type="${item.type}" style="background:transparent; border:none; color:#ff4d4d; cursor:pointer; padding:5px; transition: opacity 0.2s;" title="Remove this record"><i class="fas fa-trash"></i></button>
+                                <button class="action-delete-activity" data-id="${item.id}" data-col="${collectionName}" data-type="${item.type}" style="background:rgba(255,77,77,0.1); border:1px solid #ff4d4d; color:#ff4d4d; cursor:pointer; padding:4px 8px; border-radius:4px; font-size:0.75rem; display:inline-flex; align-items:center; gap:5px; transition: opacity 0.2s;" title="Remove this record">
+                                    <i class="fas fa-trash"></i> Remove
+                                </button>
                             </td>
                         `;
                         recentTbody.appendChild(tr);
