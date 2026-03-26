@@ -777,6 +777,45 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const tbody = document.getElementById('adminUsersTbody');
+            const recentTbody = document.getElementById('recentActivityTbody');
+
+            const getRecentActivity = async () => {
+                if (!recentTbody) return;
+                try {
+                    const twentyFourHoursAgo = Date.now() - (24 * 60 * 60 * 1000);
+                    const q = query(collection(db, "licenses"), where("createdAt", ">", twentyFourHoursAgo));
+                    const querySnapshot = await getDocs(q);
+                    
+                    if (querySnapshot.empty) {
+                        recentTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 30px; color: var(--text-muted);">No activity recorded in the last 24 hours.</td></tr>';
+                        return;
+                    }
+
+                    recentTbody.innerHTML = '';
+                    const userDocs = await getDocs(collection(db, "users"));
+                    const userMap = {};
+                    userDocs.forEach(doc => { userMap[doc.id] = doc.data().email || "Unknown"; });
+
+                    const sortedDocs = querySnapshot.docs.sort((a, b) => b.data().createdAt - a.data().createdAt);
+                    sortedDocs.forEach(licDoc => {
+                        const data = licDoc.data();
+                        const tr = document.createElement('tr');
+                        const activatedDate = new Date(data.createdAt).toLocaleString();
+                        const userEmail = userMap[data.userId] || `UID: ${data.userId.substring(0,8)}...`;
+                        tr.innerHTML = `
+                            <td style="color: #10B981; font-family: monospace; font-weight: bold;">${licDoc.id}</td>
+                            <td>${userEmail}</td>
+                            <td><span class="plan-badge">${data.plan || 'Premium'}</span></td>
+                            <td style="color: var(--text-muted); font-size: 0.85rem;">${activatedDate}</td>
+                        `;
+                        recentTbody.appendChild(tr);
+                    });
+                } catch (err) {
+                    console.error("Recent Activity Error:", err);
+                    recentTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 30px; color: #ff4d4d;">Error loading activity.</td></tr>';
+                }
+            };
+
             const getUsers = async () => {
                 if(!tbody) return;
                 try {
@@ -1093,6 +1132,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     reader.readAsText(file);
                 });
             }
+            
+            // --- REFRESH DATABASE ---
+            const refreshBtn = document.getElementById('refreshBtn');
+            if (refreshBtn) {
+                refreshBtn.addEventListener('click', () => {
+                    getUsers();
+                    getRecentActivity();
+                });
+            }
+
+            // Initial Load
+            getUsers();
+            getRecentActivity();
 
             // --- GLOBAL ADMIN PROMO GEN HANDLER (Event Delegation) ---
             document.body.addEventListener('click', async (e) => {
