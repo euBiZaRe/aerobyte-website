@@ -418,21 +418,60 @@ document.addEventListener('DOMContentLoaded', () => {
                             licenseKeyContainer.style.display = "none";
                         }
                     }
-
+                    
                     // Handle Countdown for Trial and Premium
+                    // NOTE: expiresAt can be a string when written by the bot via REST API.
+                    // Number() coercion handles both "1234567890" and 1234567890 safely.
                     let countdownText = "";
-                    if (userData.expiresAt) {
+                    const expiresAtMs = Number(userData.expiresAt);
+                    if (expiresAtMs && expiresAtMs > 0) {
                         const now = Date.now();
-                        const diff = userData.expiresAt - now;
+                        const diff = expiresAtMs - now;
                         if (diff > 0) {
                             const days = Math.floor(diff / (1000 * 60 * 60 * 24));
                             const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                            const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                            
                             if (plan === "Trial") {
-                                countdownText = `Trial ends in: ${days}d, ${hours}h`;
+                                if (days > 0) {
+                                    countdownText = `Trial ends in: ${days}d, ${hours}h`;
+                                } else if (hours > 0) {
+                                    countdownText = `Trial ends in: ${hours}h, ${mins}m`;
+                                } else {
+                                    countdownText = `Trial ends in: ${mins}m`;
+                                }
                             } else if (plan === "Premium") {
                                 countdownText = `Premium expires in: ${days}d`;
                             }
+                        } else if (plan === "Trial") {
+                            // Trial expired - show expired label then downgrade to Free
+                            const expiredEl = document.createElement('div');
+                            expiredEl.className = 'timer-display';
+                            expiredEl.style.fontSize = "0.8rem";
+                            expiredEl.style.marginTop = "8px";
+                            expiredEl.style.color = "#ff4d4d";
+                            expiredEl.style.fontWeight = "600";
+                            expiredEl.textContent = "⚠️ Trial Expired";
+                            planBadge.parentElement.appendChild(expiredEl);
+                            // Downgrade in DB after showing the message
+                            await updateDoc(doc(db, "users", user.uid), { plan: "Free", expiresAt: null });
+                            plan = "Free";
                         }
+                    }
+                    
+                    // --- REFINED UI INJECTION ---
+                    // Remove existing countdown to prevent duplicates
+                    const existingTimer = planBadge.parentElement.querySelector('.timer-display');
+                    if (existingTimer) existingTimer.remove();
+
+                    if (countdownText) {
+                        const countdownEl = document.createElement('div');
+                        countdownEl.className = 'timer-display';
+                        countdownEl.style.fontSize = "0.8rem";
+                        countdownEl.style.marginTop = "8px";
+                        countdownEl.style.color = "var(--text-muted)";
+                        countdownEl.textContent = countdownText;
+                        planBadge.parentElement.appendChild(countdownEl);
                     }
 
                     // Define Tier Styles
@@ -451,14 +490,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         planBadge.classList.remove('basic-badge');
                         
                         // Show countdown if applicable
-                        if (countdownText) {
-                            const countdownEl = document.createElement('div');
-                            countdownEl.style.fontSize = "0.8rem";
-                            countdownEl.style.marginTop = "8px";
-                            countdownEl.style.color = "var(--text-muted)";
-                            countdownEl.textContent = countdownText;
-                            planBadge.parentElement.appendChild(countdownEl);
-                        }
+                        // This block is now handled by the REFINED UI INJECTION above.
+                        // if (countdownText) {
+                        //     const countdownEl = document.createElement('div');
+                        //     countdownEl.style.fontSize = "0.8rem";
+                        //     countdownEl.style.marginTop = "8px";
+                        //     countdownEl.style.color = "var(--text-muted)";
+                        //     countdownEl.textContent = countdownText;
+                        //     planBadge.parentElement.appendChild(countdownEl);
+                        // }
 
                         // Hide Upgrade CTA for high tiers
                         if (["Premium", "Owner", "Media"].includes(plan)) {
