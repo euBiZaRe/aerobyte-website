@@ -837,15 +837,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // Dedicated Admin Page Specific Logic
         const isAdminPage = window.location.pathname.toLowerCase().includes('admin');
         if (isAdminPage) {
-            // Sidebar Toggle Logic
-            const sidebar = document.getElementById('adminSidebar');
-            const toggle = document.getElementById('sidebarToggle');
-            const close = document.getElementById('sidebarClose');
-
-            if (sidebar && toggle) {
-                toggle.addEventListener('click', () => sidebar.classList.toggle('active'));
-                if (close) close.addEventListener('click', () => sidebar.classList.remove('active'));
-            }
 
             if (!user || (user.email !== 'aerobytebot@gmail.com' && user.email !== 'adamfrawi@gmail.com')) {
                 window.location.href = 'index.html';
@@ -1066,23 +1057,40 @@ document.addEventListener('DOMContentLoaded', () => {
             const activityChevron = document.getElementById('activityChevron');
             if (activityToggle && activityContent) {
                 activityToggle.onclick = () => {
-                    const isHidden = activityContent.style.display === 'none';
-                    activityContent.style.display = isHidden ? '' : 'none';
+                    const isHidden = activityContent.classList.toggle('hidden');
                     if (activityChevron) {
-                        activityChevron.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(-90deg)';
+                        activityChevron.style.transform = isHidden ? 'rotate(-90deg)' : 'rotate(0deg)';
                     }
                 };
             }
 
-            
+            /* --- ADMIN SIDEBAR DRAWER LOGIC --- */
+            const sidebar = document.getElementById('adminSidebar');
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const sidebarClose = document.getElementById('sidebarClose');
+
+            if (sidebar && sidebarToggle) {
+                sidebarToggle.onclick = () => {
+                    sidebar.classList.add('active');
+                    sidebarToggle.style.display = 'none';
+                };
+            }
+            if (sidebar && sidebarClose) {
+                sidebarClose.onclick = () => {
+                    sidebar.classList.remove('active');
+                    if (sidebarToggle) sidebarToggle.style.display = 'flex';
+                };
+            }
+
             // Force Resync Button
             const resyncBtn = document.getElementById('resyncDashboard');
             if (resyncBtn) {
                 resyncBtn.onclick = () => {
-                    resyncBtn.style.opacity = '0.5';
+                    console.log("🔄 Manual Sync Triggered...");
+                    resyncBtn.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i> Syncing...';
                     resyncBtn.disabled = true;
                     refreshDashboard().then(() => {
-                        resyncBtn.style.opacity = '1';
+                        resyncBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Force Resync';
                         resyncBtn.disabled = false;
                     });
                 };
