@@ -234,7 +234,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Event Listeners for closing modal
-    if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
+
     if (modal) {
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
