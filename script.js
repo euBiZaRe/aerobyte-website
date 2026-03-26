@@ -916,10 +916,12 @@ document.addEventListener('DOMContentLoaded', () => {
                                     <td style="color: var(--text-muted); font-size: 0.85rem;">
                                         <span style="color:${statusColor}; font-weight:bold;">${item.status}</span> @ ${timeStr}
                                     </td>
-                                    <td style="text-align:right; overflow:visible;">
-                                        <button class="action-delete-activity" data-id="${item.id}" data-col="${item.col}" data-type="${item.type}" style="background:rgba(255,77,77,0.1); border:1px solid #ff4d4d; color:#ff4d4d; cursor:pointer; padding:8px 12px; border-radius:6px; font-size:0.75rem; font-weight:800; text-transform:uppercase; letter-spacing:1px; display:inline-flex; align-items:center; gap:5px; transition: opacity 0.2s;" title="Remove this record">
-                                            <i class="fas fa-trash"></i> Remove
-                                        </button>
+                                    <td style="text-align:right;">
+                                        <div style="display:inline-flex; gap:8px; align-items:center; justify-content:flex-end;">
+                                            <button class="action-delete-activity" data-id="${item.id}" data-col="${item.col}" data-type="${item.type}" style="background:rgba(255,77,77,0.1); border:1px solid #ff4d4d; color:#ff4d4d; cursor:pointer; padding:8px 12px; border-radius:6px; font-size:0.75rem; font-weight:800; text-transform:uppercase; letter-spacing:1px; display:inline-flex; align-items:center; gap:5px; transition: opacity 0.2s;" title="Remove this record">
+                                                <i class="fas fa-trash"></i> Remove
+                                            </button>
+                                        </div>
                                     </td>
                                 `;
                                 rTbody.appendChild(tr);
@@ -993,21 +995,23 @@ document.addEventListener('DOMContentLoaded', () => {
                             <td style="${expiresText==='Expired!'?'color:#ff4d4d':''}">${expiresText}</td>
                             <td style="${lastTrialStyle}">${lastTrialText}</td>
                             <td>${statusText}</td>
-                            <td style="display:flex; gap:8px; align-items:center; justify-content:flex-end; white-space:nowrap; overflow:visible;">
-                                <select class="action-plan" data-uid="${user.id}" style="padding:6px; border-radius:6px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); color:#fff; font-size:0.8rem;">
-                                    <option value="Premium" ${user.plan==='Premium'?'selected':''}>Premium</option>
-                                    <option value="Trial" ${user.plan==='Trial'?'selected':''}>Trial</option>
-                                    <option value="Media" ${user.plan==='Media'?'selected':''}>Media</option>
-                                    <option value="Owner" ${user.plan==='Owner'?'selected':''}>Owner</option>
-                                    <option value="Free" ${user.plan==='Free'?'selected':''}>Free</option>
-                                </select>
-                                <div class="duration-inputs" style="display:${hasDuration?'flex':'none'}; align-items:center; gap:2px;">
-                                    <input type="number" class="action-days" min="0" placeholder="d" style="${inputStyle}" title="Days">
-                                    <input type="number" class="action-hours" min="0" max="23" placeholder="h" style="${inputStyle}" title="Hours">
-                                    <input type="number" class="action-minutes" min="0" max="59" placeholder="m" style="${inputStyle}" title="Mins">
+                            <td style="text-align:right;">
+                                <div style="display:flex; gap:8px; align-items:center; justify-content:flex-end; white-space:nowrap;">
+                                    <select class="action-plan" data-uid="${user.id}" style="padding:6px; border-radius:6px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); color:#fff; font-size:0.8rem;">
+                                        <option value="Premium" ${user.plan==='Premium'?'selected':''}>Premium</option>
+                                        <option value="Trial" ${user.plan==='Trial'?'selected':''}>Trial</option>
+                                        <option value="Media" ${user.plan==='Media'?'selected':''}>Media</option>
+                                        <option value="Owner" ${user.plan==='Owner'?'selected':''}>Owner</option>
+                                        <option value="Free" ${user.plan==='Free'?'selected':''}>Free</option>
+                                    </select>
+                                    <div class="duration-inputs" style="display:${hasDuration?'flex':'none'}; align-items:center; gap:2px;">
+                                        <input type="number" class="action-days" min="0" placeholder="d" style="${inputStyle}" title="Days">
+                                        <input type="number" class="action-hours" min="0" max="23" placeholder="h" style="${inputStyle}" title="Hours">
+                                        <input type="number" class="action-minutes" min="0" max="59" placeholder="m" style="${inputStyle}" title="Mins">
+                                    </div>
+                                    <button class="btn-primary action-save" data-uid="${user.id}" style="padding:8px 12px; font-size:0.75rem; border-radius:6px; font-weight:800; text-transform:uppercase; letter-spacing:1px; background:#5865F2;">Save</button>
+                                    <button class="action-delete" data-uid="${user.id}" data-email="${user.email}" style="padding:8px 12px; font-size:0.75rem; border-radius:6px; background:rgba(255,77,77,0.1); border:1px solid #ff4d4d; color:#ff4d4d; cursor:pointer; font-weight:800; text-transform:uppercase; letter-spacing:1px;">Delete</button>
                                 </div>
-                                <button class="btn-primary action-save" data-uid="${user.id}" style="padding:8px 12px; font-size:0.75rem; border-radius:6px; font-weight:800; text-transform:uppercase; letter-spacing:1px; background:#5865F2;">Save</button>
-                                <button class="action-delete" data-uid="${user.id}" data-email="${user.email}" style="padding:8px 12px; font-size:0.75rem; border-radius:6px; background:rgba(255,77,77,0.1); border:1px solid #ff4d4d; color:#ff4d4d; cursor:pointer; font-weight:800; text-transform:uppercase; letter-spacing:1px;">Delete</button>
                             </td>
                         `;
                         tbody.appendChild(tr);

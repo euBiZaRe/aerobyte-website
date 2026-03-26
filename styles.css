@@ -863,20 +863,20 @@ footer {
 }
 
 /* Recent Activity Table (5 Columns) */
-.recent-activity-table th:nth-child(1), .recent-activity-table td:nth-child(1) { width: 300px; color: #10B981; }
-.recent-activity-table th:nth-child(2), .recent-activity-table td:nth-child(2) { width: 300px; }
-.recent-activity-table th:nth-child(3), .recent-activity-table td:nth-child(3) { width: 150px; }
+.recent-activity-table th:nth-child(1), .recent-activity-table td:nth-child(1) { width: 400px; color: #10B981; }
+.recent-activity-table th:nth-child(2), .recent-activity-table td:nth-child(2) { width: 350px; }
+.recent-activity-table th:nth-child(3), .recent-activity-table td:nth-child(3) { width: 170px; }
 .recent-activity-table th:nth-child(4), .recent-activity-table td:nth-child(4) { width: 250px; }
-.recent-activity-table th:nth-child(5), .recent-activity-table td:nth-child(5) { width: 150px; text-align: right; }
+.recent-activity-table th:nth-child(5), .recent-activity-table td:nth-child(5) { width: 200px; text-align: right; }
 
 /* Master Database Table (7 Columns) */
 .master-database-table th:nth-child(1), .master-database-table td:nth-child(1) { width: 250px; }
 .master-database-table th:nth-child(2), .master-database-table td:nth-child(2) { width: 100px; }
-.master-database-table th:nth-child(3), .master-database-table td:nth-child(3) { width: 300px; }
+.master-database-table th:nth-child(3), .master-database-table td:nth-child(3) { width: 200px; }
 .master-database-table th:nth-child(4), .master-database-table td:nth-child(4) { width: 120px; }
 .master-database-table th:nth-child(5), .master-database-table td:nth-child(5) { width: 150px; }
-.master-database-table th:nth-child(6), .master-database-table td:nth-child(6) { width: 200px; color: #10B981; }
-.master-database-table th:nth-child(7), .master-database-table td:nth-child(7) { width: 350px; text-align: right; overflow: visible; }
+.master-database-table th:nth-child(6), .master-database-table td:nth-child(6) { width: 220px; color: #10B981; }
+.master-database-table th:nth-child(7), .master-database-table td:nth-child(7) { width: 450px; text-align: right; overflow: visible; }
 
 .action-plan {
     height: 32px;
