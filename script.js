@@ -163,7 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Generate Key
                 const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
                 const rand = (len) => Array.from({length: len}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-                const newKey = `AB-GIVE-${rand(4)}-${rand(4)}`;
+                const newKey = `AB-GIVE-${rand(4)}-${rand(4)}-2026`;
 
                 // 1. Fulfill
                 await updateDoc(doc(db, "users", uid), {
@@ -274,7 +274,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         // Generate Key (4-4-4-4 unscrambled)
                         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
                         const rand = (len) => Array.from({length: len}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-                        const newKey = `${rand(4)}-${rand(4)}-${rand(4)}-${rand(4)}`;
+                        const newKey = `AB-PR-${rand(4)}-${rand(4)}-2026`;
 
                         try {
                             // 1. Update User Doc
