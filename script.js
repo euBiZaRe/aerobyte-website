@@ -178,9 +178,17 @@ document.addEventListener('DOMContentLoaded', () => {
                                 }
                             }, 1500);
                         } catch(err) {
-                            alert("Fulfillment Error: User authenticated but database update failed. (" + err.message + ")");
-                            payBtn.textContent = 'Pay $15.00';
-                            payBtn.disabled = false;
+                            console.error("Fulfillment permission error:", err);
+                            const useDemo = confirm("🔐 Security Rule Block: Your database correctly blocked the upgrade attempt.\n\nIn a real app, only the Admin/Server can do this. For testing right now, would you like to enter 'Visual Demo Mode' to see the Premium UI anyway?");
+                            
+                            if (useDemo) {
+                                localStorage.setItem('demoPremium', 'true');
+                                payBtn.textContent = 'Entering Demo Mode...';
+                                setTimeout(() => window.location.href = 'profile.html', 1000);
+                            } else {
+                                payBtn.textContent = 'Pay $15.00';
+                                payBtn.disabled = false;
+                            }
                         }
                     } else {
                         alert("Please Sign In first to complete your purchase!");
@@ -388,6 +396,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (userDoc.exists()) {
                         userData = userDoc.data();
                         plan = userData.plan || "Free";
+
+                        // --- DEMO MODE OVERRIDE ---
+                        // If the database update failed but user wants to see the UI, we mock the state locally
+                        if (localStorage.getItem('demoPremium') === 'true' && plan === 'Free') {
+                            console.warn("🔐 AeroByte: Running in Visual Demo Mode. Database is unchanged.");
+                            plan = "Premium";
+                            userData.plan = "Premium";
+                            userData.expiresAt = Date.now() + (30 * 24 * 60 * 60 * 1000);
+                            userData.licenseKey = "AB-DEMO-ONLY-2026";
+                        }
                         
                         // Self-enforcing Expiration Downgrader!
                         if (plan === "Premium" && userData.expiresAt) {
