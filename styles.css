@@ -904,3 +904,45 @@ footer {
     width: 45px !important;
     font-size: 0.7rem !important;
 }
+/* Tier Selection Grid Styles */
+.tier-option {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 15px 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    user-select: none;
+}
+
+.tier-option:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+}
+
+.tier-option.active {
+    background: rgba(88, 101, 242, 0.1);
+    border-color: #5865F2;
+    box-shadow: 0 0 15px rgba(88, 101, 242, 0.2);
+}
+
+.tier-time {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+}
+
+.tier-option.active .tier-time {
+    color: #5865F2;
+}
+
+.tier-price {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: #fff;
+    font-family: 'Outfit', sans-serif;
+}

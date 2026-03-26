@@ -62,9 +62,40 @@ document.addEventListener('DOMContentLoaded', () => {
                         <button class="close-modal">&times;</button>
                         <div class="modal-header">
                             <h2>Upgrade to <span class="gradient-text">Professional</span></h2>
-                            <p>Unlock 100% hardware utilization and cloud-offloaded training.</p>
+                            <p>Select your tier and unlock 100% hardware utilization.</p>
                         </div>
                         
+                        <!-- Tier Selection Grid -->
+                        <div class="tier-selection" style="margin-bottom: 25px;">
+                            <label style="display: block; color: var(--text-muted); font-size: 0.85rem; margin-bottom: 12px;">Choose your Premium duration:</label>
+                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;" id="tierGrid">
+                                <div class="tier-option active" data-tier="48h" data-price="5.00">
+                                    <div class="tier-time">48h</div>
+                                    <div class="tier-price">$5</div>
+                                </div>
+                                <div class="tier-option" data-tier="7d" data-price="10.00">
+                                    <div class="tier-time">7 Days</div>
+                                    <div class="tier-price">$10</div>
+                                </div>
+                                <div class="tier-option" data-tier="30d" data-price="15.00">
+                                    <div class="tier-time">30 Days</div>
+                                    <div class="tier-price">$15</div>
+                                </div>
+                                <div class="tier-option" data-tier="90d" data-price="40.00">
+                                    <div class="tier-time">90 Days</div>
+                                    <div class="tier-price">$40</div>
+                                </div>
+                                <div class="tier-option" data-tier="365d" data-price="120.00">
+                                    <div class="tier-time">1 Year</div>
+                                    <div class="tier-price">$120</div>
+                                </div>
+                                <div class="tier-option" data-tier="LIFETIME" data-price="250.00">
+                                    <div class="tier-time">LIFETIME</div>
+                                    <div class="tier-price">$250</div>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Giveaway / Promo Code Section -->
                         <div style="margin-bottom: 25px; padding: 15px; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
                             <label style="display: block; color: var(--text-muted); font-size: 0.85rem; margin-bottom: 8px;">Have a Giveaway Code?</label>
@@ -87,7 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 </div>
                             </div>
                             <button type="submit" class="btn-primary full-width glow-btn stripe-pay-btn" id="submitPaymentBtn" disabled>
-                                <span id="button-text">Pay $15.00</span>
+                                <span id="button-text">Pay $5.00</span>
                                 <span id="spinner" class="hidden"><i class="fas fa-spinner fa-spin"></i></span>
                             </button>
                             <div id="payment-message" style="color: #ff4d4d; font-size: 0.85rem; margin-top: 15px; text-align: center; display: none;"></div>
@@ -284,6 +315,23 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // --- TIER SELECTION LOGIC ---
+    let selectedTier = '48h';
+    document.body.addEventListener('click', (e) => {
+        const tierOpt = e.target.closest('.tier-option');
+        if (tierOpt) {
+            document.querySelectorAll('.tier-option').forEach(opt => opt.classList.remove('active'));
+            tierOpt.classList.add('active');
+            selectedTier = tierOpt.getAttribute('data-tier');
+            const price = tierOpt.getAttribute('data-price');
+            const payBtnText = document.getElementById('button-text');
+            if (payBtnText) payBtnText.textContent = `Pay $${price}`;
+            
+            // Reload Stripe Elements for new amount
+            loadStripeElements();
+        }
+    });
+
     // --- STRIPE ELEMENTS INTEGRATION ---
     const loadStripeElements = async () => {
         if (!auth.currentUser) return;
@@ -291,15 +339,25 @@ document.addEventListener('DOMContentLoaded', () => {
         const submitBtn = document.getElementById('submitPaymentBtn');
         const elementDiv = document.getElementById('payment-element');
 
+        // Show loading state for elements
+        elementDiv.innerHTML = `
+            <div style="padding: 20px; text-align: center; color: var(--text-muted); background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.1);">
+                <i class="fas fa-spinner fa-spin"></i> Loading Secure Fields...
+            </div>
+        `;
+        submitBtn.disabled = true;
+
         try {
-            // Add a timeout to the fetch call
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+            const timeoutId = setTimeout(() => controller.abort(), 10000);
 
             const response = await fetch(`${BACKEND_URL}/create-payment-intent`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: auth.currentUser.uid }),
+                body: JSON.stringify({ 
+                    userId: auth.currentUser.uid,
+                    tier: selectedTier 
+                }),
                 signal: controller.signal
             });
             clearTimeout(timeoutId);

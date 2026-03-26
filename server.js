@@ -36,17 +36,33 @@ if (serviceAccount) {
   });
 }
 
+// TIER CONFIGURATION
+const TIER_PRICES = {
+    '48h': 500,      // $5.00
+    '7d': 1000,      // $10.00
+    '30d': 1500,     // $15.00
+    '90d': 4000,     // $40.00
+    '365d': 12000,   // $120.00
+    'LIFETIME': 25000 // $250.00
+};
+
 // CREATE PAYMENT INTENT (For In-Modal Stripe Elements)
 app.post('/create-payment-intent', express.json(), async (req, res) => {
-    const { userId } = req.body;
+    const { userId, tier } = req.body;
     if (!userId) return res.status(400).json({ error: 'Missing userId' });
+    
+    const selectedTier = tier || '30d'; // Fallback
+    const amount = TIER_PRICES[selectedTier] || 1500;
 
     try {
         const paymentIntent = await stripe.paymentIntents.create({
-            amount: 1500, // $15.00
+            amount: amount,
             currency: 'usd',
             automatic_payment_methods: { enabled: true },
-            metadata: { userId: userId },
+            metadata: { 
+                userId: userId,
+                tier: selectedTier
+            },
         });
 
         res.json({ clientSecret: paymentIntent.client_secret });
@@ -71,17 +87,24 @@ app.post('/webhook', express.raw({type: 'application/json'}), async (req, res) =
         return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
-    // Handle the payment_intent.succeeded event (Elements) or checkout.session.completed (Legacy)
     if (event.type === 'payment_intent.succeeded' || event.type === 'checkout.session.completed') {
         const session = event.data.object;
-        const userId = session.metadata ? session.metadata.userId : session.client_reference_id;
+        const metadata = session.metadata || {};
+        const userId = metadata.userId || session.client_reference_id;
+        const tier = metadata.tier || '30d';
         const customerEmail = session.receipt_email || (session.customer_details ? session.customer_details.email : 'Customer');
 
-        console.log(`💰 Fulfilling order for User: ${userId} (${customerEmail})`);
+        console.log(`💰 Fulfilling order for User: ${userId} (${customerEmail}) - Tier: ${tier}`);
 
         // --- PRODUCTION FULFILLMENT LOGIC ---
-        // 1. Calculate Expiry (30 Days)
-        const expiresAt = Date.now() + (30 * 24 * 60 * 60 * 1000);
+        let durationMs = 30 * 24 * 60 * 60 * 1000; // Default 30d
+        if (tier === '48h') durationMs = 2 * 24 * 60 * 60 * 1000;
+        if (tier === '7d') durationMs = 7 * 24 * 60 * 60 * 1000;
+        if (tier === '90d') durationMs = 90 * 24 * 60 * 60 * 1000;
+        if (tier === '365d') durationMs = 365 * 24 * 60 * 60 * 1000;
+        if (tier === 'LIFETIME') durationMs = 36500 * 24 * 60 * 60 * 1000; // ~100 years
+
+        const expiresAt = Date.now() + durationMs;
 
         // 2. Generate Real License Key
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -93,7 +116,8 @@ app.post('/webhook', express.raw({type: 'application/json'}), async (req, res) =
             await db.collection('users').doc(userId).update({
                 plan: 'Premium',
                 expiresAt: expiresAt,
-                licenseKey: newKey
+                licenseKey: newKey,
+                premiumTier: tier // Store tier for reference
             });
 
             // Register Global License
@@ -101,13 +125,13 @@ app.post('/webhook', express.raw({type: 'application/json'}), async (req, res) =
                 userId: userId,
                 plan: 'Premium',
                 status: 'active',
+                tier: tier,
                 createdAt: admin.firestore.FieldValue.serverTimestamp()
             });
 
-            console.log(`✅ Successfully upgraded ${customerEmail} to Professional!`);
+            console.log(`✅ Successfully upgraded ${customerEmail} to ${tier} Professional!`);
         } catch (dbErr) {
             console.error("❌ FULFILLMENT FAILED IN DATABASE:", dbErr);
-            // In a real app, you might want to send an alert email here
         }
     }
 
