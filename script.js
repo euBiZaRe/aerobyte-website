@@ -659,12 +659,14 @@ document.addEventListener('DOMContentLoaded', () => {
                              </div>` : 
                             `<button class="btn-primary action-gen-key" data-uid="${docSnap.id}" data-plan="${data.plan}" style="padding:4px 8px; font-size:0.7rem; background:transparent; border:1px solid var(--secondary); color:var(--secondary);">Generate</button>`;
 
+                        const inputStyle = `width:52px; padding:4px; border-radius:4px; border:1px solid var(--border-color); background:rgba(0,0,0,0.5); color:#fff; font-size:0.75rem;`;
+                        const hasDuration = data.plan === 'Premium' || data.plan === 'Trial';
                         tr.innerHTML = `
                             <td>${data.email}</td>
                             <td><span class="plan-badge ${data.plan==='Premium'?'':'basic-badge'}" style="${data.plan==='Premium'?'background:var(--gradient-glow);border:none;color:#fff;':''}">${data.plan}</span></td>
                             <td>${keyDisplay}</td>
                             <td style="${expiresText==='Expired!'?'color:#ff4d4d':''}">${expiresText}</td>
-                            <td style="display:flex; gap:10px;">
+                            <td style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
                                 <select class="action-plan" data-uid="${docSnap.id}">
                                     <option value="Premium" ${data.plan==='Premium'?'selected':''}>Premium</option>
                                     <option value="Trial" ${data.plan==='Trial'?'selected':''}>Trial</option>
@@ -672,14 +674,14 @@ document.addEventListener('DOMContentLoaded', () => {
                                     <option value="Owner" ${data.plan==='Owner'?'selected':''}>Owner</option>
                                     <option value="Free" ${data.plan!=='Premium' && data.plan!=='Trial' && data.plan!=='Media' && data.plan!=='Owner'?'selected':''}>Free</option>
                                 </select>
-                                <select class="action-duration" style="${data.plan!=='Premium' && data.plan!=='Trial'?'display:none;':''}">
-                                    <option value="lifetime">Lifetime</option>
-                                    <option value="30">30 Days</option>
-                                    <option value="90">90 Days</option>
-                                    <option value="365">1 Year</option>
-                                    <option value="custom">Custom</option>
-                                </select>
-                                <input type="number" class="action-custom" placeholder="Days" style="display:none; width:80px; padding:5px; border-radius:4px; border:1px solid var(--border-color); background:rgba(0,0,0,0.5); color:#fff;">
+                                <div class="duration-inputs" style="display:${hasDuration?'flex':'none'}; align-items:center; gap:3px;">
+                                    <input type="number" class="action-days" min="0" placeholder="d" style="${inputStyle}" title="Days">
+                                    <span style="color:var(--text-muted);font-size:0.7rem;">d</span>
+                                    <input type="number" class="action-hours" min="0" max="23" placeholder="h" style="${inputStyle}" title="Hours">
+                                    <span style="color:var(--text-muted);font-size:0.7rem;">h</span>
+                                    <input type="number" class="action-minutes" min="0" max="59" placeholder="m" style="${inputStyle}" title="Mins">
+                                    <span style="color:var(--text-muted);font-size:0.7rem;">m</span>
+                                </div>
                                 <button class="btn-primary action-save" data-uid="${docSnap.id}" style="padding:6px 12px; font-size:0.8rem; border-radius:6px;">Save</button>
                                 <button class="action-delete" data-uid="${docSnap.id}" data-email="${data.email}" style="padding:6px 12px; font-size:0.8rem; border-radius:6px; background:rgba(255,77,77,0.1); border:1px solid #ff4d4d; color:#ff4d4d; cursor:pointer; font-weight:bold;">Delete</button>
                             </td>
@@ -697,22 +699,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if(tbody) {
                 tbody.addEventListener('change', (e) => {
                     if (e.target.classList.contains('action-plan')) {
-                        const durationSelect = e.target.parentElement.querySelector('.action-duration');
-                        const customInput = e.target.parentElement.querySelector('.action-custom');
+                        const durationInputs = e.target.parentElement.querySelector('.duration-inputs');
                         if (e.target.value === 'Premium' || e.target.value === 'Trial') {
-                            durationSelect.style.display = 'inline-block';
-                            if(durationSelect.value === 'custom') customInput.style.display = 'inline-block';
+                            durationInputs.style.display = 'flex';
                         } else {
-                            durationSelect.style.display = 'none';
-                            customInput.style.display = 'none';
-                        }
-                    }
-                    if (e.target.classList.contains('action-duration')) {
-                        const customInput = e.target.parentElement.querySelector('.action-custom');
-                        if (e.target.value === 'custom') {
-                            customInput.style.display = 'inline-block';
-                        } else {
-                            customInput.style.display = 'none';
+                            durationInputs.style.display = 'none';
                         }
                     }
                 });
@@ -824,20 +815,21 @@ document.addEventListener('DOMContentLoaded', () => {
                         const uid = e.target.getAttribute('data-uid');
                         const parent = e.target.parentElement;
                         const planVal = parent.querySelector('.action-plan').value;
-                        const durationVal = parent.querySelector('.action-duration').value;
-                        const customVal = parent.querySelector('.action-custom').value;
+                        const daysVal   = parseInt(parent.querySelector('.action-days')?.value)   || 0;
+                        const hoursVal  = parseInt(parent.querySelector('.action-hours')?.value)  || 0;
+                        const minsVal   = parseInt(parent.querySelector('.action-minutes')?.value) || 0;
                         
                         e.target.textContent = 'Saving...';
                         
                         let expiresAt = null;
-                        if ((planVal === 'Premium' || planVal === 'Trial') && durationVal !== 'lifetime') {
-                            let days = durationVal === 'custom' ? parseInt(customVal) : parseInt(durationVal);
-                            if (!days || isNaN(days) || days < 1) {
-                                alert("Please enter a valid number of days.");
-                                e.target.textContent = 'Save';
-                                return;
+                        if (planVal === 'Premium' || planVal === 'Trial') {
+                            const totalMs = (daysVal * 24 * 60 * 60 * 1000)
+                                         + (hoursVal * 60 * 60 * 1000)
+                                         + (minsVal * 60 * 1000);
+                            if (totalMs > 0) {
+                                expiresAt = Date.now() + totalMs;
                             }
-                            expiresAt = Date.now() + (days * 24 * 60 * 60 * 1000);
+                            // If all fields are 0, it's treated as lifetime (expiresAt stays null)
                         }
 
                         try {
