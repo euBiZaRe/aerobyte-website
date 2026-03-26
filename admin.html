@@ -145,11 +145,18 @@
 
 
     <header class="hero" style="min-height: 5vh; padding-top: 40px; padding-bottom: 20px;">
-        <div class="hero-content" style="max-width: 1000px; margin: 0 auto; text-align: left; display: flex; justify-content: space-between; align-items: flex-end;">
-            <h2 class="section-title" style="font-size: 1.5rem; margin-bottom: 0;">Master <span class="gradient-text">Database</span></h2>
-            <div class="search-container" style="position: relative; width: 300px;">
-                <i class="fas fa-search" style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.9rem;"></i>
-                <input type="text" id="userSearch" placeholder="Search by email..." style="width: 100%; padding: 10px 15px 10px 40px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; color: #fff; outline: none; transition: all 0.3s; font-size: 0.9rem;">
+        <div class="hero-content" style="max-width: 1000px; margin: 0 auto; text-align: left;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+                <h2 style="margin-bottom:0;"><i class="fas fa-database" style="color: var(--secondary); margin-right: 10px;"></i> Master Database</h2>
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <button id="resyncDashboard" class="btn-primary" style="background:transparent; border:1px solid var(--secondary); color:var(--secondary); padding:8px 16px; font-size:0.85rem; border-radius:8px; display:flex; align-items:center; gap:8px;">
+                        <i class="fas fa-sync-alt"></i> Force Resync
+                    </button>
+                    <div class="search-container" style="position: relative; width: 250px; margin-bottom:0;">
+                        <i class="fas fa-search" style="position: absolute; left: 15px; top: 12px; color: var(--text-muted);"></i>
+                        <input type="text" id="userSearch" placeholder="Search by email..." style="width: 100%; padding: 10px 10px 10px 40px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; color: #fff; outline: none; transition: all 0.3s; font-size: 0.9rem;">
+                    </div>
+                </div>
             </div>
         </div>
     </header>

@@ -1075,6 +1075,19 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             
+            // Force Resync Button
+            const resyncBtn = document.getElementById('resyncDashboard');
+            if (resyncBtn) {
+                resyncBtn.onclick = () => {
+                    resyncBtn.style.opacity = '0.5';
+                    resyncBtn.disabled = true;
+                    refreshDashboard().then(() => {
+                        resyncBtn.style.opacity = '1';
+                        resyncBtn.disabled = false;
+                    });
+                };
+            }
+
             refreshDashboard();
 
             // Unified Search Handler
