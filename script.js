@@ -892,7 +892,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         activity.push({ id: d.id, type: 'Promo Code', time: data.createdAt, user: data.usedBy || 'Waiting...', plan: `${data.days}d Plan`, status: data.used ? 'Redeemed' : 'Available', col: 'promo_codes' });
                     });
                     
-                    globalActivity = activity;
+                    let globalActivity = activity;
                     console.log("📊 Sync Complete. Rendering tables...");
 
                     // 2. Render Recent Activity Table
