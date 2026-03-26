@@ -48,6 +48,17 @@
                 <li><a href="faq.html">FAQ</a></li>
                 <li><a href="#" class="btn-primary login-btn">Profile</a></li>
             </ul>
+            <div style="margin-top: 30px; display: flex; gap: 20px; align-items: center; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;">
+                <button id="refreshBtn" class="btn-secondary" style="margin: 0; padding: 10px 20px;">🔄 Refresh Database</button>
+                <div style="flex: 1;"></div>
+                <!-- Mini Giveaway Gen Tool -->
+                <div style="display: flex; align-items: center; gap: 10px; background: rgba(88, 101, 242, 0.1); padding: 10px 15px; border-radius: 12px; border: 1px solid rgba(88, 101, 242, 0.2);">
+                    <span style="font-size: 0.85rem; color: #5865F2; font-weight: 700;">🎁 Giveaway Gen:</span>
+                    <input type="number" id="promoDays" value="30" style="width: 50px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: #fff; border-radius: 4px; padding: 4px;">
+                    <span style="font-size: 0.75rem; color: var(--text-muted);">Days</span>
+                    <button id="genPromoBtn" class="btn-primary" style="margin: 0; padding: 6px 12px; font-size: 0.8rem; background: #5865F2;">Generate One-Time Code</button>
+                </div>
+            </div>
         </div>
     </nav>
 

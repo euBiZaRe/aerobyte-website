@@ -59,6 +59,17 @@ document.addEventListener('DOMContentLoaded', () => {
                             <h2>Upgrade to <span class="gradient-text">Professional</span></h2>
                             <p>Unlock 100% hardware utilization and cloud-offloaded training.</p>
                         </div>
+                        
+                        <!-- Giveaway / Promo Code Section -->
+                        <div style="margin-bottom: 25px; padding: 15px; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
+                            <label style="display: block; color: var(--text-muted); font-size: 0.85rem; margin-bottom: 8px;">Have a Giveaway Code?</label>
+                            <div style="display: flex; gap: 10px;">
+                                <input type="text" id="promoCodeInput" placeholder="Enter code..." style="flex: 1; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 8px 12px; border-radius: 8px; font-family: monospace;">
+                                <button id="redeemPromoBtn" class="btn-primary" style="padding: 8px 15px; font-size: 0.85rem; background: #5865F2;">Redeem</button>
+                            </div>
+                            <div id="promoError" style="color: #ff4d4d; font-size: 0.75rem; margin-top: 5px; display: none;"></div>
+                        </div>
+
                         <form id="checkoutForm">
                             <div class="form-group">
                                 <label>Card Details</label>
@@ -83,6 +94,78 @@ document.addEventListener('DOMContentLoaded', () => {
     const payBtn = document.querySelector('.pay-btn');
     const isProfilePage = window.location.pathname.includes('profile.html');
     const loginBtns = document.querySelectorAll('.login-btn');
+
+    // Promo Code Redemption Logic
+    const handleRedeem = async () => {
+        const promoInput = document.getElementById('promoCodeInput');
+        const redeemBtn = document.getElementById('redeemPromoBtn');
+        const promoError = document.getElementById('promoError');
+        const code = promoInput.value.trim().toUpperCase();
+
+        if (!code) return;
+        if (!auth.currentUser) {
+            alert("Please Sign In first to redeem a code!");
+            return;
+        }
+
+        redeemBtn.textContent = '...';
+        redeemBtn.disabled = true;
+        promoError.style.display = 'none';
+
+        try {
+            const promoDoc = await getDoc(doc(db, "promo_codes", code));
+            
+            if (promoDoc.exists()) {
+                const promoData = promoDoc.data();
+                const uid = auth.currentUser.uid;
+                const durationDays = promoData.days || 30;
+                const expiresAt = Date.now() + (durationDays * 24 * 60 * 60 * 1000);
+
+                // Generate Key
+                const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+                const rand = (len) => Array.from({length: len}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+                const newKey = `AB-GIVE-${rand(4)}-${rand(4)}`;
+
+                // 1. Fulfill
+                await updateDoc(doc(db, "users", uid), {
+                    plan: "Premium",
+                    expiresAt: expiresAt,
+                    licenseKey: newKey
+                });
+                
+                await setDoc(doc(db, "licenses", newKey), {
+                    userId: uid,
+                    plan: "Premium",
+                    status: "active",
+                    createdAt: Date.now()
+                });
+
+                // 2. DELETE the code (one-time use)
+                await deleteDoc(doc(db, "promo_codes", code));
+
+                alert(`Success! Giveaway code redeemed for ${durationDays} days of Premium.`);
+                window.location.reload();
+            } else {
+                promoError.textContent = "Invalid or already used code.";
+                promoError.style.display = 'block';
+                redeemBtn.textContent = 'Redeem';
+                redeemBtn.disabled = false;
+            }
+        } catch (err) {
+            console.error(err);
+            promoError.textContent = "Error: " + err.message;
+            promoError.style.display = 'block';
+            redeemBtn.textContent = 'Redeem';
+            redeemBtn.disabled = false;
+        }
+    };
+
+    // Attach listener via event delegation or direct if exists
+    document.body.addEventListener('click', (e) => {
+        if (e.target && e.target.id === 'redeemPromoBtn') {
+            handleRedeem();
+        }
+    });
 
     // --- IMMEDIATE UI FIX (FLICKER PROTECTION) ---
     if (localStorage.getItem('isLoggedIn') === 'true') {
@@ -976,6 +1059,36 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     };
                     reader.readAsText(file);
+                });
+            }
+
+            // --- ADMIN PROMO CODE GENERATOR ---
+            const genPromoBtn = document.getElementById('genPromoBtn');
+            const promoDaysInput = document.getElementById('promoDays');
+            if (genPromoBtn && promoDaysInput) {
+                genPromoBtn.addEventListener('click', async () => {
+                    const days = parseInt(promoDaysInput.value) || 30;
+                    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // No O/0 or I/1 for clarity
+                    const newCode = Array.from({length: 8}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+                    
+                    genPromoBtn.textContent = 'Generating...';
+                    genPromoBtn.disabled = true;
+
+                    try {
+                        await setDoc(doc(db, "promo_codes", newCode), {
+                            days: days,
+                            createdAt: Date.now(),
+                            createdBy: auth.currentUser.email
+                        });
+                        
+                        alert(`🎁 New Giveaway Code Generated!\n\nCode: ${newCode}\nDuration: ${days} Days\n\nCopy this code and give it to the user. It will work exactly once.`);
+                        genPromoBtn.textContent = 'Generate One-Time Code';
+                        genPromoBtn.disabled = false;
+                    } catch (err) {
+                        alert("Error generating code: " + err.message);
+                        genPromoBtn.textContent = 'Generate One-Time Code';
+                        genPromoBtn.disabled = false;
+                    }
                 });
             }
         }
