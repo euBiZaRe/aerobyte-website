@@ -18,12 +18,15 @@ service cloud.firestore {
       // Allow anyone to read (for the launcher to validate)
       allow read: if true;
       
-      // Allow creation for simulation purposes
-      // In production, this should be write: if false; or restricted to admin
+      // Allow users to create their own license docs during redemption
+      allow create: if request.auth != null;
+    }
+    
     // Giveaway / Promo Codes
     match /promo_codes/{codeId} {
-      // Users can check and delete a code when they use it
-      allow read, delete: if request.auth != null;
+      // Users can check, update (mark used), and delete a code when they use it
+      allow read, update, delete: if request.auth != null;
+      
       // Only Admins (Owners) can create codes
       allow create: if request.auth != null && 
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.plan == 'Owner';
