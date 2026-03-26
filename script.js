@@ -832,7 +832,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
 
                     if (combined.length === 0) {
-                        recentTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 30px; color: var(--text-muted);">No activity recorded in the last 24 hours.</td></tr>';
+                        recentTbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 30px; color: var(--text-muted);">No activity recorded in the last 24 hours.</td></tr>';
                         return;
                     }
 
@@ -850,6 +850,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const timeStr = new Date(item.time).toLocaleString();
                         const displayUser = userMap[item.user] || item.user;
                         const statusColor = item.status === 'Available' ? '#3B82F6' : '#10B981';
+                        const collectionName = item.type === 'License' ? 'licenses' : 'promo_codes';
                         
                         tr.innerHTML = `
                             <td style="color: #10B981; font-family: monospace; font-weight: bold;">${item.id}</td>
@@ -858,14 +859,47 @@ document.addEventListener('DOMContentLoaded', () => {
                             <td style="color: var(--text-muted); font-size: 0.85rem;">
                                 <span style="color:${statusColor}; font-weight:bold;">${item.status}</span> @ ${timeStr}
                             </td>
+                            <td style="text-align:right;">
+                                <button class="action-delete-activity" data-id="${item.id}" data-col="${collectionName}" data-type="${item.type}" style="background:transparent; border:none; color:#ff4d4d; cursor:pointer; padding:5px; transition: opacity 0.2s;" title="Remove this record"><i class="fas fa-trash"></i></button>
+                            </td>
                         `;
                         recentTbody.appendChild(tr);
                     });
                 } catch (err) {
                     console.error("Recent Activity Error:", err);
-                    recentTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 30px; color: #ff4d4d;">Error loading activity.</td></tr>';
+                    recentTbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 30px; color: #ff4d4d;">Error loading activity.</td></tr>';
                 }
             };
+
+            // Activity Table Delegated Deletion
+            if (recentTbody) {
+                recentTbody.addEventListener('click', async (e) => {
+                    const deleteBtn = e.target.closest('.action-delete-activity');
+                    if (!deleteBtn) return;
+
+                    const docId = deleteBtn.getAttribute('data-id');
+                    const collectionName = deleteBtn.getAttribute('data-col');
+                    const type = deleteBtn.getAttribute('data-type');
+                    
+                    const confirmMsg = type === 'License' 
+                        ? `WARNING: Deleting an active LICENSE (${docId}) will deactivate the user's software. Are you sure?`
+                        : `Are you sure you want to remove this Promo Code record (${docId})? It will be permanently deleted.`;
+
+                    if (confirm(confirmMsg)) {
+                        deleteBtn.style.opacity = '0.5';
+                        deleteBtn.disabled = true;
+                        try {
+                            await deleteDoc(doc(db, collectionName, docId));
+                            getRecentActivity(); // Refresh activity log
+                        } catch (err) {
+                            console.error("Delete Error:", err);
+                            alert("Error deleting: " + err.message);
+                            deleteBtn.style.opacity = '1';
+                            deleteBtn.disabled = false;
+                        }
+                    }
+                });
+            }
 
             const getUsers = async () => {
                 if(!tbody) return;
