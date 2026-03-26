@@ -1062,35 +1062,42 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
 
-            // --- ADMIN PROMO CODE GENERATOR ---
-            const genPromoBtn = document.getElementById('genPromoBtn');
-            const promoDaysInput = document.getElementById('promoDays');
-            if (genPromoBtn && promoDaysInput) {
-                genPromoBtn.addEventListener('click', async () => {
-                    const days = parseInt(promoDaysInput.value) || 30;
-                    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // No O/0 or I/1 for clarity
+            // --- GLOBAL ADMIN PROMO GEN HANDLER (Event Delegation) ---
+            document.body.addEventListener('click', async (e) => {
+                if (e.target && e.target.id === 'genPromoBtn') {
+                    console.log("🎁 Giveaway Gen Triggered");
+                    const genBtn = e.target;
+                    const promoDaysInput = document.getElementById('promoDays');
+                    const days = parseInt(promoDaysInput?.value) || 30;
+                    
+                    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; 
                     const newCode = Array.from({length: 8}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
                     
-                    genPromoBtn.textContent = 'Generating...';
-                    genPromoBtn.disabled = true;
+                    genBtn.textContent = 'Generating...';
+                    genBtn.disabled = true;
 
                     try {
+                        // Ensure we are logged in
+                        if (!auth.currentUser) throw new Error("Not authenticated");
+
                         await setDoc(doc(db, "promo_codes", newCode), {
                             days: days,
                             createdAt: Date.now(),
                             createdBy: auth.currentUser.email
                         });
                         
+                        console.log("✅ Code Saved:", newCode);
                         alert(`🎁 New Giveaway Code Generated!\n\nCode: ${newCode}\nDuration: ${days} Days\n\nCopy this code and give it to the user. It will work exactly once.`);
-                        genPromoBtn.textContent = 'Generate One-Time Code';
-                        genPromoBtn.disabled = false;
+                        genBtn.textContent = 'Generate One-Time Code';
+                        genBtn.disabled = false;
                     } catch (err) {
+                        console.error("❌ Giveaway Gen Error:", err);
                         alert("Error generating code: " + err.message);
-                        genPromoBtn.textContent = 'Generate One-Time Code';
-                        genPromoBtn.disabled = false;
+                        genBtn.textContent = 'Generate One-Time Code';
+                        genBtn.disabled = false;
                     }
-                });
-            }
+                }
+            });
         }
     });
 
