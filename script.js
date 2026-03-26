@@ -1161,8 +1161,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                     status: "active",
                                     createdAt: Date.now()
                                 });
-                                getUsers(); // Refresh User Table
-                                getRecentActivity(); // Refresh Recent Activity
+                                refreshDashboard(); // Refresh UI
                             } catch(err) {
                                 alert("Error regenerating key: " + err.message);
                                 cleanup();
