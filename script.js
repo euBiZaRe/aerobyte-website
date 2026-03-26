@@ -17,6 +17,9 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 document.addEventListener('DOMContentLoaded', () => {
+    const STRIPE_PK = 'pk_test_51TFKE1IlExQEZUkSBzHPPiTVBWXwQRvpmW3HlVK7wT35MrB0FDyu2dEzLKvNIre6E70huYkcX5mdgRZtmen2D20700hv4OukTE';
+    const BACKEND_URL = 'https://aerobyte-website.onrender.com'; 
+
     // --- DYNAMIC MODAL INJECTION ---
     const injectModals = () => {
         if (!document.getElementById('authModal')) {
@@ -271,79 +274,48 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Handle Form Submission (Simulated Checkout)
+    // Handle Form Submission (Real Stripe Checkout)
     if (checkoutForm) {
-        checkoutForm.addEventListener('submit', (e) => {
+        checkoutForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            // Simulate processing state
-            payBtn.textContent = 'Processing...';
+            if (!auth.currentUser) {
+                alert("Please Sign In first to complete your purchase!");
+                return;
+            }
+
+            payBtn.textContent = 'Contacting Stripe...';
             payBtn.disabled = true;
-            
-            setTimeout(() => {
-                // --- AUTOMATED FULFILLMENT ---
-                const finalizeCheckout = async () => {
-                    if (auth.currentUser) {
-                        const uid = auth.currentUser.uid;
-                        const plan = "Premium";
-                        const expiresAt = Date.now() + (30 * 24 * 60 * 60 * 1000); // 30 Days
 
-                        // Generate Key (4-4-4-4 unscrambled)
-                        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-                        const rand = (len) => Array.from({length: len}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-                        const newKey = `${rand(4)}-${rand(4)}-${rand(4)}-${rand(4)}`;
+            try {
+                // If backend isn't set up yet, this will fail gracefully
+                const response = await fetch(`${BACKEND_URL}/create-checkout-session`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: auth.currentUser.uid })
+                });
 
-                        try {
-                            // 1. Update User Doc
-                            await updateDoc(doc(db, "users", uid), {
-                                plan: plan,
-                                expiresAt: expiresAt,
-                                licenseKey: newKey
-                            });
-                            // 2. Register Global License
-                            await setDoc(doc(db, "licenses", newKey), {
-                                userId: uid,
-                                plan: plan,
-                                status: "active",
-                                createdAt: Date.now()
-                            });
-                            
-                            payBtn.textContent = 'Payment Successful! ✓';
-                            payBtn.style.background = '#10B981';
-                            
-                            setTimeout(() => {
-                                closeModal();
-                                alert('Thank you for upgrading to AeroByte Professional! Your Premium License Key has been generated and added to your profile.');
-                                if (window.location.pathname.includes('profile.html')) {
-                                    window.location.reload(); // Refresh if on profile
-                                } else {
-                                    window.location.href = 'profile.html'; // Go to profile to see the key
-                                }
-                            }, 1500);
-                        } catch(err) {
-                            console.error("Fulfillment permission error:", err);
-                            const useDemo = confirm("🔐 Security Rule Block: Your database correctly blocked the upgrade attempt.\n\nIn a real app, only the Admin/Server can do this. For testing right now, would you like to enter 'Visual Demo Mode' to see the Premium UI anyway?");
-                            
-                            if (useDemo) {
-                                localStorage.setItem('demoPremium', 'true');
-                                payBtn.textContent = 'Entering Demo Mode...';
-                                setTimeout(() => window.location.href = 'profile.html', 1000);
-                            } else {
-                                payBtn.textContent = 'Pay $15.00';
-                                payBtn.disabled = false;
-                            }
-                        }
-                    } else {
-                        alert("Please Sign In first to complete your purchase!");
-                        payBtn.textContent = 'Pay $15.00';
-                        payBtn.disabled = false;
-                    }
-                };
-                finalizeCheckout();
-                
-            }, 1500);
+                const session = await response.json();
+                if (session.url) {
+                    // Redirect to Stripe-hosted checkout
+                    window.location.href = session.url;
+                } else {
+                    throw new Error(session.error || 'Failed to create session');
+                }
+            } catch (err) {
+                console.error("Stripe Checkout Error:", err);
+                alert("Checkout Link Error: " + err.message + "\n\n1. Ensure your backend (server.js) is running on Render/Vercel.\n2. Ensure BACKEND_URL in script.js matches your live backend URL.");
+                payBtn.textContent = 'Pay $15.00';
+                payBtn.disabled = false;
+            }
         });
     }
+
+    // --- LEGACY SIMULATED FULFILLMENT (FOR ADMIN USE) ---
+    const simulateFulfillment_REMOVED = () => {
+        // Function removed to prevent accidental free upgrades via inspection
+    };
+
 
     // --- Authentication Logic ---
     const authModal = document.getElementById('authModal');
