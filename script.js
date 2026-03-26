@@ -878,6 +878,35 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             // Activity Table Delegated Deletion
+            if (recentTbody) {
+                recentTbody.addEventListener('click', async (e) => {
+                    const deleteBtn = e.target.closest('.action-delete-activity');
+                    if (!deleteBtn) return;
+
+                    const docId = deleteBtn.getAttribute('data-id');
+                    const collectionName = deleteBtn.getAttribute('data-col');
+                    const type = deleteBtn.getAttribute('data-type');
+                    
+                    const confirmMsg = type === 'License' 
+                        ? `WARNING: Deleting an active LICENSE (${docId}) will deactivate the user's software. Are you sure?`
+                        : `Are you sure you want to remove this Promo Code record (${docId})? It will be permanently deleted.`;
+
+                    if (confirm(confirmMsg)) {
+                        deleteBtn.style.opacity = '0.5';
+                        deleteBtn.disabled = true;
+                        try {
+                            await deleteDoc(doc(db, collectionName, docId));
+                            getRecentActivity(); // Refresh activity log
+                        } catch (err) {
+                            console.error("Delete Error:", err);
+                            alert("Error deleting: " + err.message);
+                            deleteBtn.style.opacity = '1';
+                            deleteBtn.disabled = false;
+                        }
+                    }
+                });
+            }
+
             // Toggle Activity Log
             const activityToggle = document.getElementById('activityToggle');
             const activityContent = document.getElementById('activityContent');
