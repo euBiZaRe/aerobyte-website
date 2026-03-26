@@ -770,7 +770,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Dedicated Admin Page Specific Logic
-        const isAdminPage = window.location.pathname.includes('admin.html');
+        const isAdminPage = window.location.pathname.toLowerCase().includes('admin');
         if (isAdminPage) {
             // Sidebar Toggle Logic
             const sidebar = document.getElementById('adminSidebar');
