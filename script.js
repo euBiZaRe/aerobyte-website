@@ -1053,59 +1053,97 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     // --- RESET HWID HANDLER ---
                     if (e.target.classList.contains('action-reset-hwid')) {
-                        const key = e.target.getAttribute('data-key');
-                        if (!confirm("Are you sure you want to reset the HWID for this license? The user will be able to bind it to a new PC on their next launch.")) return;
+                        const btn = e.target;
+                        const parent = btn.parentElement;
+                        const key = btn.getAttribute('data-key');
                         
-                        e.target.textContent = 'Resetting...';
-                        try {
-                            await setDoc(doc(db, "licenses", key), { hwid: null }, { merge: true });
-                            alert("HWID Reset Successful!");
-                            getUsers();
-                        } catch(err) {
-                            alert("Error resetting HWID: " + err.message);
-                            e.target.textContent = 'Reset HWID';
-                        }
+                        // Show inline confirm
+                        btn.style.display = 'none';
+                        const confirmUI = document.createElement('div');
+                        confirmUI.className = 'inline-confirm';
+                        confirmUI.innerHTML = `
+                            <span style="font-size:0.6rem; color:#f59e0b; display:block; margin-bottom:2px;">Reset HWID?</span>
+                            <div style="display:flex; gap:4px;">
+                                <button class="confirm-hwid-yes" style="padding:2px 6px; font-size:0.6rem; background:#10B981; color:#fff; border:none; border-radius:3px; cursor:pointer;">Yes</button>
+                                <button class="confirm-hwid-no" style="padding:2px 6px; font-size:0.6rem; background:#ff4d4d; color:#fff; border:none; border-radius:3px; cursor:pointer;">No</button>
+                            </div>
+                        `;
+                        parent.appendChild(confirmUI);
+
+                        const cleanup = () => {
+                            confirmUI.remove();
+                            btn.style.display = 'inline-block';
+                        };
+
+                        confirmUI.querySelector('.confirm-hwid-no').onclick = cleanup;
+                        confirmUI.querySelector('.confirm-hwid-yes').onclick = async () => {
+                            confirmUI.innerHTML = '<span style="font-size:0.6rem; color:var(--text-muted);">Resetting...</span>';
+                            try {
+                                await setDoc(doc(db, "licenses", key), { hwid: null }, { merge: true });
+                                getUsers();
+                            } catch(err) {
+                                alert("Error resetting HWID: " + err.message);
+                                cleanup();
+                            }
+                        };
                         return;
                     }
 
                     // --- REGENERATE KEY HANDLER ---
                     if (e.target.classList.contains('action-regen-key')) {
-                        const uid = e.target.getAttribute('data-uid');
-                        const oldKey = e.target.getAttribute('data-key');
-                        const plan = e.target.getAttribute('data-plan');
+                        const btn = e.target;
+                        const parent = btn.parentElement;
+                        const uid = btn.getAttribute('data-uid');
+                        const oldKey = btn.getAttribute('data-key');
+                        const plan = btn.getAttribute('data-plan');
                         
-                        if (!confirm("Are you sure you want to regenerate this key? The old key will stop working immediately.")) return;
+                        // Show inline confirm
+                        btn.style.display = 'none';
+                        const confirmUI = document.createElement('div');
+                        confirmUI.className = 'inline-confirm';
+                        confirmUI.style.marginTop = '4px';
+                        confirmUI.innerHTML = `
+                            <span style="font-size:0.6rem; color:#ff4d4d; display:block; margin-bottom:2px;">Regen Key? (Old will stop working)</span>
+                            <div style="display:flex; gap:4px;">
+                                <button class="confirm-regen-yes" style="padding:2px 6px; font-size:0.6rem; background:#10B981; color:#fff; border:none; border-radius:3px; cursor:pointer;">Yes</button>
+                                <button class="confirm-regen-no" style="padding:2px 6px; font-size:0.6rem; background:#ff4d4d; color:#fff; border:none; border-radius:3px; cursor:pointer;">No</button>
+                            </div>
+                        `;
+                        parent.appendChild(confirmUI);
 
-                        const genKey = () => {
-                            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-                            const rand = (len) => Array.from({length: len}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-                            return `${rand(4)}-${rand(4)}-${rand(4)}-${rand(4)}`;
+                        const cleanup = () => {
+                            confirmUI.remove();
+                            btn.style.display = 'inline-block';
                         };
 
-                        const newKey = genKey();
-                        e.target.textContent = 'Regenerating...';
-                        
-                        try {
-                            // 1. Delete old global license
-                            if (oldKey) {
-                                await deleteDoc(doc(db, "licenses", oldKey));
+                        confirmUI.querySelector('.confirm-regen-no').onclick = cleanup;
+                        confirmUI.querySelector('.confirm-regen-yes').onclick = async () => {
+                            confirmUI.innerHTML = '<span style="font-size:0.6rem; color:var(--text-muted);">Regenerating...</span>';
+                            
+                            const genKey = () => {
+                                const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+                                const rand = (len) => Array.from({length: len}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+                                return `${rand(4)}-${rand(4)}-${rand(4)}-${rand(4)}`;
+                            };
+
+                            const newKey = genKey();
+                            
+                            try {
+                                if (oldKey) await deleteDoc(doc(db, "licenses", oldKey));
+                                await updateDoc(doc(db, "users", uid), { licenseKey: newKey });
+                                await setDoc(doc(db, "licenses", newKey), {
+                                    userId: uid,
+                                    plan: plan,
+                                    status: "active",
+                                    createdAt: Date.now()
+                                });
+                                getUsers(); // Refresh User Table
+                                getRecentActivity(); // Refresh Recent Activity
+                            } catch(err) {
+                                alert("Error regenerating key: " + err.message);
+                                cleanup();
                             }
-                            // 2. Update User Doc with new key
-                            await updateDoc(doc(db, "users", uid), { licenseKey: newKey });
-                            // 3. Create new global license
-                            await setDoc(doc(db, "licenses", newKey), {
-                                userId: uid,
-                                plan: plan,
-                                status: "active",
-                                createdAt: Date.now()
-                            });
-                            alert("Key Successfully Regenerated!");
-                            getUsers(); // Refresh User Table
-                            getRecentActivity(); // Refresh Recent Activity
-                        } catch(err) {
-                            alert("Error regenerating key: " + err.message);
-                            e.target.textContent = 'Regen Key';
-                        }
+                        };
                         return;
                     }
 
