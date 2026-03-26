@@ -19,6 +19,8 @@ const db = getFirestore(app);
 document.addEventListener('DOMContentLoaded', () => {
     const STRIPE_PK = 'pk_test_51TFKE1IlExQEZUkSBzHPPiTVBWXwQRvpmW3HlVK7wT35MrB0FDyu2dEzLKvNIre6E70huYkcX5mdgRZtmen2D20700hv4OukTE';
     const BACKEND_URL = 'https://aerobyte-website.onrender.com'; 
+    const stripe = Stripe(STRIPE_PK);
+    let elements;
 
     // --- DYNAMIC MODAL INJECTION ---
     const injectModals = () => {
@@ -75,16 +77,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         <form id="checkoutForm">
                             <div class="form-group">
-                                <label>Payment Method</label>
-                                <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; color: #fff; font-size: 0.9rem; display: flex; align-items: center; gap: 15px;">
-                                    <div style="font-size: 1.5rem; color: #6772e5;"><i class="fab fa-stripe"></i></div>
-                                    <div>
-                                        <div style="font-weight: 600;">Secure Stripe Checkout</div>
-                                        <div style="font-size: 0.8rem; color: var(--text-muted);">Redirects to Stripe for safe payment.</div>
+                                <label>Secure Payment Information</label>
+                                <div id="link-authentication-element"></div>
+                                <div id="payment-element" style="margin-top: 15px;">
+                                    <!-- Stripe Elements will mount here -->
+                                    <div style="padding: 20px; text-align: center; color: var(--text-muted); background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.1);">
+                                        <i class="fas fa-spinner fa-spin"></i> Initializing Secure Fields...
                                     </div>
                                 </div>
                             </div>
-                            <button type="submit" class="btn-primary full-width glow-btn stripe-pay-btn">Pay $15.00</button>
+                            <button type="submit" class="btn-primary full-width glow-btn stripe-pay-btn" id="submitPaymentBtn" disabled>
+                                <span id="button-text">Pay $15.00</span>
+                                <span id="spinner" class="hidden"><i class="fas fa-spinner fa-spin"></i></span>
+                            </button>
+                            <div id="payment-message" style="color: #ff4d4d; font-size: 0.85rem; margin-top: 15px; text-align: center; display: none;"></div>
                         </form>
                         <div class="secure-badge">🔒 Secure Stripe Checkout</div>
                     </div>
@@ -278,40 +284,99 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Handle Form Submission (Real Stripe Checkout)
+    // --- STRIPE ELEMENTS INTEGRATION ---
+    const loadStripeElements = async () => {
+        if (!auth.currentUser) return;
+        const msgContainer = document.getElementById('payment-message');
+        const submitBtn = document.getElementById('submitPaymentBtn');
+
+        try {
+            const response = await fetch(`${BACKEND_URL}/create-payment-intent`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: auth.currentUser.uid })
+            });
+
+            const { clientSecret } = await response.json();
+            if (!clientSecret) throw new Error("Could not initialize payment session.");
+
+            const appearance = {
+                theme: 'night',
+                variables: {
+                    colorPrimary: '#5865F2',
+                    colorBackground: '#1a1b24',
+                    colorText: '#ffffff',
+                    colorDanger: '#df1b41',
+                    fontFamily: 'Outfit, sans-serif',
+                    spacingUnit: '4px',
+                    borderRadius: '8px',
+                },
+            };
+
+            elements = stripe.elements({ appearance, clientSecret });
+
+            const paymentElementOptions = { layout: "tabs" };
+            const paymentElement = elements.create("payment", paymentElementOptions);
+            paymentElement.mount("#payment-element");
+
+            paymentElement.on('ready', () => {
+                submitBtn.disabled = false;
+            });
+
+        } catch (err) {
+            console.error("Stripe Elements Error:", err);
+            msgContainer.textContent = "Security Notice: Failed to load payment fields. " + err.message;
+            msgContainer.style.display = 'block';
+        }
+    };
+
+    // Trigger Elements Load when modal opens
+    checkoutTriggers.forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (!auth.currentUser) {
+                openAuthModal();
+                return;
+            }
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            loadStripeElements();
+        });
+    });
+
+    // Handle Form Submission (Stripe Elements)
     if (checkoutForm) {
         checkoutForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            if (!auth.currentUser) {
-                alert("Please Sign In first to complete your purchase!");
-                return;
+            const submitBtn = document.getElementById('submitPaymentBtn');
+            const buttonText = document.getElementById('button-text');
+            const spinner = document.getElementById('spinner');
+            const msgContainer = document.getElementById('payment-message');
+
+            submitBtn.disabled = true;
+            buttonText.classList.add('hidden');
+            spinner.classList.remove('hidden');
+
+            const { error } = await stripe.confirmPayment({
+                elements,
+                confirmParams: {
+                    return_url: "https://aerobyte.shop/profile.html?payment=success",
+                },
+            });
+
+            // This point will only be reached if there is an immediate error when
+            // confirming the payment. Otherwise, your customer will be redirected to
+            // your `return_url`.
+            if (error.type === "card_error" || error.type === "validation_error") {
+                msgContainer.textContent = error.message;
+            } else {
+                msgContainer.textContent = "An unexpected error occurred.";
             }
 
-            payBtn.textContent = 'Contacting Stripe...';
-            payBtn.disabled = true;
-
-            try {
-                // If backend isn't set up yet, this will fail gracefully
-                const response = await fetch(`${BACKEND_URL}/create-checkout-session`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: auth.currentUser.uid })
-                });
-
-                const session = await response.json();
-                if (session.url) {
-                    // Redirect to Stripe-hosted checkout
-                    window.location.href = session.url;
-                } else {
-                    throw new Error(session.error || 'Failed to create session');
-                }
-            } catch (err) {
-                console.error("Stripe Checkout Error:", err);
-                alert("Checkout Link Error: " + err.message + "\n\n1. Ensure your backend (server.js) is running on Render/Vercel.\n2. Ensure BACKEND_URL in script.js matches your live backend URL.");
-                payBtn.textContent = 'Pay $15.00';
-                payBtn.disabled = false;
-            }
+            msgContainer.style.display = 'block';
+            submitBtn.disabled = false;
+            buttonText.classList.remove('hidden');
+            spinner.classList.add('hidden');
         });
     }
 

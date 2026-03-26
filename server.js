@@ -19,32 +19,20 @@ admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
 
-// CREATE CHECKOUT SESSION
-app.post('/create-checkout-session', express.json(), async (req, res) => {
+// CREATE PAYMENT INTENT (For In-Modal Stripe Elements)
+app.post('/create-payment-intent', express.json(), async (req, res) => {
     const { userId } = req.body;
     if (!userId) return res.status(400).json({ error: 'Missing userId' });
 
     try {
-        const session = await stripe.checkout.sessions.create({
-            payment_method_types: ['card'],
-            line_items: [{
-                price_data: {
-                    currency: 'usd',
-                    product_data: {
-                        name: 'AeroByte Professional',
-                        description: '100% hardware utilization and cloud-offloaded training.',
-                    },
-                    unit_amount: 1500, // $15.00
-                },
-                quantity: 1,
-            }],
-            mode: 'payment',
-            client_reference_id: userId,
-            success_url: `https://aerobyte.shop/profile.html?session_id={CHECKOUT_SESSION_ID}&status=success`,
-            cancel_url: `https://aerobyte.shop/index.html?status=cancel`,
+        const paymentIntent = await stripe.paymentIntents.create({
+            amount: 1500, // $15.00
+            currency: 'usd',
+            automatic_payment_methods: { enabled: true },
+            metadata: { userId: userId },
         });
 
-        res.json({ id: session.id, url: session.url });
+        res.json({ clientSecret: paymentIntent.client_secret });
     } catch (err) {
         console.error("Stripe Error:", err);
         res.status(500).json({ error: err.message });
@@ -66,11 +54,11 @@ app.post('/webhook', express.raw({type: 'application/json'}), async (req, res) =
         return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
-    // Handle the checkout.session.completed event
-    if (event.type === 'checkout.session.completed') {
+    // Handle the payment_intent.succeeded event (Elements) or checkout.session.completed (Legacy)
+    if (event.type === 'payment_intent.succeeded' || event.type === 'checkout.session.completed') {
         const session = event.data.object;
-        const userId = session.client_reference_id; // Set this in your frontend checkout call
-        const customerEmail = session.customer_details.email;
+        const userId = session.metadata ? session.metadata.userId : session.client_reference_id;
+        const customerEmail = session.receipt_email || (session.customer_details ? session.customer_details.email : 'Customer');
 
         console.log(`💰 Fulfilling order for User: ${userId} (${customerEmail})`);
 
