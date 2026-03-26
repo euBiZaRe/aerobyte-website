@@ -419,59 +419,68 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     }
                     
-                    // Handle Countdown for Trial and Premium
-                    // NOTE: expiresAt can be a string when written by the bot via REST API.
-                    // Number() coercion handles both "1234567890" and 1234567890 safely.
-                    let countdownText = "";
-                    const expiresAtMs = Number(userData.expiresAt);
-                    if (expiresAtMs && expiresAtMs > 0) {
+                    // --- LIVE COUNTDOWN SYSTEM ---
+                    let countdownInterval = null;
+                    const updateTimer = async () => {
+                        const expiresAtMs = Number(userData.expiresAt);
+                        if (!expiresAtMs || expiresAtMs <= 0) return;
+
                         const now = Date.now();
                         const diff = expiresAtMs - now;
+                        let countdownText = "";
+
                         if (diff > 0) {
-                            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-                            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                            const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                            
+                            const days = Math.floor(diff / 86400000);
+                            const hours = Math.floor((diff % 86400000) / 3600000);
+                            const mins = Math.floor((diff % 3600000) / 60000);
+                            const secs = Math.floor((diff % 60000) / 1000);
+
                             if (plan === "Trial") {
                                 if (days > 0) {
                                     countdownText = `Trial ends in: ${days}d, ${hours}h`;
                                 } else if (hours > 0) {
                                     countdownText = `Trial ends in: ${hours}h, ${mins}m`;
-                                } else {
+                                } else if (mins >= 5) {
                                     countdownText = `Trial ends in: ${mins}m`;
+                                } else {
+                                    countdownText = `Trial ends in: ${mins}m ${secs}s`;
                                 }
                             } else if (plan === "Premium") {
                                 countdownText = `Premium expires in: ${days}d`;
                             }
                         } else if (plan === "Trial") {
-                            // Trial expired - show expired label then downgrade to Free
-                            const expiredEl = document.createElement('div');
-                            expiredEl.className = 'timer-display';
-                            expiredEl.style.fontSize = "0.8rem";
-                            expiredEl.style.marginTop = "8px";
-                            expiredEl.style.color = "#ff4d4d";
-                            expiredEl.style.fontWeight = "600";
-                            expiredEl.textContent = "⚠️ Trial Expired";
-                            planBadge.parentElement.appendChild(expiredEl);
-                            // Downgrade in DB after showing the message
+                            // Trial expired - downgrade to Free
+                            if (countdownInterval) clearInterval(countdownInterval);
+                            const existingTimer = planBadge.parentElement.querySelector('.timer-display');
+                            if (existingTimer) {
+                                existingTimer.style.color = "#ff4d4d";
+                                existingTimer.style.fontWeight = "600";
+                                existingTimer.textContent = "⚠️ Trial Expired";
+                            }
                             await updateDoc(doc(db, "users", user.uid), { plan: "Free", expiresAt: null });
-                            plan = "Free";
+                            setTimeout(() => window.location.reload(), 1500);
+                            return;
                         }
-                    }
-                    
-                    // --- REFINED UI INJECTION ---
-                    // Remove existing countdown to prevent duplicates
-                    const existingTimer = planBadge.parentElement.querySelector('.timer-display');
-                    if (existingTimer) existingTimer.remove();
 
-                    if (countdownText) {
-                        const countdownEl = document.createElement('div');
-                        countdownEl.className = 'timer-display';
-                        countdownEl.style.fontSize = "0.8rem";
-                        countdownEl.style.marginTop = "8px";
-                        countdownEl.style.color = "var(--text-muted)";
-                        countdownEl.textContent = countdownText;
-                        planBadge.parentElement.appendChild(countdownEl);
+                        // Inject/Update UI
+                        let timerEl = planBadge.parentElement.querySelector('.timer-display');
+                        if (!timerEl && countdownText) {
+                            timerEl = document.createElement('div');
+                            timerEl.className = 'timer-display';
+                            timerEl.style.fontSize = "0.8rem";
+                            timerEl.style.marginTop = "8px";
+                            timerEl.style.color = "var(--text-muted)";
+                            planBadge.parentElement.appendChild(timerEl);
+                        }
+                        if (timerEl) {
+                            timerEl.textContent = countdownText;
+                        }
+                    };
+
+                    // Initial run and start interval if Trial
+                    await updateTimer();
+                    if (plan === "Trial" && userData.expiresAt) {
+                        countdownInterval = setInterval(updateTimer, 1000);
                     }
 
                     // Define Tier Styles
