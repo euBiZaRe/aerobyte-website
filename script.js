@@ -989,7 +989,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         tr.innerHTML = `
                             <td>${user.email}</td>
                             <td><span class="plan-badge">${user.plan}</span></td>
-                            <td>${keyDisplay}</td>
+                            <td>${user.licenseKey ? `<span style="color:var(--secondary); font-family:monospace; font-size:0.85rem;">${user.licenseKey.substring(0,8)}...${user.licenseKey.substring(user.licenseKey.length-4)}</span>` : '<span style="color:var(--text-muted); font-size:0.8rem;">No Key</span>'}</td>
                             <td style="${expiresText==='Expired!'?'color:#ff4d4d':''}">${expiresText}</td>
                             <td style="${lastTrialStyle}">${lastTrialText}</td>
                             <td>${statusText}</td>

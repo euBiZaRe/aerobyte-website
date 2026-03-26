@@ -843,15 +843,15 @@ footer {
 }
 
 .admin-table {
-    table-layout: auto; /* Natural widths */
+    table-layout: auto;
     width: 100%;
-    min-width: 1000px; /* Ensures enough space for all columns */
+    border-collapse: collapse;
 }
 
-/* Ensure container scrolls instead of clipping */
 .glass-panel {
-    overflow-x: auto !important;
+    overflow-x: auto;
     width: 100%;
+    border-radius: 12px;
 }
 
 .admin-table th, .admin-table td {
