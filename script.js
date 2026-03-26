@@ -523,16 +523,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         userData = userDoc.data();
                         plan = userData.plan || "Free";
 
-                        // --- DEMO MODE OVERRIDE ---
-                        // If the database update failed but user wants to see the UI, we mock the state locally
-                        if (localStorage.getItem('demoPremium') === 'true' && plan === 'Free') {
-                            console.warn("🔐 AeroByte: Running in Visual Demo Mode. Database is unchanged.");
-                            plan = "Premium";
-                            userData.plan = "Premium";
-                            userData.expiresAt = Date.now() + (30 * 24 * 60 * 60 * 1000);
-                            userData.licenseKey = "AB-DEMO-ONLY-2026";
-                        }
-                        
                         // Self-enforcing Expiration Downgrader!
                         if (plan === "Premium" && userData.expiresAt) {
                             if (Date.now() > userData.expiresAt) {
@@ -773,7 +763,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // Reveal Admin Panel
-            if (user.email === 'aerobytebot@gmail.com') {
+            if (user.email === 'aerobytebot@gmail.com' || user.email === 'adamfrawi@gmail.com') {
                 const adminPanelLaunch = document.getElementById('adminPanelLaunch');
                 if (adminPanelLaunch) adminPanelLaunch.style.display = 'block';
             }
@@ -782,7 +772,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Dedicated Admin Page Specific Logic
         const isAdminPage = window.location.pathname.includes('admin.html');
         if (isAdminPage) {
-            if (!user || user.email !== 'aerobytebot@gmail.com') {
+            if (!user || (user.email !== 'aerobytebot@gmail.com' && user.email !== 'adamfrawi@gmail.com')) {
                 window.location.href = 'index.html';
                 return;
             }

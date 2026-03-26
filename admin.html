@@ -49,17 +49,6 @@
                 <li><a href="faq.html">FAQ</a></li>
                 <li><a href="#" class="btn-primary login-btn">Profile</a></li>
             </ul>
-            <div style="margin-top: 30px; display: flex; gap: 20px; align-items: center; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;">
-                <button id="refreshBtn" class="btn-secondary" style="margin: 0; padding: 10px 20px;">🔄 Refresh Database</button>
-                <div style="flex: 1;"></div>
-                <!-- Mini Giveaway Gen Tool -->
-                <div style="display: flex; align-items: center; gap: 10px; background: rgba(88, 101, 242, 0.1); padding: 10px 15px; border-radius: 12px; border: 1px solid rgba(88, 101, 242, 0.2);">
-                    <span style="font-size: 0.85rem; color: #5865F2; font-weight: 700;">🎁 Giveaway Gen:</span>
-                    <input type="number" id="promoDays" value="30" style="width: 50px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: #fff; border-radius: 4px; padding: 4px;">
-                    <span style="font-size: 0.75rem; color: var(--text-muted);">Days</span>
-                    <button id="genPromoBtn" class="btn-primary" style="margin: 0; padding: 6px 12px; font-size: 0.8rem; background: #5865F2;">Generate One-Time Code</button>
-                </div>
-            </div>
         </div>
     </nav>
 
@@ -100,6 +89,7 @@
         </div>
     </section>
 
+
     <header class="hero" style="min-height: 5vh; padding-top: 40px; padding-bottom: 20px;">
         <div class="hero-content" style="max-width: 1000px; margin: 0 auto; text-align: left;">
             <h2 class="section-title" style="font-size: 1.5rem; margin-bottom: 0;">Master <span class="gradient-text">Database</span></h2>
@@ -123,6 +113,38 @@
                     <tr><td colspan="4" style="text-align:center; padding: 40px; color: var(--text-muted);">Securely fetching records from Firestore...</td></tr>
                 </tbody>
             </table>
+        </div>
+    </section>
+
+    <!-- Administration Utilities (Global Controls) -->
+    <section class="admin-tools" style="max-width: 1100px; margin: 40px auto 100px; padding: 0 20px;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+            <div style="width: 10px; height: 10px; border-radius: 50%; background: #5865F2; box-shadow: 0 0 8px #5865F2;"></div>
+            <h2 style="font-size: 1.2rem; margin: 0; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted);">Administration <span class="gradient-text">Utilities</span></h2>
+        </div>
+        <div class="glass-panel" style="display: flex; gap: 30px; align-items: center; justify-content: space-between; padding: 30px; border: 1px solid rgba(88, 101, 242, 0.3); background: rgba(88, 101, 242, 0.03);">
+            <div>
+                 <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px;">Database Sync</p>
+                 <button id="refreshBtn" class="btn-secondary" style="margin: 0; padding: 12px 30px; font-weight: 700; background: rgba(255,255,255,0.03);">🔄 Refresh Local Data</button>
+            </div>
+
+            <div style="height: 60px; width: 1px; background: rgba(255,255,255,0.1);"></div>
+
+            <div style="flex: 1; max-width: 500px;">
+                 <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px;">Giveaway Code Generator</p>
+                 <div style="display: flex; align-items: center; gap: 15px; background: rgba(0,0,0,0.4); padding: 15px 25px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05);">
+                        <div style="display: flex; flex-direction: column;">
+                            <span style="font-size: 0.7rem; color: #5865F2; font-weight: 800; text-transform: uppercase; margin-bottom: 4px;">Duration</span>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <input type="number" id="promoDays" value="30" style="width: 70px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff; border-radius: 6px; padding: 8px 12px; font-weight: 800; font-size: 1.1rem;">
+                                <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">DAYS</span>
+                            </div>
+                        </div>
+                        <div style="flex: 1; text-align: right;">
+                            <button id="genPromoBtn" class="btn-primary" style="margin: 0; padding: 12px 25px; font-weight: 800; background: #5865F2; box-shadow: 0 4px 20px rgba(88, 101, 242, 0.4);">Generate Prize Code</button>
+                        </div>
+                 </div>
+            </div>
         </div>
     </section>
 
