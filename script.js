@@ -75,12 +75,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         <form id="checkoutForm">
                             <div class="form-group">
-                                <label>Card Details</label>
-                                <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; color: var(--text-muted); font-size: 0.9rem;">
-                                    This is a secure simulation. No real card info required.
+                                <label>Payment Method</label>
+                                <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; color: #fff; font-size: 0.9rem; display: flex; align-items: center; gap: 15px;">
+                                    <div style="font-size: 1.5rem; color: #6772e5;"><i class="fab fa-stripe"></i></div>
+                                    <div>
+                                        <div style="font-weight: 600;">Secure Stripe Checkout</div>
+                                        <div style="font-size: 0.8rem; color: var(--text-muted);">Redirects to Stripe for safe payment.</div>
+                                    </div>
                                 </div>
                             </div>
-                            <button type="submit" class="btn-primary full-width glow-btn pay-btn">Pay $15.00</button>
+                            <button type="submit" class="btn-primary full-width glow-btn stripe-pay-btn">Pay $15.00</button>
                         </form>
                         <div class="secure-badge">🔒 Secure Stripe Checkout</div>
                     </div>
@@ -118,7 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const checkoutTriggers = document.querySelectorAll('.checkout-trigger');
     const closeModalBtns = document.querySelectorAll('.close-modal');
     const checkoutForm = document.getElementById('checkoutForm');
-    const payBtn = document.querySelector('.pay-btn');
+    const payBtn = document.querySelector('.stripe-pay-btn');
     const isProfilePage = window.location.pathname.includes('profile.html');
     const loginBtns = document.querySelectorAll('.login-btn');
 
