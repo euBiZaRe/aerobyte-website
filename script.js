@@ -778,7 +778,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const close = document.getElementById('sidebarClose');
 
             if (sidebar && toggle) {
-                toggle.addEventListener('click', () => sidebar.classList.add('active'));
+                toggle.addEventListener('click', () => sidebar.classList.toggle('active'));
                 if (close) close.addEventListener('click', () => sidebar.classList.remove('active'));
             }
 
@@ -946,15 +946,18 @@ document.addEventListener('DOMContentLoaded', () => {
                             if (onCooldown) lastTrialStyle = "color: #f59e0b; font-weight: 600;"; // amber = on cooldown
                         }
 
-                        const keyDisplay = data.licenseKey ? 
-                            `<div style="display:flex; flex-direction:column; gap:5px;">
-                                <code class="admin-license-mask" data-key="${data.licenseKey}" style="font-family:monospace; background:rgba(255,255,255,0.05); padding:2px 6px; border-radius:4px; cursor:pointer;" title="Click to Peek">••••••••</code>
-                                <div style="display:flex; gap:5px;">
-                                    <button class="action-reset-hwid" data-uid="${docSnap.id}" data-key="${data.licenseKey}" style="padding:2px 6px; font-size:0.6rem; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:var(--text-muted); cursor:pointer; border-radius:4px;">Reset HWID</button>
-                                    <button class="action-regen-key" data-uid="${docSnap.id}" data-key="${data.licenseKey}" data-plan="${data.plan}" style="padding:2px 6px; font-size:0.6rem; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:var(--text-muted); cursor:pointer; border-radius:4px;">Regen Key</button>
-                                </div>
-                             </div>` : 
-                            `<button class="btn-primary action-gen-key" data-uid="${docSnap.id}" data-plan="${data.plan}" style="padding:4px 8px; font-size:0.7rem; background:transparent; border:1px solid var(--secondary); color:var(--secondary);">Generate</button>`;
+                        const isFree = !data.plan || data.plan === 'Free';
+                        const keyDisplay = isFree ? 
+                            `<span style="color:var(--text-muted); font-size:0.75rem;">No Key (Free)</span>` :
+                            (data.licenseKey ? 
+                                `<div style="display:flex; flex-direction:column; gap:5px;">
+                                    <code class="admin-license-mask" data-key="${data.licenseKey}" style="font-family:monospace; background:rgba(255,255,255,0.05); padding:2px 6px; border-radius:4px; cursor:pointer;" title="Click to Peek">••••••••</code>
+                                    <div style="display:flex; gap:5px;">
+                                        <button class="action-reset-hwid" data-uid="${docSnap.id}" data-key="${data.licenseKey}" style="padding:2px 6px; font-size:0.6rem; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:var(--text-muted); cursor:pointer; border-radius:4px;">Reset HWID</button>
+                                        <button class="action-regen-key" data-uid="${docSnap.id}" data-key="${data.licenseKey}" data-plan="${data.plan}" style="padding:2px 6px; font-size:0.6rem; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:var(--text-muted); cursor:pointer; border-radius:4px;">Regen Key</button>
+                                    </div>
+                                 </div>` : 
+                                `<button class="btn-primary action-gen-key" data-uid="${docSnap.id}" data-plan="${data.plan}" style="padding:4px 8px; font-size:0.7rem; background:transparent; border:1px solid var(--secondary); color:var(--secondary);">Generate</button>`);
 
                         const inputStyle = `width:52px; padding:4px; border-radius:4px; border:1px solid var(--border-color); background:rgba(0,0,0,0.5); color:#fff; font-size:0.75rem;`;
                         const hasDuration = data.plan === 'Premium' || data.plan === 'Trial';
@@ -1169,13 +1172,49 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
 
                         try {
-                            await updateDoc(doc(db, "users", uid), {
+                            const oldDoc = await getDoc(doc(db, "users", uid));
+                            const oldData = oldDoc.data();
+                            const oldKey = oldData.licenseKey;
+                            const oldPlan = oldData.plan;
+
+                            let updateData = {
                                 plan: planVal,
                                 expiresAt: expiresAt
-                            });
+                            };
+
+                            // --- AUTOMATED KEY LIFECYCLE MANAGEMENT ---
+                            if (planVal === 'Free') {
+                                // Downscale: Delete key if it exists
+                                if (oldKey) {
+                                    await deleteDoc(doc(db, "licenses", oldKey));
+                                    updateData.licenseKey = null;
+                                }
+                            } else if (planVal !== oldPlan || !oldKey) {
+                                // Plan changed OR user has no key yet: Issue new key
+                                const genKey = () => {
+                                    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+                                    const rand = (len) => Array.from({length: len}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+                                    return `${rand(4)}-${rand(4)}-${rand(4)}-${rand(4)}`;
+                                };
+                                const newKey = genKey();
+                                
+                                // Invalidate old key
+                                if (oldKey) await deleteDoc(doc(db, "licenses", oldKey));
+                                
+                                // Set new key
+                                updateData.licenseKey = newKey;
+                                await setDoc(doc(db, "licenses", newKey), {
+                                    userId: uid,
+                                    plan: planVal,
+                                    status: "active",
+                                    createdAt: Date.now()
+                                });
+                            }
+
+                            await updateDoc(doc(db, "users", uid), updateData);
                             e.target.textContent = 'Saved!';
                             e.target.style.background = '#10B981';
-                            setTimeout(() => getUsers(), 1000); // Reload table instantly
+                            setTimeout(() => getUsers(), 1200); // Reload table
                         } catch(err) {
                             console.error(err);
                             alert("Error saving: " + err.message);
