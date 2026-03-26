@@ -1042,7 +1042,8 @@ document.addEventListener('DOMContentLoaded', () => {
                                 status: "active",
                                 createdAt: Date.now()
                             });
-                            getUsers(); // Refresh
+                            getUsers(); // Refresh User Table
+                            getRecentActivity(); // Refresh Recent Activity
                         } catch(err) {
                             alert("Error generating key: " + err.message);
                             e.target.textContent = 'Generate';
@@ -1099,7 +1100,8 @@ document.addEventListener('DOMContentLoaded', () => {
                                 createdAt: Date.now()
                             });
                             alert("Key Successfully Regenerated!");
-                            getUsers(); // Refresh
+                            getUsers(); // Refresh User Table
+                            getRecentActivity(); // Refresh Recent Activity
                         } catch(err) {
                             alert("Error regenerating key: " + err.message);
                             e.target.textContent = 'Regen Key';
