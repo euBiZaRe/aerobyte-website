@@ -113,17 +113,10 @@
         </div>
     </nav>
 
-    <header class="hero" style="min-height: 10vh; padding-top: 130px; padding-bottom: 20px;">
+    <header class="hero" style="min-height: 8vh; padding-top: 130px; padding-bottom: 20px;">
         <div class="hero-content" style="max-width: 1000px; margin: 0 auto; text-align: left;">
             <p style="color:#ff4d4d; font-weight:bold; letter-spacing:2px; text-transform:uppercase; margin-bottom:5px;">🛡️ Administrator Level 0</p>
-            <div style="display:flex; justify-content:space-between; align-items:flex-end;">
-                <h1 class="main-title" style="font-size: 3rem; margin:0;">Master <span class="gradient-text">Database</span></h1>
-                <div>
-                    <label for="importUsersFile" class="btn-secondary" style="cursor:pointer; padding:10px 20px; font-size:0.9rem;">Sync Auth JSON</label>
-                    <input type="file" id="importUsersFile" accept=".json" style="display:none;">
-                </div>
-            </div>
-            <p id="importStatus" style="color:#10B981; margin-top:15px; font-size:0.9rem; display:none;"></p>
+            <h1 class="main-title" style="font-size: 2.5rem; margin:0;">Dashboard <span class="gradient-text">Overview</span></h1>
         </div>
     </header>
 
@@ -193,8 +186,11 @@
         </div>
 
         <div class="sidebar-section">
-            <span class="sidebar-label">Database Sync</span>
-            <button id="refreshBtn" class="btn-secondary" style="width: 100%; padding: 15px; font-weight: 700; background: rgba(255,255,255,0.03);">🔄 Fetch Latest Data</button>
+            <span class="sidebar-label">Database Utilities</span>
+            <button id="refreshBtn" class="btn-secondary" style="width: 100%; padding: 12px; font-weight: 700; background: rgba(255,255,255,0.03); margin-bottom: 10px;">🔄 Refresh All Data</button>
+            <label for="importUsersFile" class="btn-secondary" style="display: block; cursor:pointer; padding:12px; font-size:0.85rem; text-align: center; border: 1px dashed rgba(255,255,255,0.2);">Sync Auth JSON</label>
+            <input type="file" id="importUsersFile" accept=".json" style="display:none;">
+            <p id="importStatus" style="color:#10B981; margin-top:10px; font-size:0.8rem; display:none; text-align: center;"></p>
         </div>
 
         <div class="sidebar-section">

@@ -790,90 +790,168 @@ document.addEventListener('DOMContentLoaded', () => {
             const tbody = document.getElementById('adminUsersTbody');
             let globalActivity = []; // Store activity for Master DB mapping
 
-            const getRecentActivity = async () => {
-                const recentTbody = document.getElementById('recentActivityTbody');
-                if (!recentTbody) return;
+            // --- NEW UNIFIED DASHBOARD FETCH ---
+            const refreshDashboard = async () => {
+                if (!tbody) return;
+                const rTbody = document.getElementById('recentActivityTbody');
+                
+                // Show loading state
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 40px; color: var(--text-muted);">🔄 Securely syncing with Firestore...</td></tr>';
+                if (rTbody) rTbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 20px; color: var(--text-muted);">🔄 Syncing activity...</td></tr>';
+                
                 try {
                     const twentyFourHoursAgo = Date.now() - (24 * 60 * 60 * 1000);
                     
-                    // 1. Fetch recent Licenses (Remove filter to ensure all records load)
-                    const qLic = collection(db, "licenses");
-                    const licSnap = await getDocs(qLic);
+                    // 1. Fetch Users and Activity in parallel for speed
+                    const [userSnap, licSnap, promoSnap] = await Promise.all([
+                        getDocs(collection(db, "users")),
+                        getDocs(collection(db, "licenses")),
+                        getDocs(collection(db, "promo_codes"))
+                    ]);
                     
-                    // 2. Fetch recent Promo Codes (Remove filter to ensure all records load)
-                    const qPromo = collection(db, "promo_codes");
-                    const promoSnap = await getDocs(qPromo);
-                    
-                    const combined = [];
-                    
-                    // Process Licenses
-                    licSnap.forEach(d => {
-                        combined.push({ 
-                            id: d.id, 
-                            type: 'License', 
-                            time: d.data().createdAt, 
-                            user: d.data().userId, 
-                            plan: d.data().plan,
-                            status: 'Activated'
-                        });
+                    const userMap = {};
+                    const usersList = [];
+                    userSnap.forEach(docSnap => {
+                        const data = docSnap.data();
+                        userMap[docSnap.id] = data.email;
+                        usersList.push({ id: docSnap.id, ...data });
                     });
                     
-                    // Process Promos
+                    const activity = [];
+                    licSnap.forEach(d => {
+                        const data = d.data();
+                        activity.push({ id: d.id, type: 'License', time: data.createdAt, user: data.userId, plan: data.plan, status: 'Activated', col: 'licenses' });
+                    });
                     promoSnap.forEach(d => {
                         const data = d.data();
-                        combined.push({
-                            id: d.id,
-                            type: 'Promo Code',
-                            time: data.createdAt,
-                            user: data.usedBy || 'Waiting...',
-                            plan: `${data.days}d Plan`,
-                            status: data.used ? 'Redeemed' : 'Available'
-                        });
+                        activity.push({ id: d.id, type: 'Promo Code', time: data.createdAt, user: data.usedBy || 'Waiting...', plan: `${data.days}d Plan`, status: data.used ? 'Redeemed' : 'Available', col: 'promo_codes' });
                     });
-
-                    // Filter for last 24h in memory and sort
-                    const within24h = combined.filter(item => item.time > twentyFourHoursAgo);
-                    within24h.forEach(d => globalActivity.push(d));
-
-                    if (within24h.length === 0) {
-                        recentTbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 30px; color: var(--text-muted);">No activity recorded in the last 24 hours.</td></tr>';
-                        return;
-                    }
-
-                    recentTbody.innerHTML = '';
                     
-                    // Resolve user emails from current dashboard data if possible, or fetch
-                    const userDocs = await getDocs(collection(db, "users"));
-                    const userMap = {};
-                    userDocs.forEach(doc => { userMap[doc.id] = doc.data().email; });
+                    globalActivity = activity; // Store for Master DB status mapping
 
-                    within24h.sort((a, b) => b.time - a.time);
-
-                    within24h.forEach(item => {
+                    // 2. Render Recent Activity Table
+                    if (rTbody) {
+                        const within24h = activity.filter(a => a.time > twentyFourHoursAgo);
+                        within24h.sort((a,b) => b.time - a.time);
+                        
+                        if (within24h.length === 0) {
+                            rTbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 30px; color: var(--text-muted);">No activity recorded in the last 24 hours.</td></tr>';
+                        } else {
+                            rTbody.innerHTML = '';
+                            within24h.forEach(item => {
+                                const tr = document.createElement('tr');
+                                const timeStr = item.time ? new Date(item.time).toLocaleString() : 'Unknown';
+                                const displayUser = userMap[item.user] || item.user;
+                                const statusColor = item.status === 'Available' ? '#3B82F6' : '#10B981';
+                                tr.innerHTML = `
+                                    <td style="color: #10B981; font-family: monospace; font-weight: bold;">${item.id}</td>
+                                    <td>${displayUser}</td>
+                                    <td><span class="plan-badge" style="font-size:0.7rem;">${item.type}: ${item.plan}</span></td>
+                                    <td style="color: var(--text-muted); font-size: 0.85rem;">
+                                        <span style="color:${statusColor}; font-weight:bold;">${item.status}</span> @ ${timeStr}
+                                    </td>
+                                    <td style="text-align:right;">
+                                        <button class="action-delete-activity" data-id="${item.id}" data-col="${item.col}" data-type="${item.type}" style="background:rgba(255,77,77,0.1); border:1px solid #ff4d4d; color:#ff4d4d; cursor:pointer; padding:4px 8px; border-radius:4px; font-size:0.75rem; display:inline-flex; align-items:center; gap:5px; transition: opacity 0.2s;" title="Remove this record">
+                                            <i class="fas fa-trash"></i> Remove
+                                        </button>
+                                    </td>
+                                `;
+                                rTbody.appendChild(tr);
+                            });
+                        }
+                    }
+                    
+                    // 3. Render Master Database Table
+                    tbody.innerHTML = '';
+                    usersList.sort((a,b) => (a.email || "").localeCompare(b.email || ""));
+                    usersList.forEach(user => {
                         const tr = document.createElement('tr');
-                        const timeStr = new Date(item.time).toLocaleString();
-                        const displayUser = userMap[item.user] || item.user;
-                        const statusColor = item.status === 'Available' ? '#3B82F6' : '#10B981';
-                        const collectionName = item.type === 'License' ? 'licenses' : 'promo_codes';
+                        
+                        let expiresText = "Never (Lifetime)";
+                        const expiresAtMs = Number(user.expiresAt);
+                        if ((user.plan === "Premium" || user.plan === "Trial") && expiresAtMs > 0) {
+                            const diff = expiresAtMs - Date.now();
+                            if (diff > 0) {
+                                const d = Math.floor(diff / 86400000);
+                                const h = Math.floor((diff % 86400000) / 3600000);
+                                const m = Math.floor((diff % 3600000) / 60000);
+                                expiresText = d > 0 ? `${d}d ${h}h` : h > 0 ? `${h}h ${m}m` : `${m}m`;
+                            } else {
+                                expiresText = "Expired!";
+                            }
+                        } else if (user.plan === "Free" || user.plan === "Media" || user.plan === "Owner") {
+                            expiresText = "N/A";
+                        }
+
+                        const lastTrialAt = Number(user.lastTrialAt);
+                        const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
+                        let lastTrialText = "Never";
+                        let lastTrialStyle = "color: var(--text-muted);";
+                        if (lastTrialAt && lastTrialAt > 0) {
+                            const timeAgoMs = Date.now() - lastTrialAt;
+                            const hoursAgo = Math.floor(timeAgoMs / 3600000);
+                            const minsAgo = Math.floor((timeAgoMs % 3600000) / 60000);
+                            lastTrialText = hoursAgo > 0 ? `${hoursAgo}h ${minsAgo}m ago` : `${minsAgo}m ago`;
+                            if (timeAgoMs < SIX_HOURS_MS) lastTrialStyle = "color: #f59e0b; font-weight: 600;";
+                        }
+
+                        const isFree = user.plan === 'Free';
+                        const keyDisplay = isFree ? 
+                            `<span style="color:var(--text-muted); font-size:0.75rem;">No Key (Free)</span>` :
+                            (user.licenseKey ? 
+                                `<div style="display:flex; flex-direction:column; gap:5px;">
+                                    <code class="admin-license-mask" data-key="${user.licenseKey}" style="font-family:monospace; background:rgba(255,255,255,0.05); padding:2px 6px; border-radius:4px; cursor:pointer;" title="Click to Peek">••••••••</code>
+                                    <div style="display:flex; gap:5px;">
+                                        <button class="action-reset-hwid" data-uid="${user.id}" data-key="${user.licenseKey}" style="padding:2px 6px; font-size:0.6rem; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:var(--text-muted); cursor:pointer; border-radius:4px;">Reset HWID</button>
+                                        <button class="action-regen-key" data-uid="${user.id}" data-key="${user.licenseKey}" data-plan="${user.plan}" style="padding:2px 6px; font-size:0.6rem; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:var(--text-muted); cursor:pointer; border-radius:4px;">Regen Key</button>
+                                    </div>
+                                 </div>` : 
+                                `<button class="btn-primary action-gen-key" data-uid="${user.id}" data-plan="${user.plan}" style="padding:4px 8px; font-size:0.7rem; background:transparent; border:1px solid var(--secondary); color:var(--secondary);">Generate</button>`);
+
+                        const userActivity = globalActivity.filter(a => a.user === user.id).sort((a,b) => b.time - a.time);
+                        let statusText = `<span style="color:var(--text-muted); font-size:0.75rem;">No activity</span>`;
+                        if (userActivity.length > 0) {
+                            const last = userActivity[0];
+                            const timeAgo = Math.floor((Date.now() - last.time) / 60000);
+                            const timeStr = timeAgo < 60 ? `${timeAgo}m ago` : `${Math.floor(timeAgo/60)}h ago`;
+                            statusText = `<div style="line-height:1.2;"><span style="color:#10B981; font-weight:bold; font-size:0.8rem;">${last.status}</span><br><span style="font-size:0.7rem; color:var(--text-muted);">${timeStr}</span></div>`;
+                        }
+
+                        const inputStyle = `width:52px; padding:4px; border-radius:4px; border:1px solid var(--border-color); background:rgba(0,0,0,0.5); color:#fff; font-size:0.75rem;`;
+                        const hasDuration = user.plan === 'Premium' || user.plan === 'Trial';
                         
                         tr.innerHTML = `
-                            <td style="color: #10B981; font-family: monospace; font-weight: bold;">${item.id}</td>
-                            <td>${displayUser}</td>
-                            <td><span class="plan-badge" style="font-size:0.7rem;">${item.type}: ${item.plan}</span></td>
-                            <td style="color: var(--text-muted); font-size: 0.85rem;">
-                                <span style="color:${statusColor}; font-weight:bold;">${item.status}</span> @ ${timeStr}
-                            </td>
-                            <td style="text-align:right;">
-                                <button class="action-delete-activity" data-id="${item.id}" data-col="${collectionName}" data-type="${item.type}" style="background:rgba(255,77,77,0.1); border:1px solid #ff4d4d; color:#ff4d4d; cursor:pointer; padding:4px 8px; border-radius:4px; font-size:0.75rem; display:inline-flex; align-items:center; gap:5px; transition: opacity 0.2s;" title="Remove this record">
-                                    <i class="fas fa-trash"></i> Remove
-                                </button>
+                            <td>${user.email}</td>
+                            <td><span class="plan-badge">${user.plan}</span></td>
+                            <td>${keyDisplay}</td>
+                            <td style="${expiresText==='Expired!'?'color:#ff4d4d':''}">${expiresText}</td>
+                            <td style="${lastTrialStyle}">${lastTrialText}</td>
+                            <td>${statusText}</td>
+                            <td style="display:flex; gap:6px; align-items:center; flex-wrap:wrap; text-align:right; justify-content:flex-end;">
+                                <select class="action-plan" data-uid="${user.id}">
+                                    <option value="Premium" ${user.plan==='Premium'?'selected':''}>Premium</option>
+                                    <option value="Trial" ${user.plan==='Trial'?'selected':''}>Trial</option>
+                                    <option value="Media" ${user.plan==='Media'?'selected':''}>Media</option>
+                                    <option value="Owner" ${user.plan==='Owner'?'selected':''}>Owner</option>
+                                    <option value="Free" ${user.plan==='Free'?'selected':''}>Free</option>
+                                </select>
+                                <div class="duration-inputs" style="display:${hasDuration?'flex':'none'}; align-items:center; gap:3px;">
+                                    <input type="number" class="action-days" min="0" placeholder="d" style="${inputStyle}" title="Days">
+                                    <span style="color:var(--text-muted);font-size:0.7rem;">d</span>
+                                    <input type="number" class="action-hours" min="0" max="23" placeholder="h" style="${inputStyle}" title="Hours">
+                                    <span style="color:var(--text-muted);font-size:0.7rem;">h</span>
+                                    <input type="number" class="action-minutes" min="0" max="59" placeholder="m" style="${inputStyle}" title="Mins">
+                                    <span style="color:var(--text-muted);font-size:0.7rem;">m</span>
+                                </div>
+                                <button class="btn-primary action-save" data-uid="${user.id}" style="padding:6px 12px; font-size:0.8rem; border-radius:6px;">Save</button>
+                                <button class="action-delete" data-uid="${user.id}" data-email="${user.email}" style="padding:6px 12px; font-size:0.8rem; border-radius:6px; background:rgba(255,77,77,0.1); border:1px solid #ff4d4d; color:#ff4d4d; cursor:pointer; font-weight:bold;">Delete</button>
                             </td>
                         `;
-                        recentTbody.appendChild(tr);
+                        tbody.appendChild(tr);
                     });
                 } catch (err) {
-                    console.error("Recent Activity Error:", err);
-                    recentTbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 30px; color: #ff4d4d;">Error loading activity.</td></tr>';
+                    console.error("Dashboard Error:", err);
+                    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:30px; color:#ff4d4d;">Error loading dashboard: ${err.message}</td></tr>`;
                 }
             };
 
@@ -921,117 +999,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
             }
 
-            const getUsers = async () => {
-                if(!tbody) return;
-                try {
-                    const snapshot = await getDocs(collection(db, "users"));
-                    tbody.innerHTML = '';
-                    snapshot.forEach(docSnap => {
-                        const data = docSnap.data();
-                        const tr = document.createElement('tr');
-                        
-                        let expiresText = "Never (Lifetime)";
-                        const expiresAtMs = Number(data.expiresAt);
-                        if ((data.plan === "Premium" || data.plan === "Trial") && expiresAtMs > 0) {
-                            const diff = expiresAtMs - Date.now();
-                            if (diff > 0) {
-                                const d = Math.floor(diff / 86400000);
-                                const h = Math.floor((diff % 86400000) / 3600000);
-                                const m = Math.floor((diff % 3600000) / 60000);
-                                expiresText = d > 0 ? `${d}d ${h}h` : h > 0 ? `${h}h ${m}m` : `${m}m`;
-                            } else {
-                                expiresText = "Expired!";
-                            }
-                        } else if (data.plan === "Free" || data.plan === "Media" || data.plan === "Owner") {
-                            expiresText = "N/A";
-                        }
-
-                        // --- LAST TRIAL USED ---
-                        const lastTrialAt = Number(data.lastTrialAt);
-                        const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
-                        let lastTrialText = "Never";
-                        let lastTrialStyle = "color: var(--text-muted);";
-                        if (lastTrialAt && lastTrialAt > 0) {
-                            const trialDate = new Date(lastTrialAt);
-                            const timeAgoMs = Date.now() - lastTrialAt;
-                            const formattedDate = trialDate.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
-                            const formattedTime = trialDate.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
-                            const onCooldown = timeAgoMs < SIX_HOURS_MS;
-                            const hoursAgo = Math.floor(timeAgoMs / 3600000);
-                            const minsAgo = Math.floor((timeAgoMs % 3600000) / 60000);
-                            const agoText = hoursAgo > 0 ? `${hoursAgo}h ${minsAgo}m ago` : `${minsAgo}m ago`;
-                            lastTrialText = `${formattedDate} ${formattedTime}<br><span style="font-size:0.7rem;">${agoText}</span>`;
-                            if (onCooldown) lastTrialStyle = "color: #f59e0b; font-weight: 600;"; // amber = on cooldown
-                        }
-
-                        const isFree = !data.plan || data.plan === 'Free';
-                        const keyDisplay = isFree ? 
-                            `<span style="color:var(--text-muted); font-size:0.75rem;">No Key (Free)</span>` :
-                            (data.licenseKey ? 
-                                `<div style="display:flex; flex-direction:column; gap:5px;">
-                                    <code class="admin-license-mask" data-key="${data.licenseKey}" style="font-family:monospace; background:rgba(255,255,255,0.05); padding:2px 6px; border-radius:4px; cursor:pointer;" title="Click to Peek">••••••••</code>
-                                    <div style="display:flex; gap:5px;">
-                                        <button class="action-reset-hwid" data-uid="${docSnap.id}" data-key="${data.licenseKey}" style="padding:2px 6px; font-size:0.6rem; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:var(--text-muted); cursor:pointer; border-radius:4px;">Reset HWID</button>
-                                        <button class="action-regen-key" data-uid="${docSnap.id}" data-key="${data.licenseKey}" data-plan="${data.plan}" style="padding:2px 6px; font-size:0.6rem; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:var(--text-muted); cursor:pointer; border-radius:4px;">Regen Key</button>
-                                    </div>
-                                 </div>` : 
-                                `<button class="btn-primary action-gen-key" data-uid="${docSnap.id}" data-plan="${data.plan}" style="padding:4px 8px; font-size:0.7rem; background:transparent; border:1px solid var(--secondary); color:var(--secondary);">Generate</button>`);
-
-                        // --- STATUS / TIME MAPPING ---
-                        const userActivity = globalActivity.filter(a => a.user === docSnap.id);
-                        let statusText = `<span style="color:var(--text-muted); font-size:0.75rem;">No recent activity</span>`;
-                        if (userActivity.length > 0) {
-                            userActivity.sort((a,b) => b.time - a.time);
-                            const last = userActivity[0];
-                            const timeAgo = Math.floor((Date.now() - last.time) / 60000);
-                            const timeStr = timeAgo < 60 ? `${timeAgo}m ago` : `${Math.floor(timeAgo/60)}h ago`;
-                            const statusColor = last.status === 'Available' ? '#3B82F6' : '#10B981';
-                            statusText = `<div style="line-height:1.2;"><span style="color:${statusColor}; font-weight:bold; font-size:0.8rem;">${last.status}</span><br><span style="font-size:0.7rem; color:var(--text-muted);">${timeStr}</span></div>`;
-                        }
-
-                        const inputStyle = `width:52px; padding:4px; border-radius:4px; border:1px solid var(--border-color); background:rgba(0,0,0,0.5); color:#fff; font-size:0.75rem;`;
-                        const hasDuration = data.plan === 'Premium' || data.plan === 'Trial';
-                        tr.innerHTML = `
-                            <td>${data.email}</td>
-                            <td><span class="plan-badge ${data.plan==='Premium'?'':'basic-badge'}" style="${data.plan==='Premium'?'background:var(--gradient-glow);border:none;color:#fff;':''}">${data.plan}</span></td>
-                            <td>${keyDisplay}</td>
-                            <td style="${expiresText==='Expired!'?'color:#ff4d4d':''}">${expiresText}</td>
-                            <td style="${lastTrialStyle}">${lastTrialText}</td>
-                            <td>${statusText}</td>
-                            <td style="display:flex; gap:6px; align-items:center; flex-wrap:wrap; text-align:right; justify-content:flex-end;">
-                                <select class="action-plan" data-uid="${docSnap.id}">
-                                    <option value="Premium" ${data.plan==='Premium'?'selected':''}>Premium</option>
-                                    <option value="Trial" ${data.plan==='Trial'?'selected':''}>Trial</option>
-                                    <option value="Media" ${data.plan==='Media'?'selected':''}>Media</option>
-                                    <option value="Owner" ${data.plan==='Owner'?'selected':''}>Owner</option>
-                                    <option value="Free" ${data.plan!=='Premium' && data.plan!=='Trial' && data.plan!=='Media' && data.plan!=='Owner'?'selected':''}>Free</option>
-                                </select>
-                                <div class="duration-inputs" style="display:${hasDuration?'flex':'none'}; align-items:center; gap:3px;">
-                                    <input type="number" class="action-days" min="0" placeholder="d" style="${inputStyle}" title="Days">
-                                    <span style="color:var(--text-muted);font-size:0.7rem;">d</span>
-                                    <input type="number" class="action-hours" min="0" max="23" placeholder="h" style="${inputStyle}" title="Hours">
-                                    <span style="color:var(--text-muted);font-size:0.7rem;">h</span>
-                                    <input type="number" class="action-minutes" min="0" max="59" placeholder="m" style="${inputStyle}" title="Mins">
-                                    <span style="color:var(--text-muted);font-size:0.7rem;">m</span>
-                                </div>
-                                <button class="btn-primary action-save" data-uid="${docSnap.id}" style="padding:6px 12px; font-size:0.8rem; border-radius:6px;">Save</button>
-                                <button class="action-delete" data-uid="${docSnap.id}" data-email="${data.email}" style="padding:6px 12px; font-size:0.8rem; border-radius:6px; background:rgba(255,77,77,0.1); border:1px solid #ff4d4d; color:#ff4d4d; cursor:pointer; font-weight:bold;">Delete</button>
-                            </td>
-                        `;
-                        tbody.appendChild(tr);
-                    });
-                } catch(e) {
-                    console.error("Admin error:", e);
-                    tbody.innerHTML = `<tr><td colspan="6" style="color:#ff4d4d;">Error loading users: ${e.message}</td></tr>`;
-                }
-            };
             
-            // Re-order fetching to ensure activity is available for Master DB
-            const initDashboard = async () => {
-                await getRecentActivity();
-                await getUsers();
-            };
-            initDashboard();
+            refreshDashboard();
 
             // Unified Search Handler
             const userSearch = document.getElementById('userSearch');
@@ -1098,8 +1067,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 status: "active",
                                 createdAt: Date.now()
                             });
-                            getUsers(); // Refresh User Table
-                            getRecentActivity(); // Refresh Recent Activity
+                            refreshDashboard(); // Refresh UI
                         } catch(err) {
                             alert("Error generating key: " + err.message);
                             e.target.textContent = 'Generate';
@@ -1136,7 +1104,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             confirmUI.innerHTML = '<span style="font-size:0.6rem; color:var(--text-muted);">Resetting...</span>';
                             try {
                                 await setDoc(doc(db, "licenses", key), { hwid: null }, { merge: true });
-                                getUsers();
+                                refreshDashboard();
                             } catch(err) {
                                 alert("Error resetting HWID: " + err.message);
                                 cleanup();
@@ -1267,7 +1235,11 @@ document.addEventListener('DOMContentLoaded', () => {
                             await updateDoc(doc(db, "users", uid), updateData);
                             e.target.textContent = 'Saved!';
                             e.target.style.background = '#10B981';
-                            setTimeout(() => getUsers(), 1200); // Reload table
+                            setTimeout(() => {
+                                e.target.textContent = 'Save';
+                                e.target.style.background = '';
+                                refreshDashboard();
+                            }, 1200);
                         } catch(err) {
                             console.error(err);
                             alert("Error saving: " + err.message);
@@ -1285,7 +1257,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             
                             try {
                                 await deleteDoc(doc(db, "users", uid));
-                                setTimeout(() => getUsers(), 500); // Reload table
+                                refreshDashboard();
                             } catch (err) {
                                 console.error(err);
                                 alert("Error deleting user: " + err.message);
@@ -1337,7 +1309,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             
                             setTimeout(() => {
                                 importStatus.style.display = 'none';
-                                getUsers(); // Refresh UI instantly
+                                refreshDashboard();
                             }, 3000);
 
                         } catch (err) {
@@ -1353,15 +1325,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // --- REFRESH DATABASE ---
             const refreshBtn = document.getElementById('refreshBtn');
             if (refreshBtn) {
-                refreshBtn.addEventListener('click', () => {
-                    getUsers();
-                    getRecentActivity();
-                });
+                refreshBtn.addEventListener('click', () => refreshDashboard());
             }
-
-            // Initial Load
-            getUsers();
-            getRecentActivity();
 
             // --- GLOBAL ADMIN PROMO GEN HANDLER (Event Delegation) ---
             document.body.addEventListener('click', async (e) => {
