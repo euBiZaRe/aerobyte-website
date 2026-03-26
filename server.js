@@ -8,14 +8,47 @@
  */
 
 const express = require('express');
-const stripe = require('stripe')('sk_live_YOUR_ACTUAL_STRIPE_SECRET_KEY');
-const admin = require('firebase-admin');
+const cors = require('cors');
 const app = express();
+
+app.use(cors());
 
 // Initialize Firebase Admin (Requires serviceAccountKey.json)
 const serviceAccount = require('./serviceAccountKey.json');
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
+});
+
+// CREATE CHECKOUT SESSION
+app.post('/create-checkout-session', express.json(), async (req, res) => {
+    const { userId } = req.body;
+    if (!userId) return res.status(400).json({ error: 'Missing userId' });
+
+    try {
+        const session = await stripe.checkout.sessions.create({
+            payment_method_types: ['card'],
+            line_items: [{
+                price_data: {
+                    currency: 'usd',
+                    product_data: {
+                        name: 'AeroByte Professional',
+                        description: '100% hardware utilization and cloud-offloaded training.',
+                    },
+                    unit_amount: 1500, // $15.00
+                },
+                quantity: 1,
+            }],
+            mode: 'payment',
+            client_reference_id: userId,
+            success_url: `https://aerobyte.shop/profile.html?session_id={CHECKOUT_SESSION_ID}&status=success`,
+            cancel_url: `https://aerobyte.shop/index.html?status=cancel`,
+        });
+
+        res.json({ id: session.id, url: session.url });
+    } catch (err) {
+        console.error("Stripe Error:", err);
+        res.status(500).json({ error: err.message });
+    }
 });
 
 const db = admin.firestore();
