@@ -791,18 +791,17 @@ document.addEventListener('DOMContentLoaded', () => {
             let globalActivity = []; // Store activity for Master DB mapping
 
             const getRecentActivity = async () => {
-                const activityContent = document.getElementById('activityContent');
+                const recentTbody = document.getElementById('recentActivityTbody');
                 if (!recentTbody) return;
                 try {
                     const twentyFourHoursAgo = Date.now() - (24 * 60 * 60 * 1000);
                     
-                    // 1. Fetch recent Licenses
-                    const qLic = query(collection(db, "licenses"), where("createdAt", ">", twentyFourHoursAgo));
+                    // 1. Fetch recent Licenses (Remove filter to ensure all records load)
+                    const qLic = collection(db, "licenses");
                     const licSnap = await getDocs(qLic);
                     
-                    // 2. Fetch recent Promo Codes (Unused or Used in last 24h)
-                    // Note: Firestore doesn't support complex OR across fields easily, so we merge
-                    const qPromo = query(collection(db, "promo_codes"), where("createdAt", ">", twentyFourHoursAgo));
+                    // 2. Fetch recent Promo Codes (Remove filter to ensure all records load)
+                    const qPromo = collection(db, "promo_codes");
                     const promoSnap = await getDocs(qPromo);
                     
                     const combined = [];
@@ -832,9 +831,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         });
                     });
 
-                    combined.forEach(d => globalActivity.push(d));
+                    // Filter for last 24h in memory and sort
+                    const within24h = combined.filter(item => item.time > twentyFourHoursAgo);
+                    within24h.forEach(d => globalActivity.push(d));
 
-                    if (combined.length === 0) {
+                    if (within24h.length === 0) {
                         recentTbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 30px; color: var(--text-muted);">No activity recorded in the last 24 hours.</td></tr>';
                         return;
                     }
@@ -846,9 +847,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     const userMap = {};
                     userDocs.forEach(doc => { userMap[doc.id] = doc.data().email; });
 
-                    combined.sort((a, b) => b.time - a.time);
+                    within24h.sort((a, b) => b.time - a.time);
 
-                    combined.forEach(item => {
+                    within24h.forEach(item => {
                         const tr = document.createElement('tr');
                         const timeStr = new Date(item.time).toLocaleString();
                         const displayUser = userMap[item.user] || item.user;
