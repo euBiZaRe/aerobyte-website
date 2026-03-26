@@ -419,11 +419,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     }
                     
-                    // --- LIVE COUNTDOWN SYSTEM ---
-                    let countdownInterval = null;
+                    // --- LIVE COUNTDOWN SYSTEM (V2) ---
+                    if (window.activeCountdown) clearInterval(window.activeCountdown);
+                    
                     const updateTimer = async () => {
                         const expiresAtMs = Number(userData.expiresAt);
-                        if (!expiresAtMs || expiresAtMs <= 0) return;
+                        if (!expiresAtMs || isNaN(expiresAtMs)) return;
 
                         const now = Date.now();
                         const diff = expiresAtMs - now;
@@ -437,20 +438,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
                             if (plan === "Trial") {
                                 if (days > 0) {
-                                    countdownText = `Trial ends in: ${days}d, ${hours}h`;
+                                    countdownText = `Trial ends in: ${days}d ${hours}h`;
                                 } else if (hours > 0) {
-                                    countdownText = `Trial ends in: ${hours}h, ${mins}m`;
+                                    countdownText = `Trial ends in: ${hours}h ${mins}m`;
                                 } else if (mins >= 5) {
                                     countdownText = `Trial ends in: ${mins}m`;
                                 } else {
+                                    // Under 5 mins: Show seconds
                                     countdownText = `Trial ends in: ${mins}m ${secs}s`;
                                 }
                             } else if (plan === "Premium") {
                                 countdownText = `Premium expires in: ${days}d`;
                             }
                         } else if (plan === "Trial") {
-                            // Trial expired - downgrade to Free
-                            if (countdownInterval) clearInterval(countdownInterval);
+                            // Handle Expiry
+                            if (window.activeCountdown) clearInterval(window.activeCountdown);
                             const existingTimer = planBadge.parentElement.querySelector('.timer-display');
                             if (existingTimer) {
                                 existingTimer.style.color = "#ff4d4d";
@@ -458,7 +460,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 existingTimer.textContent = "⚠️ Trial Expired";
                             }
                             await updateDoc(doc(db, "users", user.uid), { plan: "Free", expiresAt: null });
-                            setTimeout(() => window.location.reload(), 1500);
+                            setTimeout(() => window.location.reload(), 2000);
                             return;
                         }
 
@@ -472,15 +474,16 @@ document.addEventListener('DOMContentLoaded', () => {
                             timerEl.style.color = "var(--text-muted)";
                             planBadge.parentElement.appendChild(timerEl);
                         }
-                        if (timerEl) {
+                        if (timerEl && timerEl.textContent !== countdownText) {
                             timerEl.textContent = countdownText;
                         }
                     };
 
-                    // Initial run and start interval if Trial
+                    // Initial run and start interval
                     await updateTimer();
                     if (plan === "Trial" && userData.expiresAt) {
-                        countdownInterval = setInterval(updateTimer, 1000);
+                        console.log("⏱️ AeroByte Timer Heartbeat Started (Seconds Enabled)");
+                        window.activeCountdown = setInterval(updateTimer, 1000);
                     }
 
                     // Define Tier Styles
