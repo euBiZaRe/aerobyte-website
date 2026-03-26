@@ -56,7 +56,7 @@ const db = admin.firestore();
 // STRIPE WEBHOOK HANDLER
 app.post('/webhook', express.raw({type: 'application/json'}), async (req, res) => {
     const sig = req.headers['stripe-signature'];
-    const endpointSecret = 'whsec_YOUR_WEBHOOK_ENDPOINT_SECRET';
+    const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET || 'whsec_YOUR_WEBHOOK_ENDPOINT_SECRET';
 
     let event;
 
