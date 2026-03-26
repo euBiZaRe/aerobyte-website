@@ -9,15 +9,32 @@
 
 const express = require('express');
 const cors = require('cors');
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const admin = require('firebase-admin');
 const app = express();
 
 app.use(cors());
 
-// Initialize Firebase Admin (Requires serviceAccountKey.json)
-const serviceAccount = require('./serviceAccountKey.json');
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-});
+// Health check endpoint
+app.get('/', (req, res) => res.json({ status: 'AeroByte Backend is Alive!', time: new Date().toISOString() }));
+
+// Initialize Firebase Admin (Requires FIREBASE_SERVICE_ACCOUNT env var or serviceAccountKey.json)
+let serviceAccount;
+try {
+  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+  } else {
+    serviceAccount = require('./serviceAccountKey.json');
+  }
+} catch (e) {
+  console.error("Firebase Admin Error: Missing serviceAccountKey.json or FIREBASE_SERVICE_ACCOUNT env var.");
+}
+
+if (serviceAccount) {
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount)
+  });
+}
 
 // CREATE PAYMENT INTENT (For In-Modal Stripe Elements)
 app.post('/create-payment-intent', express.json(), async (req, res) => {

@@ -289,16 +289,23 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!auth.currentUser) return;
         const msgContainer = document.getElementById('payment-message');
         const submitBtn = document.getElementById('submitPaymentBtn');
+        const elementDiv = document.getElementById('payment-element');
 
         try {
+            // Add a timeout to the fetch call
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
             const response = await fetch(`${BACKEND_URL}/create-payment-intent`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: auth.currentUser.uid })
+                body: JSON.stringify({ userId: auth.currentUser.uid }),
+                signal: controller.signal
             });
+            clearTimeout(timeoutId);
 
             const { clientSecret } = await response.json();
-            if (!clientSecret) throw new Error("Could not initialize payment session.");
+            if (!clientSecret) throw new Error("Backend did not provide a secure session key.");
 
             const appearance = {
                 theme: 'night',
@@ -846,25 +853,34 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const tbody = document.getElementById('adminUsersTbody');
-            let globalActivity = []; // Store activity for Master DB mapping
-
-            // --- NEW UNIFIED DASHBOARD FETCH ---
-            const refreshDashboard = async () => {
+                     const refreshDashboard = async () => {
                 if (!tbody) return;
                 const rTbody = document.getElementById('recentActivityTbody');
                 
-                // Show loading state
+                console.log("🔄 Starting Dashboard Sync...");
                 tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 40px; color: var(--text-muted);">🔄 Securely syncing with Firestore...</td></tr>';
                 if (rTbody) rTbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 20px; color: var(--text-muted);">🔄 Syncing activity...</td></tr>';
                 
                 try {
                     const twentyFourHoursAgo = Date.now() - (24 * 60 * 60 * 1000);
                     
-                    // 1. Fetch Users and Activity in parallel for speed
+                    // Fetch with individual catch blocks to prevent total failure
+                    const fetchWithLog = async (name, query) => {
+                        console.log(`📡 Fetching ${name}...`);
+                        try {
+                            const snap = await getDocs(query);
+                            console.log(`✅ Fetched ${snap.size} ${name}.`);
+                            return snap;
+                        } catch (e) {
+                            console.warn(`⚠️ Failed to fetch ${name}:`, e.message);
+                            return { forEach: () => {}, size: 0 }; // Return empty mock
+                        }
+                    };
+
                     const [userSnap, licSnap, promoSnap] = await Promise.all([
-                        getDocs(collection(db, "users")),
-                        getDocs(collection(db, "licenses")),
-                        getDocs(collection(db, "promo_codes"))
+                        fetchWithLog("users", collection(db, "users")),
+                        fetchWithLog("licenses", collection(db, "licenses")),
+                        fetchWithLog("promo_codes", collection(db, "promo_codes"))
                     ]);
                     
                     const userMap = {};
@@ -885,7 +901,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         activity.push({ id: d.id, type: 'Promo Code', time: data.createdAt, user: data.usedBy || 'Waiting...', plan: `${data.days}d Plan`, status: data.used ? 'Redeemed' : 'Available', col: 'promo_codes' });
                     });
                     
-                    globalActivity = activity; // Store for Master DB status mapping
+                    globalActivity = activity;
+                    console.log("📊 Sync Complete. Rendering tables...");
 
                     // 2. Render Recent Activity Table
                     if (rTbody) {
