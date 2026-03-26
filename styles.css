@@ -851,14 +851,33 @@ footer {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    padding: 12px 15px !important;
+    padding: 10px 12px !important;
+    vertical-align: middle;
 }
 
 /* Specific Column Widths for Master Database */
-.admin-table th:nth-child(1), .admin-table td:nth-child(1) { width: 20%; } /* Email */
-.admin-table th:nth-child(2), .admin-table td:nth-child(2) { width: 10%; } /* Plan */
+.admin-table th:nth-child(1), .admin-table td:nth-child(1) { width: 18%; } /* Email */
+.admin-table th:nth-child(2), .admin-table td:nth-child(2) { width: 8%; } /* Plan */
 .admin-table th:nth-child(3), .admin-table td:nth-child(3) { width: 15%; } /* Key */
-.admin-table th:nth-child(4), .admin-table td:nth-child(4) { width: 10%; } /* Expires */
-.admin-table th:nth-child(5), .admin-table td:nth-child(5) { width: 12%; } /* Last Trial */
-.admin-table th:nth-child(6), .admin-table td:nth-child(6) { width: 12%; } /* Status */
-.admin-table th:nth-child(7), .admin-table td:nth-child(7) { width: 320px; text-align: right; overflow: visible; } /* Actions */
+.admin-table th:nth-child(4), .admin-table td:nth-child(4) { width: 8%; } /* Expires */
+.admin-table th:nth-child(5), .admin-table td:nth-child(5) { width: 10%; } /* Last Trial */
+.admin-table th:nth-child(6), .admin-table td:nth-child(6) { width: 10%; } /* Status */
+.admin-table th:nth-child(7), .admin-table td:nth-child(7) { width: 340px; text-align: right; overflow: visible; } /* Actions */
+
+.action-plan {
+    height: 32px;
+    padding: 0 8px !important;
+    font-size: 0.75rem !important;
+}
+
+.action-save, .action-delete {
+    height: 32px;
+    padding: 0 12px !important;
+    font-size: 0.7rem !important;
+}
+
+.duration-inputs input {
+    height: 32px;
+    width: 45px !important;
+    font-size: 0.7rem !important;
+}
