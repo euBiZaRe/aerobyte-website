@@ -843,26 +843,31 @@ footer {
 }
 
 .admin-table {
-    table-layout: fixed;
+    table-layout: auto; /* Natural widths */
+    width: 100%;
+    min-width: 1000px; /* Ensures enough space for all columns */
+}
+
+/* Ensure container scrolls instead of clipping */
+.glass-panel {
+    overflow-x: auto !important;
     width: 100%;
 }
 
 .admin-table th, .admin-table td {
-    overflow: hidden;
-    text-overflow: ellipsis;
+    overflow: visible;
+    text-overflow: clip;
     white-space: nowrap;
-    padding: 10px 12px !important;
+    padding: 12px 15px !important;
     vertical-align: middle;
 }
 
-/* Specific Column Widths for Master Database */
-.admin-table th:nth-child(1), .admin-table td:nth-child(1) { width: 18%; } /* Email */
-.admin-table th:nth-child(2), .admin-table td:nth-child(2) { width: 12%; } /* Plan - Increased for no-wrap */
-.admin-table th:nth-child(3), .admin-table td:nth-child(3) { width: 15%; } /* Key */
-.admin-table th:nth-child(4), .admin-table td:nth-child(4) { width: 8%; } /* Expires */
-.admin-table th:nth-child(5), .admin-table td:nth-child(5) { width: 10%; } /* Last Trial */
-.admin-table th:nth-child(6), .admin-table td:nth-child(6) { width: 10%; } /* Status */
-.admin-table th:nth-child(7), .admin-table td:nth-child(7) { width: 340px; text-align: right; overflow: visible; } /* Actions */
+/* Actions Column should be wide enough but not greedy */
+.admin-table th:last-child, .admin-table td:last-child {
+    width: 1%; /* Shrink to fit content */
+    white-space: nowrap;
+    text-align: right;
+}
 
 .action-plan {
     height: 32px;
