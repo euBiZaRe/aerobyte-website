@@ -359,7 +359,12 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        const msgContainer = document.getElementById('payment-message');
+        const submitBtn = document.getElementById('submitPaymentBtn');
+        const elementDiv = document.getElementById('payment-element');
         const loaderStatus = document.getElementById('stripe-status-text');
+
+        if (!elementDiv) return;
         if (loaderStatus) loaderStatus.textContent = "Connecting to Secure Gateway...";
 
         // Only show spinner if first load
