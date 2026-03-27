@@ -21,6 +21,10 @@ const BACKEND_URL = 'https://aerobyte-website.onrender.com';
 
 document.addEventListener('DOMContentLoaded', () => {
     let stripe = null;
+
+    // PRE-WARM BACKEND (Wake up Render free instance immediately)
+    fetch(BACKEND_URL).catch(() => {}); 
+
     try {
         if (typeof Stripe !== 'undefined') {
             stripe = Stripe(STRIPE_PK);
