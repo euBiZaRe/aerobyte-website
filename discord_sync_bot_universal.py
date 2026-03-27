@@ -377,13 +377,79 @@ async def run_firestore(callable_obj, *args, **kwargs):
     return await asyncio.to_thread(callable_obj, *args, **kwargs)
 
 
-async def send_ticket_log(guild: discord.Guild, embed: discord.Embed) -> None:
+async def send_ephemeral(interaction: discord.Interaction, message: str) -> None:
+    if interaction.response.is_done():
+        await interaction.followup.send(message, ephemeral=True)
+    else:
+        await interaction.response.send_message(message, ephemeral=True)
+
+
+async def send_ticket_log(guild: discord.Guild, embed: discord.Embed, file: discord.File | None = None) -> None:
     log_channel_id = state_store.data.get("ticket_log_channel_id")
     if not log_channel_id:
         return
     log_channel = guild.get_channel(log_channel_id)
     if isinstance(log_channel, discord.TextChannel):
-        await log_channel.send(embed=embed)
+        await log_channel.send(embed=embed, file=file)
+
+
+def cancel_ticket_autoclose(channel_id: int) -> None:
+    task = ticket_autoclose_tasks.pop(channel_id, None)
+    if task and not task.done():
+        task.cancel()
+
+
+async def export_ticket_transcript(channel: discord.TextChannel) -> discord.File:
+    transcript_lines: list[str] = []
+    async for message in channel.history(limit=None, oldest_first=True):
+        created = message.created_at.strftime("%Y-%m-%d %H:%M:%S")
+        attachments = ", ".join(attachment.url for attachment in message.attachments) or "-"
+        clean_content = message.clean_content.replace("\r", " ").replace("\n", " ").strip() or "[no text]"
+        transcript_lines.append(f"[{created}] {message.author} | {clean_content} | attachments: {attachments}")
+    payload = "\n".join(transcript_lines) if transcript_lines else "No messages captured."
+    buffer = io.BytesIO(payload.encode("utf-8"))
+    filename = f"{channel.name}-transcript.txt"
+    return discord.File(buffer, filename=filename)
+
+
+async def schedule_ticket_autoclose(channel: discord.TextChannel, close_at: int) -> None:
+    cancel_ticket_autoclose(channel.id)
+
+    async def _runner() -> None:
+        delay = max(close_at - int(time.time()), 0)
+        if delay:
+            await asyncio.sleep(delay)
+        ticket = state_store.get_ticket_by_channel(channel.id)
+        if not ticket or ticket.get("status") != "open":
+            return
+        await close_ticket_channel(None, channel, reason="Auto-closed by timer.", closed_by_id=bot.user.id if bot.user else 0)
+
+    ticket_autoclose_tasks[channel.id] = asyncio.create_task(_runner(), name=f"ticket-autoclose-{channel.id}")
+
+
+def build_user_summary(uid: str, fields: dict[str, Any]) -> str:
+    plan = field_string(fields, "plan", "Unknown")
+    discord_id = field_string(fields, "discordId", "Not linked")
+    license_key = field_string(fields, "licenseKey", "None")
+    expires_at = field_int(fields, "expiresAt", 0)
+    expiry_text = f"<t:{int(expires_at / 1000)}:R>" if expires_at else "Not set"
+    return (
+        f"User ID: `{uid}`\n"
+        f"Plan: `{plan}`\n"
+        f"Discord ID: `{discord_id}`\n"
+        f"License: `{license_key}`\n"
+        f"Trial expiry: {expiry_text}"
+    )
+
+
+async def sync_member_from_fields(discord_id: int, uid: str, fields: dict[str, Any]) -> str:
+    plan = field_string(fields, "plan")
+    linked_discord_id = field_string(fields, "discordId")
+    if not plan or linked_discord_id != str(discord_id):
+        return f"No matching linked plan record found for `{discord_id}`."
+    await update_discord_role(discord_id, plan)
+    user_states[uid] = {"plan": plan, "discordId": linked_discord_id}
+    return f"Synced Discord member `{discord_id}` to `{plan}`."
 
 
 async def update_discord_role(discord_id: str | int, plan: str) -> None:
@@ -491,6 +557,7 @@ async def update_user_trial(uid: str, expires_at: int, now_ms: int, license_key:
     }
     await run_firestore(firestore.patch_user_fields, uid, patch_fields)
 
+
 class TicketCreateModal(discord.ui.Modal, title="Create Support Ticket"):
     subject = discord.ui.TextInput(label="What do you need help with?", max_length=100)
     details = discord.ui.TextInput(
@@ -505,7 +572,12 @@ class TicketCreateModal(discord.ui.Modal, title="Create Support Ticket"):
         self.support_bot = support_bot
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
-        await create_support_ticket(interaction, str(self.subject), str(self.details))
+        try:
+            await interaction.response.defer(ephemeral=True, thinking=True)
+            await create_support_ticket(interaction, str(self.subject), str(self.details))
+        except Exception:
+            logger.exception("Ticket modal submit failed.")
+            await send_ephemeral(interaction, "Ticket creation failed. Please try again or contact staff.")
 
 
 class TicketPanelView(discord.ui.View):
@@ -522,24 +594,35 @@ class TicketChannelView(discord.ui.View):
     def __init__(self) -> None:
         super().__init__(timeout=None)
 
+    @discord.ui.button(label="Claim Ticket", style=discord.ButtonStyle.blurple, custom_id="tickets:claim")
+    async def claim_ticket_button(self, interaction: discord.Interaction, _: discord.ui.Button) -> None:
+        if not isinstance(interaction.user, discord.Member) or not is_support_member(interaction.user):
+            await interaction.response.send_message("You need support/admin permissions to claim tickets.", ephemeral=True)
+            return
+        if not isinstance(interaction.channel, discord.TextChannel):
+            await interaction.response.send_message("This button only works in ticket channels.", ephemeral=True)
+            return
+        ticket = await state_store.claim_ticket(interaction.channel.id, interaction.user.id)
+        if not ticket:
+            await interaction.response.send_message("This channel is not tracked as a ticket.", ephemeral=True)
+            return
+        await interaction.response.send_message(f"Ticket claimed by {interaction.user.mention}.")
+
     @discord.ui.button(label="Close Ticket", style=discord.ButtonStyle.red, custom_id="tickets:close")
     async def close_ticket_button(self, interaction: discord.Interaction, _: discord.ui.Button) -> None:
-        await close_ticket_channel(interaction, "Closed from the ticket panel button.")
+        await close_ticket_channel(interaction, reason="Closed from the ticket panel button.")
 
 
 async def create_support_ticket(interaction: discord.Interaction, subject: str, details: str) -> None:
     if not interaction.guild or not isinstance(interaction.user, discord.Member):
-        await interaction.response.send_message("Tickets can only be created inside a server.", ephemeral=True)
+        await send_ephemeral(interaction, "Tickets can only be created inside a server.")
         return
 
     existing_channel_id, existing_ticket = state_store.get_open_ticket_for_owner(interaction.user.id)
     if existing_channel_id and existing_ticket:
         existing_channel = interaction.guild.get_channel(int(existing_channel_id))
         if existing_channel:
-            await interaction.response.send_message(
-                f"You already have an open ticket: {existing_channel.mention}",
-                ephemeral=True,
-            )
+            await send_ephemeral(interaction, f"You already have an open ticket: {existing_channel.mention}")
             return
 
     category_id = state_store.data.get("ticket_category_id")
@@ -586,7 +669,8 @@ async def create_support_ticket(interaction: discord.Interaction, subject: str, 
     embed.add_field(name="Opened by", value=interaction.user.mention, inline=False)
     embed.add_field(name="Subject", value=subject, inline=False)
     embed.add_field(name="Details", value=details or "No extra details provided.", inline=False)
-    embed.set_footer(text="Support staff can use /ticket-add, /ticket-remove, and /ticket-close here.")
+    embed.add_field(name="Ticket Controls", value="Claim with the button below or run /ticket-autoclose to set a timer.", inline=False)
+    embed.set_footer(text="Support staff can use /ticket-add, /ticket-remove, /ticket-note, and /ticket-close here.")
 
     content = support_role.mention if support_role else interaction.user.mention
     await ticket_channel.send(content=content, embed=embed, view=TicketChannelView())
@@ -597,39 +681,55 @@ async def create_support_ticket(interaction: discord.Interaction, subject: str, 
     log_embed.add_field(name="Subject", value=subject, inline=False)
     await send_ticket_log(interaction.guild, log_embed)
 
-    await interaction.response.send_message(
-        f"Your ticket is ready: {ticket_channel.mention}",
-        ephemeral=True,
-    )
+    await send_ephemeral(interaction, f"Your ticket is ready: {ticket_channel.mention}")
 
 
-async def close_ticket_channel(interaction: discord.Interaction, reason: str | None = None) -> None:
-    if not interaction.guild or not isinstance(interaction.channel, discord.TextChannel):
-        await interaction.response.send_message("This command only works inside a ticket channel.", ephemeral=True)
+async def close_ticket_channel(
+    interaction: discord.Interaction | None,
+    channel: discord.TextChannel | None = None,
+    *,
+    reason: str | None = None,
+    closed_by_id: int | None = None,
+) -> None:
+    target_channel = channel or interaction.channel
+    guild = target_channel.guild if isinstance(target_channel, discord.TextChannel) else interaction.guild if interaction else None
+    actor = interaction.user if interaction else None
+
+    if not guild or not isinstance(target_channel, discord.TextChannel):
+        if interaction:
+            await interaction.response.send_message("This command only works inside a ticket channel.", ephemeral=True)
         return
-    if not isinstance(interaction.user, discord.Member):
+    if interaction and not isinstance(interaction.user, discord.Member):
         await interaction.response.send_message("Could not validate your member permissions.", ephemeral=True)
         return
 
-    ticket = state_store.get_ticket_by_channel(interaction.channel.id)
+    ticket = state_store.get_ticket_by_channel(target_channel.id)
     if not ticket:
-        await interaction.response.send_message("This channel is not tracked as a support ticket.", ephemeral=True)
+        if interaction:
+            await interaction.response.send_message("This channel is not tracked as a support ticket.", ephemeral=True)
         return
-    if not can_manage_ticket(interaction.user, ticket):
+    if interaction and not can_manage_ticket(interaction.user, ticket):
         await interaction.response.send_message("You do not have permission to close this ticket.", ephemeral=True)
         return
 
-    await state_store.close_ticket(interaction.channel.id, interaction.user.id, reason)
+    cancel_ticket_autoclose(target_channel.id)
+    closer_id = closed_by_id or (actor.id if actor else 0)
+    await state_store.close_ticket(target_channel.id, closer_id, reason)
 
+    transcript = await export_ticket_transcript(target_channel)
     log_embed = discord.Embed(title="Ticket Closed", color=discord.Color.red())
-    log_embed.add_field(name="Channel", value=interaction.channel.mention, inline=False)
-    log_embed.add_field(name="Closed by", value=interaction.user.mention, inline=False)
+    log_embed.add_field(name="Channel", value=target_channel.name, inline=False)
+    log_embed.add_field(name="Closed by", value=f"<@{closer_id}>" if closer_id else "System", inline=False)
     log_embed.add_field(name="Reason", value=reason or "No reason provided.", inline=False)
-    await send_ticket_log(interaction.guild, log_embed)
+    await send_ticket_log(guild, log_embed, file=transcript)
 
-    await interaction.response.send_message("Closing ticket in 3 seconds.")
+    if interaction:
+        await interaction.response.send_message("Closing ticket in 3 seconds.")
+    else:
+        await target_channel.send("This ticket is being closed.")
     await asyncio.sleep(3)
-    await interaction.channel.delete(reason=f"Ticket closed by {interaction.user}")
+    await target_channel.delete(reason=f"Ticket closed by {closer_id}")
+
 
 @bot.tree.command(name="trial", description="Claim a 1-hour trial every 6 hours.")
 async def trial(interaction: discord.Interaction) -> None:
@@ -740,7 +840,73 @@ async def ticket_panel(
 @bot.tree.command(name="ticket-close", description="Close the current support ticket.")
 @app_commands.describe(reason="Optional reason for closing the ticket.")
 async def ticket_close(interaction: discord.Interaction, reason: str | None = None) -> None:
-    await close_ticket_channel(interaction, reason)
+    await close_ticket_channel(interaction, reason=reason)
+
+
+@bot.tree.command(name="ticket-claim", description="Claim the current support ticket.")
+async def ticket_claim(interaction: discord.Interaction) -> None:
+    if not isinstance(interaction.user, discord.Member) or not is_support_member(interaction.user):
+        await interaction.response.send_message("You need support/admin permissions to claim tickets.", ephemeral=True)
+        return
+    if not isinstance(interaction.channel, discord.TextChannel):
+        await interaction.response.send_message("This command only works inside a ticket channel.", ephemeral=True)
+        return
+    ticket = await state_store.claim_ticket(interaction.channel.id, interaction.user.id)
+    if not ticket:
+        await interaction.response.send_message("This channel is not tracked as a ticket.", ephemeral=True)
+        return
+    await interaction.response.send_message(f"Ticket claimed by {interaction.user.mention}.")
+
+
+@bot.tree.command(name="ticket-autoclose", description="Set or clear an auto-close timer for this ticket.")
+@app_commands.describe(minutes="Minutes until the ticket closes. Use 0 to disable the timer.")
+async def ticket_autoclose(interaction: discord.Interaction, minutes: app_commands.Range[int, 0, 10080]) -> None:
+    if not isinstance(interaction.user, discord.Member) or not is_support_member(interaction.user):
+        await interaction.response.send_message("You need support/admin permissions to manage auto-close timers.", ephemeral=True)
+        return
+    if not isinstance(interaction.channel, discord.TextChannel):
+        await interaction.response.send_message("This command only works inside a ticket channel.", ephemeral=True)
+        return
+    ticket = state_store.get_ticket_by_channel(interaction.channel.id)
+    if not ticket:
+        await interaction.response.send_message("This channel is not tracked as a ticket.", ephemeral=True)
+        return
+
+    if minutes == 0:
+        cancel_ticket_autoclose(interaction.channel.id)
+        await state_store.set_ticket_autoclose(interaction.channel.id, None)
+        await interaction.response.send_message("Auto-close disabled for this ticket.")
+        return
+
+    close_at = int(time.time()) + (minutes * 60)
+    await state_store.set_ticket_autoclose(interaction.channel.id, close_at)
+    await schedule_ticket_autoclose(interaction.channel, close_at)
+    await interaction.response.send_message(f"This ticket will auto-close <t:{close_at}:R>.")
+
+
+@bot.tree.command(name="ticket-note", description="Send a staff-only ticket note to the ticket log channel.")
+@app_commands.describe(note="Internal note for staff.")
+async def ticket_note(interaction: discord.Interaction, note: str) -> None:
+    if not isinstance(interaction.user, discord.Member) or not is_support_member(interaction.user):
+        await interaction.response.send_message("You need support/admin permissions to add internal notes.", ephemeral=True)
+        return
+    if not isinstance(interaction.channel, discord.TextChannel):
+        await interaction.response.send_message("This command only works inside a ticket channel.", ephemeral=True)
+        return
+    ticket = state_store.get_ticket_by_channel(interaction.channel.id)
+    if not ticket:
+        await interaction.response.send_message("This channel is not tracked as a ticket.", ephemeral=True)
+        return
+    if not state_store.data.get("ticket_log_channel_id"):
+        await interaction.response.send_message("No ticket log channel is configured yet.", ephemeral=True)
+        return
+
+    embed = discord.Embed(title="Staff Ticket Note", color=discord.Color.orange())
+    embed.add_field(name="Ticket", value=interaction.channel.name, inline=False)
+    embed.add_field(name="Staff Member", value=interaction.user.mention, inline=False)
+    embed.add_field(name="Note", value=note, inline=False)
+    await send_ticket_log(interaction.guild, embed)
+    await interaction.response.send_message("Internal ticket note sent to the log channel.", ephemeral=True)
 
 
 @bot.tree.command(name="ticket-add", description="Add a member to the current support ticket.")
@@ -784,6 +950,70 @@ async def ticket_remove(interaction: discord.Interaction, member: discord.Member
     await interaction.channel.set_permissions(member, overwrite=None, reason=f"Removed from ticket by {interaction.user}")
     await interaction.response.send_message(f"Removed {member.mention} from this ticket.")
 
+
+@bot.tree.command(name="ticket-stats", description="Show current support ticket stats.")
+async def ticket_stats(interaction: discord.Interaction) -> None:
+    if not isinstance(interaction.user, discord.Member) or not is_support_member(interaction.user):
+        await interaction.response.send_message("You need support/admin permissions to view ticket stats.", ephemeral=True)
+        return
+    open_tickets = state_store.open_tickets()
+    claimed = sum(1 for _, ticket in open_tickets if ticket.get("claimed_by"))
+    await interaction.response.send_message(
+        f"Open tickets: {len(open_tickets)} | Claimed: {claimed} | Unclaimed: {len(open_tickets) - claimed}",
+        ephemeral=True,
+    )
+
+
+@bot.tree.command(name="license-check", description="Look up a linked user's plan and license.")
+@app_commands.describe(member="Discord member to inspect.")
+async def license_check(interaction: discord.Interaction, member: discord.Member) -> None:
+    if not isinstance(interaction.user, discord.Member) or not is_support_member(interaction.user):
+        await interaction.response.send_message("You need support/admin permissions to inspect licenses.", ephemeral=True)
+        return
+    await interaction.response.defer(ephemeral=True)
+    uid, fields = await find_user_by_discord_id(member.id)
+    if not uid or not fields:
+        await interaction.followup.send("No linked AeroByte account was found for that member.", ephemeral=True)
+        return
+    await interaction.followup.send(build_user_summary(uid, fields), ephemeral=True)
+
+
+@bot.tree.command(name="force-sync", description="Force a single member's Discord role sync from Firestore.")
+@app_commands.describe(member="Discord member to sync.")
+async def force_sync(interaction: discord.Interaction, member: discord.Member) -> None:
+    if not isinstance(interaction.user, discord.Member) or not is_support_member(interaction.user):
+        await interaction.response.send_message("You need support/admin permissions to force sync users.", ephemeral=True)
+        return
+    await interaction.response.defer(ephemeral=True)
+    uid, fields = await find_user_by_discord_id(member.id)
+    if not uid or not fields:
+        await interaction.followup.send("No linked AeroByte account was found for that member.", ephemeral=True)
+        return
+    result = await sync_member_from_fields(member.id, uid, fields)
+    await interaction.followup.send(result, ephemeral=True)
+
+
+@bot.tree.command(name="sync-all", description="Force a full Firestore-to-Discord role sync now.")
+async def sync_all(interaction: discord.Interaction) -> None:
+    if not isinstance(interaction.user, discord.Member) or not is_support_member(interaction.user):
+        await interaction.response.send_message("You need support/admin permissions to run a full sync.", ephemeral=True)
+        return
+    await interaction.response.defer(ephemeral=True)
+    documents = await poll_users()
+    synced = 0
+    for doc in documents:
+        fields = doc.get("fields", {})
+        uid = doc["name"].split("/")[-1]
+        plan = field_string(fields, "plan")
+        discord_id = field_string(fields, "discordId")
+        if not plan or not discord_id:
+            continue
+        await update_discord_role(discord_id, plan)
+        user_states[uid] = {"plan": plan, "discordId": discord_id}
+        synced += 1
+    await interaction.followup.send(f"Full sync complete. Updated {synced} linked member(s).", ephemeral=True)
+
+
 @bot.event
 async def on_ready() -> None:
     global commands_synced, sync_task, expiry_task
@@ -810,6 +1040,14 @@ async def on_ready() -> None:
         sync_task = asyncio.create_task(sync_loop(), name="firestore-sync-loop")
     if expiry_task is None or expiry_task.done():
         expiry_task = asyncio.create_task(expiry_loop(), name="trial-expiry-loop")
+
+    for channel_id, ticket in state_store.open_tickets():
+        auto_close_at = ticket.get("auto_close_at")
+        if not auto_close_at:
+            continue
+        channel = bot.get_channel(channel_id)
+        if isinstance(channel, discord.TextChannel):
+            await schedule_ticket_autoclose(channel, int(auto_close_at))
 
 
 if __name__ == "__main__":

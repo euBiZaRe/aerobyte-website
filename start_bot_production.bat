@@ -14,8 +14,11 @@ set "LOG_FILE=%LOG_DIR%\discord-bot.log"
 if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"
 
 if exist "%SCRIPT_DIR%.env" (
-    for /f "usebackq tokens=1,* delims==" %%A in ("%SCRIPT_DIR%.env") do (
-        if not "%%A"=="" if /I not "%%A"=="REM" if /I not "%%A:~0,1%"=="#" set "%%A=%%B"
+    for /f "usebackq tokens=* delims=" %%L in ("%SCRIPT_DIR%.env") do (
+        set "ENV_LINE=%%L"
+        if defined ENV_LINE if not "!ENV_LINE:~0,1!"=="#" if not "!ENV_LINE:~0,3!"=="REM" (
+            for /f "tokens=1,* delims==" %%A in ("!ENV_LINE!") do set "%%A=%%B"
+        )
     )
 )
 

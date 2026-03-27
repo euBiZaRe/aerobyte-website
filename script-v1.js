@@ -1310,14 +1310,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
 
-            // Admin Event Listeners for Dynamic Table Elements
+            // --- Admin Event Listeners ---
             if(tbody) {
+                // 1. Change listener for plan/duration selection
                 tbody.addEventListener('change', (e) => {
-                    if (e.target.classList.contains('action-plan')) {
-                        const durationInputs = e.target.parentElement.querySelector('.duration-inputs');
-                        if (e.target.value === 'Premium' || e.target.value === 'Trial') {
+                    const planSelect = e.target.closest('.action-plan');
+                    if (planSelect) {
+                        const durationInputs = planSelect.parentElement.querySelector('.duration-inputs');
+                        if (planSelect.value === 'Premium' || planSelect.value === 'Trial') {
                             durationInputs.style.display = 'flex';
-                                tbody.addEventListener('click', async (e) => {
+                        } else {
+                            durationInputs.style.display = 'none';
+                        }
+                    }
+                });
+
+                // 2. Click listener for all row actions
+                tbody.addEventListener('click', async (e) => {
+                    // MASK TOGGLE
                     const mask = e.target.closest('.admin-license-mask');
                     if (mask) {
                         const key = mask.getAttribute('data-key');
@@ -1325,6 +1335,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         return;
                     }
 
+                    // REGEN KEY (Inline Confirm)
                     const regenBtn = e.target.closest('.action-gen-key') || e.target.closest('.action-regen-key');
                     if (regenBtn) {
                         const parent = regenBtn.parentElement;
@@ -1337,7 +1348,6 @@ document.addEventListener('DOMContentLoaded', () => {
                             return;
                         }
 
-                        // Inline Confirm for Regen (only if oldKey exists)
                         if (oldKey) {
                             regenBtn.style.display = 'none';
                             const confirmUI = document.createElement('div');
@@ -1371,18 +1381,12 @@ document.addEventListener('DOMContentLoaded', () => {
                             return;
                         }
 
-                        // Fallback for brand new generation
-                        const genKey = () => {
+                        // Just Generate (No old key)
+                        regenBtn.textContent = 'Updating...'; regenBtn.disabled = true;
+                        try {
                             const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
                             const rand = (len) => Array.from({length: len}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-                            return `${rand(4)}-${rand(4)}-${rand(4)}-${rand(4)}`;
-                        };
-
-                        const newKey = genKey();
-                        regenBtn.textContent = 'Updating...';
-                        regenBtn.disabled = true;
-                        
-                        try {
+                            const newKey = `${rand(4)}-${rand(4)}-${rand(4)}-${rand(4)}`;
                             await updateDoc(doc(db, "users", uid), { licenseKey: newKey });
                             await setDoc(doc(db, "licenses", newKey), {
                                 userId: uid, plan: plan, status: "active", hwid: null, createdAt: Date.now()
@@ -1392,11 +1396,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         return;
                     }
 
+                    // RESET HWID (Inline Confirm)
                     const hwidBtn = e.target.closest('.action-reset-hwid');
                     if (hwidBtn) {
                         const parent = hwidBtn.parentElement;
                         const key = hwidBtn.getAttribute('data-key');
-                        
                         hwidBtn.style.display = 'none';
                         const confirmUI = document.createElement('div');
                         confirmUI.className = 'inline-confirm';
@@ -1408,7 +1412,6 @@ document.addEventListener('DOMContentLoaded', () => {
                             </div>
                         `;
                         parent.appendChild(confirmUI);
-
                         const cleanup = () => { confirmUI.remove(); hwidBtn.style.display = 'inline-block'; };
                         confirmUI.querySelector('.confirm-hwid-no').onclick = cleanup;
                         confirmUI.querySelector('.confirm-hwid-yes').onclick = async () => {
@@ -1420,90 +1423,22 @@ document.addEventListener('DOMContentLoaded', () => {
                         };
                         return;
                     }
-                });
- err.message);
-                                cleanup();
-                            }
-                        };
-                        return;
-                    }
 
-                    // --- REGENERATE KEY HANDLER ---
-                    if (e.target.classList.contains('action-regen-key')) {
-                        const btn = e.target;
-                        const parent = btn.parentElement;
-                        const uid = btn.getAttribute('data-uid');
-                        const oldKey = btn.getAttribute('data-key');
-                        const plan = btn.getAttribute('data-plan');
-                        
-                        // Show inline confirm
-                        btn.style.display = 'none';
-                        const confirmUI = document.createElement('div');
-                        confirmUI.className = 'inline-confirm';
-                        confirmUI.style.marginTop = '4px';
-                        confirmUI.innerHTML = `
-                            <span style="font-size:0.6rem; color:#ff4d4d; display:block; margin-bottom:2px;">Regen Key? (Old will stop working)</span>
-                            <div style="display:flex; gap:4px;">
-                                <button class="confirm-regen-yes" style="padding:2px 6px; font-size:0.6rem; background:#10B981; color:#fff; border:none; border-radius:3px; cursor:pointer;">Yes</button>
-                                <button class="confirm-regen-no" style="padding:2px 6px; font-size:0.6rem; background:#ff4d4d; color:#fff; border:none; border-radius:3px; cursor:pointer;">No</button>
-                            </div>
-                        `;
-                        parent.appendChild(confirmUI);
-
-                        const cleanup = () => {
-                            confirmUI.remove();
-                            btn.style.display = 'inline-block';
-                        };
-
-                        confirmUI.querySelector('.confirm-regen-no').onclick = cleanup;
-                        confirmUI.querySelector('.confirm-regen-yes').onclick = async () => {
-                            confirmUI.innerHTML = '<span style="font-size:0.6rem; color:var(--text-muted);">Regenerating...</span>';
-                            
-                            const genKey = () => {
-                                const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-                                const rand = (len) => Array.from({length: len}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-                                return `${rand(4)}-${rand(4)}-${rand(4)}-${rand(4)}`;
-                            };
-
-                            const newKey = genKey();
-                            
-                            try {
-                                if (oldKey) await deleteDoc(doc(db, "licenses", oldKey));
-                                await updateDoc(doc(db, "users", uid), { licenseKey: newKey });
-                                await setDoc(doc(db, "licenses", newKey), {
-                                    userId: uid,
-                                    plan: plan,
-                                    status: "active",
-                                    createdAt: Date.now()
-                                });
-                                refreshDashboard(); // Refresh UI
-                            } catch(err) {
-                                alert("Error regenerating key: " + err.message);
-                                cleanup();
-                            }
-                        };
-                        return;
-                    }
-
-                    if (e.target.classList.contains('action-save')) {
-                        const uid = e.target.getAttribute('data-uid');
-                        const parent = e.target.parentElement;
+                    // SAVE USER
+                    const saveBtn = e.target.closest('.action-save');
+                    if (saveBtn) {
+                        const uid = saveBtn.getAttribute('data-uid');
+                        const parent = saveBtn.parentElement;
                         const planVal = parent.querySelector('.action-plan').value;
-                        const daysVal   = parseInt(parent.querySelector('.action-days')?.value)   || 0;
-                        const hoursVal  = parseInt(parent.querySelector('.action-hours')?.value)  || 0;
-                        const minsVal   = parseInt(parent.querySelector('.action-minutes')?.value) || 0;
+                        const daysVal = parseInt(parent.querySelector('.action-days')?.value) || 0;
+                        const hoursVal = parseInt(parent.querySelector('.action-hours')?.value) || 0;
+                        const minsVal = parseInt(parent.querySelector('.action-minutes')?.value) || 0;
                         
-                        e.target.textContent = 'Saving...';
-                        
+                        saveBtn.textContent = 'Saving...';
                         let expiresAt = null;
                         if (planVal === 'Premium' || planVal === 'Trial') {
-                            const totalMs = (daysVal * 24 * 60 * 60 * 1000)
-                                         + (hoursVal * 60 * 60 * 1000)
-                                         + (minsVal * 60 * 1000);
-                            if (totalMs > 0) {
-                                expiresAt = Date.now() + totalMs;
-                            }
-                            // If all fields are 0, it's treated as lifetime (expiresAt stays null)
+                            const totalMs = (daysVal * 24 * 60 * 60 * 1000) + (hoursVal * 60 * 60 * 1000) + (minsVal * 60 * 1000);
+                            if (totalMs > 0) expiresAt = Date.now() + totalMs;
                         }
 
                         try {
@@ -1511,73 +1446,35 @@ document.addEventListener('DOMContentLoaded', () => {
                             const oldData = oldDoc.data();
                             const oldKey = oldData.licenseKey;
                             const oldPlan = oldData.plan;
+                            let updateData = { plan: planVal, expiresAt: expiresAt };
 
-                            let updateData = {
-                                plan: planVal,
-                                expiresAt: expiresAt
-                            };
-
-                            // --- AUTOMATED KEY LIFECYCLE MANAGEMENT ---
                             if (planVal === 'Free') {
-                                // Downscale: Delete key if it exists
-                                if (oldKey) {
-                                    await deleteDoc(doc(db, "licenses", oldKey));
-                                    updateData.licenseKey = null;
-                                }
+                                if (oldKey) { await deleteDoc(doc(db, "licenses", oldKey)); updateData.licenseKey = null; }
                             } else if (planVal !== oldPlan || !oldKey) {
-                                // Plan changed OR user has no key yet: Issue new key
-                                const genKey = () => {
-                                    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-                                    const rand = (len) => Array.from({length: len}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-                                    return `${rand(4)}-${rand(4)}-${rand(4)}-${rand(4)}`;
-                                };
-                                const newKey = genKey();
-                                
-                                // Invalidate old key
+                                const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+                                const rand = (len) => Array.from({length: len}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+                                const newKey = `${rand(4)}-${rand(4)}-${rand(4)}-${rand(4)}`;
                                 if (oldKey) await deleteDoc(doc(db, "licenses", oldKey));
-                                
-                                // Set new key
                                 updateData.licenseKey = newKey;
-                                await setDoc(doc(db, "licenses", newKey), {
-                                    userId: uid,
-                                    plan: planVal,
-                                    status: "active",
-                                    createdAt: Date.now()
-                                });
+                                await setDoc(doc(db, "licenses", newKey), { userId: uid, plan: planVal, status: "active", createdAt: Date.now() });
                             }
 
                             await updateDoc(doc(db, "users", uid), updateData);
-                            e.target.textContent = 'Saved!';
-                            e.target.style.background = '#10B981';
-                            setTimeout(() => {
-                                e.target.textContent = 'Save';
-                                e.target.style.background = '';
-                                refreshDashboard();
-                            }, 1200);
-                        } catch(err) {
-                            console.error(err);
-                            alert("Error saving: " + err.message);
-                            e.target.textContent = 'Save';
-                        }
+                            saveBtn.textContent = 'Saved!'; saveBtn.style.background = '#10B981';
+                            setTimeout(() => { saveBtn.textContent = 'Save'; saveBtn.style.background = ''; refreshDashboard(); }, 1200);
+                        } catch(err) { alert("Error: " + err.message); saveBtn.textContent = 'Save'; }
+                        return;
                     }
 
-                    if (e.target.classList.contains('action-delete')) {
-                        const uid = e.target.getAttribute('data-uid');
-                        const email = e.target.getAttribute('data-email');
-                        
-                        if (confirm(`Are you sure you want to remove ${email} from the database? This will reset their plan to Free.`)) {
-                            e.target.textContent = 'Deleting...';
-                            e.target.disabled = true;
-                            
-                            try {
-                                await deleteDoc(doc(db, "users", uid));
-                                refreshDashboard();
-                            } catch (err) {
-                                console.error(err);
-                                alert("Error deleting user: " + err.message);
-                                e.target.textContent = 'Delete';
-                                e.target.disabled = false;
-                            }
+                    // DELETE USER
+                    const deleteBtn = e.target.closest('.action-delete');
+                    if (deleteBtn) {
+                        const uid = deleteBtn.getAttribute('data-uid');
+                        const email = deleteBtn.getAttribute('data-email');
+                        if (confirm(`Remove ${email}?`)) {
+                            deleteBtn.textContent = 'Deleting...'; deleteBtn.disabled = true;
+                            try { await deleteDoc(doc(db, "users", uid)); refreshDashboard(); }
+                            catch (err) { alert("Error: " + err.message); deleteBtn.textContent = 'Delete'; deleteBtn.disabled = false; }
                         }
                     }
                 });
