@@ -17,9 +17,16 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 document.addEventListener('DOMContentLoaded', () => {
-    const STRIPE_PK = 'pk_test_51TFKE1IlExQEZUkSBzHPPiTVBWXwQRvpmW3HlVK7wT35MrB0FDyu2dEzLKvNIre6E70huYkcX5mdgRZtmen2D20700hv4OukTE';
-    const BACKEND_URL = 'https://aerobyte-website.onrender.com'; 
-    const stripe = Stripe(STRIPE_PK);
+    let stripe = null;
+    try {
+        if (typeof Stripe !== 'undefined') {
+            stripe = Stripe(STRIPE_PK);
+        } else {
+            console.warn("⚠️ Stripe SDK not found at startup.");
+        }
+    } catch (e) {
+        console.error("❌ Stripe Initialization Error:", e);
+    }
     let elements;
 
     // --- DYNAMIC MODAL INJECTION ---
@@ -414,6 +421,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     borderRadius: '8px',
                 },
             };
+
+            // RE-INITIALIZE STRIPE IF NULL
+            if (!stripe && typeof Stripe !== 'undefined') {
+                stripe = Stripe(STRIPE_PK);
+            }
+            if (!stripe) throw new Error("Payment SDK not available in browser.");
 
             elements = stripe.elements({ appearance, clientSecret });
 
