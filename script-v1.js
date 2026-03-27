@@ -420,9 +420,9 @@ document.addEventListener('DOMContentLoaded', () => {
         submitBtn.disabled = true;
 
         try {
-            stripeLog("Opening Backend Tunnel...");
+            stripeLog("Opening Backend Tunnel (Wait up to 60s)...");
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 30000);
+            const timeoutId = setTimeout(() => controller.abort(), 60000);
 
             const response = await fetch(`${BACKEND_URL}/create-payment-intent`, {
                 method: 'POST',
