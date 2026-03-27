@@ -317,6 +317,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- TIER SELECTION LOGIC ---
     let selectedTier = '48h';
+    let currentPaymentIntentId = null;
+
+    const syncPaymentIntent = async (tier) => {
+        if (!currentPaymentIntentId) return;
+        try {
+            await fetch(`${BACKEND_URL}/update-payment-intent`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    paymentIntentId: currentPaymentIntentId,
+                    tier: tier 
+                })
+            });
+            console.log(`✅ PaymentIntent updated to ${tier} background.`);
+        } catch (err) {
+            console.error("❌ Failed to sync PaymentIntent:", err);
+        }
+    };
+
     document.body.addEventListener('click', (e) => {
         const tierOpt = e.target.closest('.tier-option');
         if (tierOpt) {
@@ -327,8 +346,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const payBtnText = document.getElementById('button-text');
             if (payBtnText) payBtnText.textContent = `Pay $${price}`;
             
-            // Reload Stripe Elements for new amount
-            loadStripeElements();
+            // BACKGROUND SYNC (No reload = No flicker)
+            syncPaymentIntent(selectedTier);
         }
     });
 
@@ -339,12 +358,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const submitBtn = document.getElementById('submitPaymentBtn');
         const elementDiv = document.getElementById('payment-element');
 
-        // Show loading state for elements
-        elementDiv.innerHTML = `
-            <div style="padding: 20px; text-align: center; color: var(--text-muted); background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.1);">
-                <i class="fas fa-spinner fa-spin"></i> Loading Secure Fields...
-            </div>
-        `;
+        // Only show spinner if first load
+        if (!elements) {
+            elementDiv.innerHTML = `
+                <div style="padding: 20px; text-align: center; color: var(--text-muted); background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.1);">
+                    <i class="fas fa-spinner fa-spin"></i> Loading Secure Fields...
+                </div>
+            `;
+        }
         submitBtn.disabled = true;
 
         try {
@@ -362,8 +383,10 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             clearTimeout(timeoutId);
 
-            const { clientSecret } = await response.json();
+            const { clientSecret, paymentIntentId } = await response.json();
             if (!clientSecret) throw new Error("Backend did not provide a secure session key.");
+            
+            currentPaymentIntentId = paymentIntentId;
 
             const appearance = {
                 theme: 'night',

@@ -65,9 +65,31 @@ app.post('/create-payment-intent', express.json(), async (req, res) => {
             },
         });
 
-        res.json({ clientSecret: paymentIntent.client_secret });
+        res.json({ 
+            clientSecret: paymentIntent.client_secret,
+            paymentIntentId: paymentIntent.id 
+        });
     } catch (err) {
         console.error("Stripe Error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// UPDATE PAYMENT INTENT (For Flicker-Free Switching)
+app.post('/update-payment-intent', express.json(), async (req, res) => {
+    const { paymentIntentId, tier } = req.body;
+    if (!paymentIntentId || !tier) return res.status(400).json({ error: 'Missing parameters' });
+
+    const amount = TIER_PRICES[tier] || 1500;
+
+    try {
+        const updatedIntent = await stripe.paymentIntents.update(paymentIntentId, {
+            amount: amount,
+            metadata: { tier: tier }
+        });
+        res.json({ success: true, amount: amount });
+    } catch (err) {
+        console.error("Stripe Update Error:", err);
         res.status(500).json({ error: err.message });
     }
 });
