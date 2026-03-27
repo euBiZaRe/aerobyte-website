@@ -386,13 +386,34 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         `;
 
-        stripeLog("Auth Handshake Started...");
-        const currentUser = auth.currentUser;
+        stripeLog("Verifying Security Credentials...");
+        
+        // INTELLIGENT AUTH WAIT
+        let currentUser = auth.currentUser;
         if (!currentUser) {
-            stripeLog("Error: Auth state null.");
+            stripeLog("Credentials not found. Waiting 2s for secure handshake...");
+            await new Promise(resolve => {
+                const unsubscribe = onAuthStateChanged(auth, u => {
+                    currentUser = u;
+                    unsubscribe();
+                    resolve();
+                });
+                setTimeout(resolve, 2000); 
+            });
+        }
+
+        if (!currentUser) {
+            stripeLog("Fatal: User not authenticated.");
+            elementDiv.innerHTML = `
+                <div style="padding: 20px; text-align: center; color: #ffbc00; background: rgba(255,188,0,0.05); border-radius: 12px; border: 1px solid rgba(255,188,0,0.2);">
+                    <i class="fas fa-user-shield"></i> Session Required<br>
+                    <small>Please Sign In to proceed with the purchase.</small>
+                    <button onclick="openAuthModal()" style="margin-top: 10px; display: block; width: 100%; padding: 8px; background: #5865F2; color: #fff; border: none; border-radius: 4px; cursor: pointer;">Sign In Now</button>
+                </div>
+            `;
             return;
         }
-        stripeLog(`User identified: ${currentUser.uid.substring(0,6)}...`);
+        stripeLog(`Identity Verified: ${currentUser.uid.substring(0,8)}`);
 
         const msgContainer = document.getElementById('payment-message');
         const submitBtn = document.getElementById('submitPaymentBtn');
