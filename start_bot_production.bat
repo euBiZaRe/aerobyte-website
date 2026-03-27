@@ -13,6 +13,24 @@ set "LOG_FILE=%LOG_DIR%\discord-bot.log"
 
 if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"
 
+set "LOCK_FILE=%LOG_DIR%\bot-launcher.lock"
+set "LAUNCHER_PID="
+for /f %%I in ('powershell -NoProfile -Command "$PID"') do set "LAUNCHER_PID=%%I"
+
+if exist "%LOCK_FILE%" (
+    set /p EXISTING_PID=<"%LOCK_FILE%"
+    if not "!EXISTING_PID!"=="" (
+        powershell -NoProfile -Command "if (Get-Process -Id !EXISTING_PID! -ErrorAction SilentlyContinue) { exit 0 } else { exit 1 }"
+        if !errorlevel! equ 0 (
+            echo [%date% %time%] Bot launcher is already running in another window. Exiting launcher.
+            pause
+            exit /b 0
+        )
+    )
+)
+
+echo %LAUNCHER_PID% > "%LOCK_FILE%"
+
 if exist "%SCRIPT_DIR%.env" (
     for /f "usebackq tokens=* delims=" %%L in ("%SCRIPT_DIR%.env") do (
         set "ENV_LINE=%%L"
@@ -52,4 +70,5 @@ goto start
 echo.
 echo [%date% %time%] Startup aborted. Review the message above.
 pause
+if exist "%LOCK_FILE%" del "%LOCK_FILE%" >nul 2>&1
 exit /b 1

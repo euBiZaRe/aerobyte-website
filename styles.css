@@ -871,6 +871,13 @@ footer {
 .recent-activity-table th:nth-child(4), .recent-activity-table td:nth-child(4) { width: 250px; min-width: 250px; }
 .recent-activity-table th:nth-child(5), .recent-activity-table td:nth-child(5) { width: 180px; min-width: 180px; text-align: right; }
 
+.master-database-table th { 
+    white-space: nowrap; 
+    font-size: 0.7rem; 
+    text-transform: uppercase; 
+    letter-spacing: 1px;
+    padding-bottom: 12px !important;
+}
 /* Master Database Table (7 Columns) - No Truncation Layout */
 .master-database-table th:nth-child(1), .master-database-table td:nth-child(1) { width: 220px; min-width: 220px; }
 .master-database-table th:nth-child(2), .master-database-table td:nth-child(2) { width: 100px; min-width: 100px; } /* Plan */

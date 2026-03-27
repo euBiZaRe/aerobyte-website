@@ -31,7 +31,7 @@ STATE_FILE = BASE_DIR / "bot_state.json"
 FIREBASE_SERVICE_ACCOUNT_PATH = BASE_DIR / "serviceAccountKey.json"
 FIRESTORE_SCOPE = ["https://www.googleapis.com/auth/datastore"]
 FIRESTORE_TIMEOUT = (10, 30)
-DEFAULT_POLL_INTERVAL = 15
+DEFAULT_POLL_INTERVAL = 60
 EXPIRY_CHECK_INTERVAL = 60
 TRIAL_DURATION_MS = 60 * 60 * 1000
 TRIAL_COOLDOWN_MS = 6 * 60 * 60 * 1000
@@ -68,7 +68,7 @@ def env_float(name: str, default: float) -> float:
 DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 GUILD_ID = env_int("GUILD_ID", 1485462438840107082)
 ADMIN_ROLE_ID = env_int("ADMIN_ROLE_ID")
-POLL_INTERVAL = max(env_float("POLL_INTERVAL", DEFAULT_POLL_INTERVAL), 5.0)
+POLL_INTERVAL = max(env_float("POLL_INTERVAL", DEFAULT_POLL_INTERVAL), 30.0)
 
 if not DISCORD_BOT_TOKEN:
     raise RuntimeError("DISCORD_BOT_TOKEN is not set.")
@@ -326,6 +326,7 @@ user_states: dict[str, dict[str, str | None]] = {}
 sync_task: asyncio.Task | None = None
 expiry_task: asyncio.Task | None = None
 ticket_autoclose_tasks: dict[int, asyncio.Task] = {}
+firestore_backoff_until = 0.0
 commands_synced = False
 
 intents = discord.Intents.default()
@@ -482,10 +483,22 @@ async def update_discord_role(discord_id: str | int, plan: str) -> None:
 
 
 async def poll_users() -> list[dict[str, Any]]:
+    global firestore_backoff_until
+
+    now = time.time()
+    if firestore_backoff_until > now:
+        await asyncio.sleep(firestore_backoff_until - now)
+
     try:
         return await run_firestore(firestore.list_users)
     except requests.RequestException as exc:
-        logger.warning("Firestore user poll failed: %s", exc)
+        message = str(exc)
+        if "429" in message:
+            firestore_backoff_until = time.time() + 120
+            logger.warning("Firestore rate-limited the bot. Backing off for 120 seconds.")
+        else:
+            firestore_backoff_until = time.time() + 15
+            logger.warning("Firestore user poll failed: %s", exc)
         return []
 
 
