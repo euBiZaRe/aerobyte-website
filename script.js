@@ -409,11 +409,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
             };
 
-            elements = stripe.elements({ 
-                appearance, 
-                clientSecret,
-                paymentMethodTypes: ['card', 'paypal'] 
-            });
+            elements = stripe.elements({ appearance, clientSecret });
 
             const paymentElementOptions = { layout: "tabs" };
             const paymentElement = elements.create("payment", paymentElementOptions);
