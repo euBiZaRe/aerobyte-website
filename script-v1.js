@@ -1334,19 +1334,52 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
 
                     if (e.target.classList.contains('action-gen-key') || e.target.classList.contains('action-regen-key')) {
-                        const uid = e.target.getAttribute('data-uid');
-                        const plan = e.target.getAttribute('data-plan');
-                        const oldKey = e.target.getAttribute('data-key');
+                        const btn = e.target;
+                        const parent = btn.parentElement;
+                        const uid = btn.getAttribute('data-uid');
+                        const plan = btn.getAttribute('data-plan');
+                        const oldKey = btn.getAttribute('data-key');
 
                         if (plan === 'Free') {
                             alert("Cannot generate keys for Free users.");
                             return;
                         }
 
-                        if (oldKey && !confirm("WARNING: Regenerating a key will INVALIDATE the user's current key. Are you sure?")) {
+                        // Inline Confirm for Regen (only if oldKey exists)
+                        if (oldKey) {
+                            btn.style.display = 'none';
+                            const confirmUI = document.createElement('div');
+                            confirmUI.className = 'inline-confirm';
+                            confirmUI.innerHTML = `
+                                <span style="font-size:0.6rem; color:#f59e0b; display:block; margin-bottom:2px;">Invalidate Key?</span>
+                                <div style="display:flex; gap:4px;">
+                                    <button class="confirm-regen-yes" style="padding:2px 6px; font-size:0.6rem; background:#10B981; color:#fff; border:none; border-radius:3px; cursor:pointer;">Regen</button>
+                                    <button class="confirm-regen-no" style="padding:2px 6px; font-size:0.6rem; background:#ff4d4d; color:#fff; border:none; border-radius:3px; cursor:pointer;">Wait</button>
+                                </div>
+                            `;
+                            parent.appendChild(confirmUI);
+                            
+                            const cleanup = () => { confirmUI.remove(); btn.style.display = 'inline-block'; };
+                            confirmUI.querySelector('.confirm-regen-no').onclick = cleanup;
+                            confirmUI.querySelector('.confirm-regen-yes').onclick = async () => {
+                                confirmUI.innerHTML = '<span style="font-size:0.6rem; color:var(--text-muted);">Generating...</span>';
+                                try {
+                                    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+                                    const rand = (len) => Array.from({length: len}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+                                    const newKey = `${rand(4)}-${rand(4)}-${rand(4)}-${rand(4)}`;
+                                    
+                                    await updateDoc(doc(db, "users", uid), { licenseKey: newKey });
+                                    if (oldKey) await deleteDoc(doc(db, "licenses", oldKey));
+                                    await setDoc(doc(db, "licenses", newKey), {
+                                        userId: uid, plan: plan, status: "active", hwid: null, createdAt: Date.now()
+                                    });
+                                    refreshDashboard();
+                                } catch(err) { alert("Error: " + err.message); cleanup(); }
+                            };
                             return;
                         }
 
+                        // Fallback for brand new generation (no old key)
                         const genKey = () => {
                             const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
                             const rand = (len) => Array.from({length: len}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
@@ -1354,35 +1387,16 @@ document.addEventListener('DOMContentLoaded', () => {
                         };
 
                         const newKey = genKey();
-                        const originalText = e.target.textContent;
-                        e.target.textContent = 'Updating...';
-                        e.target.disabled = true;
+                        btn.textContent = 'Updating...';
+                        btn.disabled = true;
                         
                         try {
-                            // 1. Update user document
                             await updateDoc(doc(db, "users", uid), { licenseKey: newKey });
-                            
-                            // 2. Clear old license from global collection if it exists
-                            if (oldKey) {
-                                await deleteDoc(doc(db, "licenses", oldKey));
-                            }
-
-                            // 3. Register new license
                             await setDoc(doc(db, "licenses", newKey), {
-                                userId: uid,
-                                plan: plan,
-                                status: "active",
-                                hwid: null, // Always starts fresh
-                                createdAt: Date.now()
+                                userId: uid, plan: plan, status: "active", hwid: null, createdAt: Date.now()
                             });
-                            
-                            console.log(`✅ Key ${oldKey ? 'Regenerated' : 'Generated'}: ${newKey}`);
                             refreshDashboard(); 
-                        } catch(err) {
-                            alert("Error generating key: " + err.message);
-                            e.target.textContent = originalText;
-                            e.target.disabled = false;
-                        }
+                        } catch(err) { alert("Error: " + err.message); btn.textContent = 'Generate'; btn.disabled = false; }
                         return;
                     }
 
