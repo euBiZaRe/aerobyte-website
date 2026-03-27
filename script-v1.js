@@ -1691,4 +1691,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
+
+    // Manual Retry Listener
+    document.body.addEventListener('click', (e) => {
+        if (e.target && e.target.id === 'manualRetryStripe') {
+            const statusText = document.getElementById('stripe-status-text');
+            if (statusText) statusText.textContent = "Manual Override Triggered. Initializing...";
+            loadStripeElements();
+        }
+    });
 });
