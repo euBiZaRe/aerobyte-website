@@ -181,6 +181,27 @@ class FirestoreClient:
             return uid, document.get("fields", {})
         return None, None
 
+    def find_user_by_license_key(self, license_key: str) -> tuple[str | None, dict[str, Any] | None]:
+        payload = {
+            "structuredQuery": {
+                "from": [{"collectionId": "users"}],
+                "where": {
+                    "fieldFilter": {
+                        "field": {"fieldPath": "licenseKey"},
+                        "op": "EQUAL",
+                        "value": {"stringValue": str(license_key)},
+                    }
+                },
+                "limit": 1,
+            }
+        }
+        results = self._request("POST", f"{self.base_url}:runQuery", json_body=payload)
+        if results and isinstance(results, list) and "document" in results[0]:
+            document = results[0]["document"]
+            uid = document["name"].split("/")[-1]
+            return uid, document.get("fields", {})
+        return None, None
+
     def patch_user_fields(self, uid: str, patch_fields: dict[str, Any]) -> None:
         params = [("updateMask.fieldPaths", field_name) for field_name in patch_fields.keys()]
         self._request(
@@ -558,6 +579,14 @@ async def find_user_by_discord_id(discord_id: int) -> tuple[str | None, dict[str
         return await run_firestore(firestore.find_user_by_discord_id, discord_id)
     except requests.RequestException as exc:
         logger.warning("User lookup failed for %s: %s", discord_id, exc)
+        return None, None
+
+
+async def find_user_by_license_key(license_key: str) -> tuple[str | None, dict[str, Any] | None]:
+    try:
+        return await run_firestore(firestore.find_user_by_license_key, license_key)
+    except requests.RequestException as exc:
+        logger.warning("License lookup failed for %s: %s", license_key, exc)
         return None, None
 
 
@@ -989,6 +1018,48 @@ async def license_check(interaction: discord.Interaction, member: discord.Member
         await interaction.followup.send("No linked AeroByte account was found for that member.", ephemeral=True)
         return
     await interaction.followup.send(build_user_summary(uid, fields), ephemeral=True)
+
+
+@bot.tree.command(name="link-discord", description="Link a Discord member to an AeroByte account by license key.")
+@app_commands.describe(member="Discord member to link.", license_key="License key to link to this Discord user.")
+async def link_discord(interaction: discord.Interaction, member: discord.Member, license_key: str) -> None:
+    if not isinstance(interaction.user, discord.Member) or not is_support_member(interaction.user):
+        await interaction.response.send_message("You need support/admin permissions to link users.", ephemeral=True)
+        return
+
+    await interaction.response.defer(ephemeral=True)
+
+    normalized_key = license_key.strip().upper()
+    existing_uid, existing_fields = await find_user_by_discord_id(member.id)
+    if existing_uid and existing_fields:
+        await interaction.followup.send(
+            f"{member.mention} is already linked.\n\n{build_user_summary(existing_uid, existing_fields)}",
+            ephemeral=True,
+        )
+        return
+
+    uid, fields = await find_user_by_license_key(normalized_key)
+    if not uid or not fields:
+        await interaction.followup.send("No AeroByte account was found with that license key.", ephemeral=True)
+        return
+
+    linked_discord = field_string(fields, "discordId")
+    if linked_discord and linked_discord != str(member.id):
+        await interaction.followup.send(
+            f"That license key is already linked to Discord ID `{linked_discord}`.",
+            ephemeral=True,
+        )
+        return
+
+    patch_fields = {"discordId": {"stringValue": str(member.id)}}
+    await run_firestore(firestore.patch_user_fields, uid, patch_fields)
+
+    refreshed_uid, refreshed_fields = await find_user_by_license_key(normalized_key)
+    result = await sync_member_from_fields(member.id, refreshed_uid or uid, refreshed_fields or fields)
+    await interaction.followup.send(
+        f"Linked {member.mention} to license `{normalized_key}`.\n{result}",
+        ephemeral=True,
+    )
 
 
 @bot.tree.command(name="force-sync", description="Force a single member's Discord role sync from Firestore.")

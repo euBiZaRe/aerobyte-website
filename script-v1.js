@@ -62,6 +62,14 @@ document.addEventListener('DOMContentLoaded', () => {
                             </div>
                             <button type="submit" class="btn-primary full-width glow-btn pay-btn" id="authSubmitBtn">Log In</button>
                         </form>
+                        <div style="display: flex; align-items: center; gap: 10px; margin: 20px 0;">
+                            <div style="flex: 1; height: 1px; background: rgba(255,255,255,0.1);"></div>
+                            <span style="font-size: 0.8rem; color: var(--text-muted);">OR</span>
+                            <div style="flex: 1; height: 1px; background: rgba(255,255,255,0.1);"></div>
+                        </div>
+                        <button id="discordLoginBtn" class="btn-primary full-width" style="background: #5865F2; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 12px; margin-bottom: 5px;">
+                            <i class="fab fa-discord"></i> Continue with Discord
+                        </button>
                         <div id="authErrorMsg" style="color: #ff4d4d; margin-top: 15px; text-align: center; font-size: 0.9rem; display: none;"></div>
                         <div class="secure-badge" id="authStatusText">🔒 Secure Firebase Authentication</div>
                     </div>
@@ -918,6 +926,21 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (upgradeCta) upgradeCta.style.display = "inline-block";
                     }
 
+                    // --- Check for Pending Discord Link on Login (v3.4) ---
+                    const pendingId = localStorage.getItem('pendingDiscordId');
+                    if (pendingId && user) {
+                        await updateDoc(doc(db, "users", user.uid), {
+                            discordId: String(pendingId),
+                            discordUsername: localStorage.getItem('pendingDiscordUsername'),
+                            discordAvatar: localStorage.getItem('pendingDiscordAvatar')
+                        });
+                        localStorage.removeItem('pendingDiscordId');
+                        localStorage.removeItem('pendingDiscordUsername');
+                        localStorage.removeItem('pendingDiscordAvatar');
+                        console.log("✅ Pending Discord link applied!");
+                        window.location.reload();
+                    }
+
                     // Discord Integration Status
                     const discordLinkContainer = document.getElementById('discordLinkContainer');
                     const discordStatusMsg = document.getElementById('discordStatusMsg');
@@ -955,67 +978,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     }
 
-                    // --- Handle OAuth Redirect Result (Inside Auth Listener) ---
-                    const hash = window.location.hash;
-                    if (hash.includes('access_token=') && isProfilePage) {
-                        const params = new URLSearchParams(hash.substring(1));
-                        const accessToken = params.get('access_token');
-                        
-                        if (accessToken) {
-                            // Clean URL instantly
-                            window.history.replaceState({}, document.title, window.location.pathname);
-                            
-                            if (discordStatusMsg) {
-                                discordStatusMsg.textContent = 'Verifying Discord account...';
-                                discordStatusMsg.style.display = 'block';
-                                discordStatusMsg.style.color = '#fff';
-                            }
-
-                            // Fetch Discord Profile
-                            fetch('https://discord.com/api/users/@me', {
-                                headers: { 'Authorization': `Bearer ${accessToken}` }
-                            })
-                            .then(res => res.json())
-                            .then(async discordUser => {
-                                if (!discordUser.id) throw new Error("Discord API error");
-
-                                // Save to Firebase
-                                await updateDoc(doc(db, "users", user.uid), {
-                                    discordId: discordUser.id,
-                                    discordUsername: discordUser.username,
-                                    discordAvatar: discordUser.avatar || null
-                                });
-
-                                if (discordStatusMsg) {
-                                    const tempAvatar = discordUser.avatar 
-                                        ? `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png?size=256`
-                                        : '';
-                                    
-                                    discordStatusMsg.innerHTML = `
-                                        <div style="display: flex; align-items: center; gap: 12px; background: rgba(88, 101, 242, 0.2); padding: 10px; border-radius: 12px; border: 2px solid #5865F2;">
-                                            ${tempAvatar 
-                                                ? `<img src="${tempAvatar}" style="width: 36px; height: 36px; border-radius: 50%; border: 2px solid #5865F2;">` 
-                                                : `<div style="width: 36px; height: 36px; border-radius: 50%; background: #5865F2; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #fff;">${discordUser.username.charAt(0).toUpperCase()}</div>`
-                                            }
-                                            <div style="text-align: left;">
-                                                <div style="font-weight: 700; color: #fff; font-size: 0.95rem;">${discordUser.username}</div>
-                                                <div style="font-size: 0.75rem; color: #10B981;">● Saving Profile...</div>
-                                            </div>
-                                        </div>
-                                    `;
-                                    
-                                    setTimeout(() => window.location.reload(), 1500);
-                                }
-                            })
-                            .catch(err => {
-                                console.error("Discord Link Error:", err);
-                                if (discordStatusMsg) {
-                                    discordStatusMsg.textContent = `Error: ${err.message || "Connection Failed"}`;
-                                    discordStatusMsg.style.color = '#ff4d4d';
-                                }
-                            });
-                        }
-                    }
+                    // (OAuth handling moved to top-level for guest support)
                 }).catch(err => {
                     console.error("Error fetching plan:", err);
                     planBadge.textContent = "Free Plan";
@@ -1353,10 +1316,10 @@ document.addEventListener('DOMContentLoaded', () => {
                             const confirmUI = document.createElement('div');
                             confirmUI.className = 'inline-confirm';
                             confirmUI.innerHTML = `
-                                <span style="font-size:0.6rem; color:#f59e0b; display:block; margin-bottom:2px;">Invalidate Key?</span>
+                                <span style="font-size:0.6rem; color:#f59e0b; display:block; margin-bottom:2px;">Regen Key?</span>
                                 <div style="display:flex; gap:4px;">
-                                    <button class="confirm-regen-yes" style="padding:4px 8px; font-size:0.6rem; background:#10B981; color:#fff; border:none; border-radius:3px; cursor:pointer; font-weight:800;">Regen</button>
-                                    <button class="confirm-regen-no" style="padding:4px 8px; font-size:0.6rem; background:#ff4d4d; color:#fff; border:none; border-radius:3px; cursor:pointer; font-weight:800;">Wait</button>
+                                    <button class="confirm-regen-yes" style="padding:4px 8px; font-size:0.6rem; background:#10B981; color:#fff; border:none; border-radius:3px; cursor:pointer; font-weight:800;">Confirm</button>
+                                    <button class="confirm-regen-no" style="padding:4px 8px; font-size:0.6rem; background:#ff4d4d; color:#fff; border:none; border-radius:3px; cursor:pointer; font-weight:800;">Cancel</button>
                                 </div>
                             `;
                             parent.appendChild(confirmUI);
@@ -1407,8 +1370,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         confirmUI.innerHTML = `
                             <span style="font-size:0.6rem; color:#f59e0b; display:block; margin-bottom:2px;">Reset HWID?</span>
                             <div style="display:flex; gap:4px;">
-                                <button class="confirm-hwid-yes" style="padding:4px 8px; font-size:0.6rem; background:#10B981; color:#fff; border:none; border-radius:3px; cursor:pointer; font-weight:800;">Yes</button>
-                                <button class="confirm-hwid-no" style="padding:4px 8px; font-size:0.6rem; background:#ff4d4d; color:#fff; border:none; border-radius:3px; cursor:pointer; font-weight:800;">No</button>
+                                <button class="confirm-hwid-yes" style="padding:4px 8px; font-size:0.6rem; background:#10B981; color:#fff; border:none; border-radius:3px; cursor:pointer; font-weight:800;">Confirm</button>
+                                <button class="confirm-hwid-no" style="padding:4px 8px; font-size:0.6rem; background:#ff4d4d; color:#fff; border:none; border-radius:3px; cursor:pointer; font-weight:800;">Cancel</button>
                             </div>
                         `;
                         parent.appendChild(confirmUI);
@@ -1626,16 +1589,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- DISCORD OAUTH LOGIC ---
     const DISCORD_CLIENT_ID = '1486472707825467463';
-    // Automatically detect redirect URI based on environment
-    const REDIRECT_URI = window.location.origin + window.location.pathname;
-
-    const linkDiscordBtn = document.getElementById('linkDiscordBtn');
-    if (linkDiscordBtn) {
-        linkDiscordBtn.addEventListener('click', () => {
-            const oauthUrl = `https://discord.com/api/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=token&scope=identify`;
-            window.location.href = oauthUrl;
-        });
+    
+    // Automatically detect redirect URI; fallback to production if on local file
+    let REDIRECT_URI = window.location.origin + window.location.pathname;
+    if (window.location.protocol === 'file:' || window.location.hostname === '') {
+        REDIRECT_URI = 'https://aerobyte.shop/' + (window.location.pathname.split('/').pop() || 'index.html');
     }
+
+    const handleDiscordOAuth = () => {
+        localStorage.setItem('waitingForDiscord', 'true');
+        console.log("🔗 Discord Redirect URI:", REDIRECT_URI);
+        const oauthUrl = `https://discord.com/api/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=token&scope=identify`;
+        window.location.href = oauthUrl;
+    };
+
+    // Global listener for Discord buttons (Delegate to body for dynamic modals)
+    document.body.addEventListener('click', (e) => {
+        const discordBtn = e.target.closest('#linkDiscordBtn') || e.target.closest('#discordLoginBtn');
+        if (discordBtn) {
+            handleDiscordOAuth();
+        }
+    });
 
     // (Discord OAuth handle moved inside Auth Listener for reliability)
 
@@ -1675,4 +1649,77 @@ document.addEventListener('DOMContentLoaded', () => {
             loadStripeElements();
         }
     });
+
+    // --- GLOBAL DISCORD OAUTH HANDLER (v3.4) ---
+    const handleDiscordHash = () => {
+        const hash = window.location.hash;
+        if (!hash.includes('access_token=')) return;
+        
+        // Use 'waitingForDiscord' or being on profile as a trigger
+        const isLinkingAction = window.location.pathname.includes('profile.html') || localStorage.getItem('waitingForDiscord') === 'true';
+        if (!isLinkingAction) return;
+
+        const params = new URLSearchParams(hash.substring(1));
+        const accessToken = params.get('access_token');
+        if (!accessToken) return;
+
+        // Clean URL instantly
+        window.history.replaceState({}, document.title, window.location.pathname);
+        console.log("🔄 Handling Discord Hash...");
+
+        // Show a temporary status if on profile
+        const discordStatusMsg = document.getElementById('discordStatusMsg');
+        if (discordStatusMsg) {
+            discordStatusMsg.textContent = 'Verifying Discord account...';
+            discordStatusMsg.style.display = 'block';
+            discordStatusMsg.style.color = '#fff';
+        }
+
+        fetch('https://discord.com/api/users/@me', {
+            headers: { 'Authorization': `Bearer ${accessToken}` }
+        })
+        .then(res => res.json())
+        .then(async discordUser => {
+            if (!discordUser.id) throw new Error("Discord API error");
+            
+            const currentUser = auth.currentUser;
+            if (currentUser) {
+                // Case A: User is logged in - Link immediately
+                await updateDoc(doc(db, "users", currentUser.uid), {
+                    discordId: String(discordUser.id),
+                    discordUsername: discordUser.username,
+                    discordAvatar: discordUser.avatar || null
+                });
+                console.log("✅ Discord Linked Successfully!");
+                localStorage.removeItem('waitingForDiscord');
+                
+                if (discordStatusMsg) {
+                    discordStatusMsg.innerHTML = `<span style="color: #10B981;">● Discord Linked: ${discordUser.username}</span>`;
+                }
+                setTimeout(() => window.location.reload(), 1500);
+            } else {
+                // Case B: Guest - Queue link for after login
+                localStorage.setItem('pendingDiscordId', discordUser.id);
+                localStorage.setItem('pendingDiscordUsername', discordUser.username);
+                localStorage.setItem('pendingDiscordAvatar', discordUser.avatar || '');
+                localStorage.removeItem('waitingForDiscord');
+                
+                alert(`Discord Verified: ${discordUser.username}\n\nPlease Sign In or Sign Up now to link this account to AeroByte and enable Bot License Lookup.`);
+                
+                // Trigger Login Modal
+                const authModal = document.getElementById('authModal');
+                if (authModal) {
+                    authModal.classList.add('active');
+                    document.body.style.overflow = 'hidden';
+                }
+            }
+        }).catch(err => {
+            console.error("❌ Discord OAuth Error:", err);
+            if (discordStatusMsg) {
+                discordStatusMsg.textContent = "Discord verification failed.";
+                discordStatusMsg.style.color = "#ff4d4d";
+            }
+        });
+    };
+    handleDiscordHash();
 });
