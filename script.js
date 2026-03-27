@@ -112,8 +112,8 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <div id="link-authentication-element"></div>
                                 <div id="payment-element" style="margin-top: 15px;">
                                     <!-- Stripe Elements will mount here -->
-                                    <div style="padding: 20px; text-align: center; color: var(--text-muted); background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.1);">
-                                        <i class="fas fa-spinner fa-spin"></i> Initializing Secure Fields...
+                                    <div id="stripe-loader-status" style="padding: 20px; text-align: center; color: var(--text-muted); background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.1);">
+                                        <i class="fas fa-microchip"></i> <span id="stripe-status-text">System Standby...</span>
                                     </div>
                                 </div>
                             </div>
@@ -359,16 +359,13 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const msgContainer = document.getElementById('payment-message');
-        const submitBtn = document.getElementById('submitPaymentBtn');
-        const elementDiv = document.getElementById('payment-element');
+        const loaderStatus = document.getElementById('stripe-status-text');
+        if (loaderStatus) loaderStatus.textContent = "Connecting to Secure Gateway...";
 
-        if (!elementDiv) return;
-
-        // Force 'Loading' state to show JS is running
+        // Only show spinner if first load
         elementDiv.innerHTML = `
             <div style="padding: 20px; text-align: center; color: var(--text-muted); background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.1);">
-                <i class="fas fa-spinner fa-spin"></i> Loading Secure Fields...
+                <i class="fas fa-spinner fa-spin"></i> Synchronizing Session...
             </div>
         `;
         submitBtn.disabled = true;
@@ -470,16 +467,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            const statusText = document.getElementById('stripe-status-text');
+            if (statusText) statusText.textContent = "Searching for Secure Container...";
+
             modal.classList.add('active');
             document.body.style.overflow = 'hidden';
             
-            // Re-identify elements inside modal (in case injection was late)
+            // Re-identify elements inside modal
             const elementDiv = document.getElementById('payment-element');
             if (elementDiv) {
-                console.log("💳 Initializing Stripe Elements for User:", currentUser.uid);
+                if (statusText) statusText.textContent = "Stripe Container Found. Checking SDK...";
+                if (typeof Stripe === 'undefined') {
+                    if (statusText) statusText.textContent = "Error: Stripe SDK blocked by browser/extension!";
+                    return;
+                }
                 loadStripeElements();
             } else {
-                console.error("❌ Critical Error: Stripe container (#payment-element) not found!");
+                if (statusText) statusText.textContent = "Critical Error: Element #payment-element not found!";
             }
         });
     });
