@@ -85,6 +85,7 @@ app.post('/update-payment-intent', express.json(), async (req, res) => {
     try {
         const updatedIntent = await stripe.paymentIntents.update(paymentIntentId, {
             amount: amount,
+            payment_method_types: ['card', 'paypal'],
             metadata: { tier: tier }
         });
         res.json({ success: true, amount: amount });
