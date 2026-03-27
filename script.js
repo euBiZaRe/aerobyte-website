@@ -71,27 +71,27 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;" id="tierGrid">
                                 <div class="tier-option active" data-tier="48h" data-price="5.00">
                                     <div class="tier-time">48h</div>
-                                    <div class="tier-price">$5</div>
+                                    <div class="tier-price">€5</div>
                                 </div>
                                 <div class="tier-option" data-tier="7d" data-price="10.00">
                                     <div class="tier-time">7 Days</div>
-                                    <div class="tier-price">$10</div>
+                                    <div class="tier-price">€10</div>
                                 </div>
                                 <div class="tier-option" data-tier="30d" data-price="15.00">
                                     <div class="tier-time">30 Days</div>
-                                    <div class="tier-price">$15</div>
+                                    <div class="tier-price">€15</div>
                                 </div>
                                 <div class="tier-option" data-tier="90d" data-price="40.00">
                                     <div class="tier-time">90 Days</div>
-                                    <div class="tier-price">$40</div>
+                                    <div class="tier-price">€40</div>
                                 </div>
                                 <div class="tier-option" data-tier="365d" data-price="120.00">
                                     <div class="tier-time">1 Year</div>
-                                    <div class="tier-price">$120</div>
+                                    <div class="tier-price">€120</div>
                                 </div>
                                 <div class="tier-option" data-tier="LIFETIME" data-price="250.00">
                                     <div class="tier-time">LIFETIME</div>
-                                    <div class="tier-price">$250</div>
+                                    <div class="tier-price">€250</div>
                                 </div>
                             </div>
                         </div>
@@ -118,7 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 </div>
                             </div>
                             <button type="submit" class="btn-primary full-width glow-btn stripe-pay-btn" id="submitPaymentBtn" disabled>
-                                <span id="button-text">Pay $5.00</span>
+                                <span id="button-text">Pay €5.00</span>
                                 <span id="spinner" class="hidden"><i class="fas fa-spinner fa-spin"></i></span>
                             </button>
                             <div id="payment-message" style="color: #ff4d4d; font-size: 0.85rem; margin-top: 15px; text-align: center; display: none;"></div>
@@ -294,7 +294,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Reset form state optionally
         setTimeout(() => {
             checkoutForm.reset();
-            payBtn.textContent = 'Pay $15.00';
+            payBtn.textContent = 'Pay €5.00';
             payBtn.style.background = 'var(--gradient-glow)';
             payBtn.disabled = false;
         }, 300);
@@ -344,7 +344,7 @@ document.addEventListener('DOMContentLoaded', () => {
             selectedTier = tierOpt.getAttribute('data-tier');
             const price = tierOpt.getAttribute('data-price');
             const payBtnText = document.getElementById('button-text');
-            if (payBtnText) payBtnText.textContent = `Pay $${price}`;
+            if (payBtnText) payBtnText.textContent = `Pay €${price}`;
             
             // BACKGROUND SYNC (No reload = No flicker)
             syncPaymentIntent(selectedTier);
