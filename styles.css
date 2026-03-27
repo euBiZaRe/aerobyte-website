@@ -437,7 +437,9 @@ a:hover {
     backdrop-filter: blur(10px);
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: flex-start; /* Ensure top is visible */
+    padding: 40px 20px;
+    overflow-y: auto;
     z-index: 2000;
     opacity: 0;
     visibility: hidden;
