@@ -872,13 +872,13 @@ footer {
 .recent-activity-table th:nth-child(5), .recent-activity-table td:nth-child(5) { width: 180px; min-width: 180px; text-align: right; }
 
 /* Master Database Table (7 Columns) - No Truncation Layout */
-.master-database-table th:nth-child(1), .master-database-table td:nth-child(1) { width: 250px; min-width: 250px; }
-.master-database-table th:nth-child(2), .master-database-table td:nth-child(2) { width: 140px; min-width: 140px; } /* Plan */
-.master-database-table th:nth-child(3), .master-database-table td:nth-child(3) { width: 260px; min-width: 260px; } /* Key - Expanded for buttons */
-.master-database-table th:nth-child(4), .master-database-table td:nth-child(4) { width: 130px; min-width: 130px; } /* Expires */
-.master-database-table th:nth-child(5), .master-database-table td:nth-child(5) { width: 180px; min-width: 180px; } /* Last Trial */
-.master-database-table th:nth-child(6), .master-database-table td:nth-child(6) { width: 140px; min-width: 140px; color: #10B981; padding-right: 15px !important; }
-.master-database-table th:nth-child(7), .master-database-table td:nth-child(7) { width: 380px; min-width: 380px; text-align: right; overflow: visible; }
+.master-database-table th:nth-child(1), .master-database-table td:nth-child(1) { width: 220px; min-width: 220px; }
+.master-database-table th:nth-child(2), .master-database-table td:nth-child(2) { width: 100px; min-width: 100px; } /* Plan */
+.master-database-table th:nth-child(3), .master-database-table td:nth-child(3) { width: 240px; min-width: 240px; } /* Key */
+.master-database-table th:nth-child(4), .master-database-table td:nth-child(4) { width: 120px; min-width: 120px; } /* Expires */
+.master-database-table th:nth-child(5), .master-database-table td:nth-child(5) { width: 150px; min-width: 150px; } /* Last Trial */
+.master-database-table th:nth-child(6), .master-database-table td:nth-child(6) { width: 120px; min-width: 120px; color: #10B981; padding-right: 15px !important; }
+.master-database-table th:nth-child(7), .master-database-table td:nth-child(7) { width: 340px; min-width: 340px; text-align: right; overflow: visible; }
 
 .action-plan {
     height: 32px;

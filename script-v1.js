@@ -1317,28 +1317,20 @@ document.addEventListener('DOMContentLoaded', () => {
                         const durationInputs = e.target.parentElement.querySelector('.duration-inputs');
                         if (e.target.value === 'Premium' || e.target.value === 'Trial') {
                             durationInputs.style.display = 'flex';
-                        } else {
-                            durationInputs.style.display = 'none';
-                        }
-                    }
-                });
-
-                tbody.addEventListener('click', async (e) => {
-                    // --- GENERATE KEY HANDLER ---
-                    // --- ADMIN LICENSE MASK TOGGLE ---
-                    if (e.target.classList.contains('admin-license-mask')) {
-                        const mask = e.target;
+                                tbody.addEventListener('click', async (e) => {
+                    const mask = e.target.closest('.admin-license-mask');
+                    if (mask) {
                         const key = mask.getAttribute('data-key');
                         mask.textContent = mask.textContent.includes('•') ? key : '••••-••••-••••-••••';
                         return;
                     }
 
-                    if (e.target.classList.contains('action-gen-key') || e.target.classList.contains('action-regen-key')) {
-                        const btn = e.target;
-                        const parent = btn.parentElement;
-                        const uid = btn.getAttribute('data-uid');
-                        const plan = btn.getAttribute('data-plan');
-                        const oldKey = btn.getAttribute('data-key');
+                    const regenBtn = e.target.closest('.action-gen-key') || e.target.closest('.action-regen-key');
+                    if (regenBtn) {
+                        const parent = regenBtn.parentElement;
+                        const uid = regenBtn.getAttribute('data-uid');
+                        const plan = regenBtn.getAttribute('data-plan');
+                        const oldKey = regenBtn.getAttribute('data-key');
 
                         if (plan === 'Free') {
                             alert("Cannot generate keys for Free users.");
@@ -1347,19 +1339,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         // Inline Confirm for Regen (only if oldKey exists)
                         if (oldKey) {
-                            btn.style.display = 'none';
+                            regenBtn.style.display = 'none';
                             const confirmUI = document.createElement('div');
                             confirmUI.className = 'inline-confirm';
                             confirmUI.innerHTML = `
                                 <span style="font-size:0.6rem; color:#f59e0b; display:block; margin-bottom:2px;">Invalidate Key?</span>
                                 <div style="display:flex; gap:4px;">
-                                    <button class="confirm-regen-yes" style="padding:2px 6px; font-size:0.6rem; background:#10B981; color:#fff; border:none; border-radius:3px; cursor:pointer;">Regen</button>
-                                    <button class="confirm-regen-no" style="padding:2px 6px; font-size:0.6rem; background:#ff4d4d; color:#fff; border:none; border-radius:3px; cursor:pointer;">Wait</button>
+                                    <button class="confirm-regen-yes" style="padding:4px 8px; font-size:0.6rem; background:#10B981; color:#fff; border:none; border-radius:3px; cursor:pointer; font-weight:800;">Regen</button>
+                                    <button class="confirm-regen-no" style="padding:4px 8px; font-size:0.6rem; background:#ff4d4d; color:#fff; border:none; border-radius:3px; cursor:pointer; font-weight:800;">Wait</button>
                                 </div>
                             `;
                             parent.appendChild(confirmUI);
                             
-                            const cleanup = () => { confirmUI.remove(); btn.style.display = 'inline-block'; };
+                            const cleanup = () => { confirmUI.remove(); regenBtn.style.display = 'inline-block'; };
                             confirmUI.querySelector('.confirm-regen-no').onclick = cleanup;
                             confirmUI.querySelector('.confirm-regen-yes').onclick = async () => {
                                 confirmUI.innerHTML = '<span style="font-size:0.6rem; color:var(--text-muted);">Generating...</span>';
@@ -1379,7 +1371,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             return;
                         }
 
-                        // Fallback for brand new generation (no old key)
+                        // Fallback for brand new generation
                         const genKey = () => {
                             const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
                             const rand = (len) => Array.from({length: len}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
@@ -1387,8 +1379,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         };
 
                         const newKey = genKey();
-                        btn.textContent = 'Updating...';
-                        btn.disabled = true;
+                        regenBtn.textContent = 'Updating...';
+                        regenBtn.disabled = true;
                         
                         try {
                             await updateDoc(doc(db, "users", uid), { licenseKey: newKey });
@@ -1396,42 +1388,40 @@ document.addEventListener('DOMContentLoaded', () => {
                                 userId: uid, plan: plan, status: "active", hwid: null, createdAt: Date.now()
                             });
                             refreshDashboard(); 
-                        } catch(err) { alert("Error: " + err.message); btn.textContent = 'Generate'; btn.disabled = false; }
+                        } catch(err) { alert("Error: " + err.message); regenBtn.textContent = 'Generate'; regenBtn.disabled = false; }
                         return;
                     }
 
-                    // --- RESET HWID HANDLER ---
-                    if (e.target.classList.contains('action-reset-hwid')) {
-                        const btn = e.target;
-                        const parent = btn.parentElement;
-                        const key = btn.getAttribute('data-key');
+                    const hwidBtn = e.target.closest('.action-reset-hwid');
+                    if (hwidBtn) {
+                        const parent = hwidBtn.parentElement;
+                        const key = hwidBtn.getAttribute('data-key');
                         
-                        // Show inline confirm
-                        btn.style.display = 'none';
+                        hwidBtn.style.display = 'none';
                         const confirmUI = document.createElement('div');
                         confirmUI.className = 'inline-confirm';
                         confirmUI.innerHTML = `
                             <span style="font-size:0.6rem; color:#f59e0b; display:block; margin-bottom:2px;">Reset HWID?</span>
                             <div style="display:flex; gap:4px;">
-                                <button class="confirm-hwid-yes" style="padding:2px 6px; font-size:0.6rem; background:#10B981; color:#fff; border:none; border-radius:3px; cursor:pointer;">Yes</button>
-                                <button class="confirm-hwid-no" style="padding:2px 6px; font-size:0.6rem; background:#ff4d4d; color:#fff; border:none; border-radius:3px; cursor:pointer;">No</button>
+                                <button class="confirm-hwid-yes" style="padding:4px 8px; font-size:0.6rem; background:#10B981; color:#fff; border:none; border-radius:3px; cursor:pointer; font-weight:800;">Yes</button>
+                                <button class="confirm-hwid-no" style="padding:4px 8px; font-size:0.6rem; background:#ff4d4d; color:#fff; border:none; border-radius:3px; cursor:pointer; font-weight:800;">No</button>
                             </div>
                         `;
                         parent.appendChild(confirmUI);
 
-                        const cleanup = () => {
-                            confirmUI.remove();
-                            btn.style.display = 'inline-block';
-                        };
-
+                        const cleanup = () => { confirmUI.remove(); hwidBtn.style.display = 'inline-block'; };
                         confirmUI.querySelector('.confirm-hwid-no').onclick = cleanup;
                         confirmUI.querySelector('.confirm-hwid-yes').onclick = async () => {
                             confirmUI.innerHTML = '<span style="font-size:0.6rem; color:var(--text-muted);">Resetting...</span>';
                             try {
                                 await setDoc(doc(db, "licenses", key), { hwid: null }, { merge: true });
                                 refreshDashboard();
-                            } catch(err) {
-                                alert("Error resetting HWID: " + err.message);
+                            } catch(err) { alert("Error: " + err.message); cleanup(); }
+                        };
+                        return;
+                    }
+                });
+ err.message);
                                 cleanup();
                             }
                         };

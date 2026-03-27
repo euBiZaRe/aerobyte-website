@@ -1,4 +1,5 @@
-﻿import asyncio
+import asyncio
+import io
 import json
 import logging
 import os
@@ -265,6 +266,13 @@ class StateStore:
     def get_ticket_by_channel(self, channel_id: int) -> dict[str, Any] | None:
         return self.data["tickets"].get(str(channel_id))
 
+    def open_tickets(self) -> list[tuple[int, dict[str, Any]]]:
+        tickets: list[tuple[int, dict[str, Any]]] = []
+        for channel_id, ticket in self.data["tickets"].items():
+            if ticket.get("status") == "open":
+                tickets.append((int(channel_id), ticket))
+        return tickets
+
     async def register_ticket(self, channel_id: int, owner_id: int, subject: str) -> int:
         self.data["last_ticket_number"] += 1
         ticket_number = self.data["last_ticket_number"]
@@ -274,9 +282,29 @@ class StateStore:
             "status": "open",
             "created_at": int(time.time()),
             "ticket_number": ticket_number,
+            "claimed_by": None,
+            "auto_close_at": None,
         }
         await self.save()
         return ticket_number
+
+    async def claim_ticket(self, channel_id: int, user_id: int) -> dict[str, Any] | None:
+        ticket = self.data["tickets"].get(str(channel_id))
+        if not ticket:
+            return None
+        ticket["claimed_by"] = user_id
+        ticket["claimed_at"] = int(time.time())
+        await self.save()
+        return ticket
+
+    async def set_ticket_autoclose(self, channel_id: int, close_at: int | None) -> dict[str, Any] | None:
+        ticket = self.data["tickets"].get(str(channel_id))
+        if not ticket:
+            return None
+        ticket["auto_close_at"] = close_at
+        ticket["auto_close_updated_at"] = int(time.time())
+        await self.save()
+        return ticket
 
     async def close_ticket(self, channel_id: int, closed_by: int, reason: str | None) -> dict[str, Any] | None:
         ticket = self.data["tickets"].get(str(channel_id))
@@ -286,6 +314,7 @@ class StateStore:
         ticket["closed_at"] = int(time.time())
         ticket["closed_by"] = closed_by
         ticket["close_reason"] = reason or "No reason provided."
+        ticket["auto_close_at"] = None
         await self.save()
         return ticket
 
@@ -296,6 +325,7 @@ state_store = StateStore(STATE_FILE)
 user_states: dict[str, dict[str, str | None]] = {}
 sync_task: asyncio.Task | None = None
 expiry_task: asyncio.Task | None = None
+ticket_autoclose_tasks: dict[int, asyncio.Task] = {}
 commands_synced = False
 
 intents = discord.Intents.default()
