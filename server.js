@@ -58,7 +58,7 @@ app.post('/create-payment-intent', express.json(), async (req, res) => {
         const paymentIntent = await stripe.paymentIntents.create({
             amount: amount,
             currency: 'eur',
-            automatic_payment_methods: { enabled: true },
+            payment_method_types: ['card', 'paypal'],
             metadata: { 
                 userId: userId,
                 tier: selectedTier
