@@ -16,6 +16,9 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+const STRIPE_PK = 'pk_test_51TFKE1IlExQEZUkSBzHPPiTVBWXwQRvpmW3HlVK7wT35MrB0FDyu2dEzLKvNIre6E70huYkcX5mdgRZtmen2D20700hv4OukTE';
+const BACKEND_URL = 'https://aerobyte-website.onrender.com';
+
 document.addEventListener('DOMContentLoaded', () => {
     let stripe = null;
     try {
