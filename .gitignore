@@ -7,3 +7,7 @@ discord_sync_bot_universal.py
 !manifest.json
 node_modules/
 .env
+.venv/
+logs/
+__pycache__/
+*.pyc
