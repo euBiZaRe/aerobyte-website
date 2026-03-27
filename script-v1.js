@@ -1162,14 +1162,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         const keyDisplay = isFree ? 
                             `<span style="color:var(--text-muted); font-size:0.75rem;">No Key (Free)</span>` :
                             (user.licenseKey ? 
-                                `<div style="display:flex; flex-direction:column; gap:5px;">
-                                    <code class="admin-license-mask" data-key="${user.licenseKey}" style="font-family:monospace; background:rgba(255,255,255,0.05); padding:2px 6px; border-radius:4px; cursor:pointer;" title="Click to Peek">••••••••</code>
-                                    <div style="display:flex; gap:5px;">
-                                        <button class="action-reset-hwid" data-uid="${user.id}" data-key="${user.licenseKey}" style="padding:2px 6px; font-size:0.6rem; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:var(--text-muted); cursor:pointer; border-radius:4px;">Reset HWID</button>
-                                        <button class="action-regen-key" data-uid="${user.id}" data-key="${user.licenseKey}" data-plan="${user.plan}" style="padding:2px 6px; font-size:0.6rem; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:var(--text-muted); cursor:pointer; border-radius:4px;">Regen Key</button>
+                                `<div style="display:flex; flex-direction:column; gap:8px; width:100%;">
+                                    <code class="admin-license-mask" data-key="${user.licenseKey}" style="font-family:monospace; background:rgba(255,255,255,0.05); padding:4px 8px; border-radius:6px; cursor:pointer; font-size:0.85rem; border:1px solid rgba(255,255,255,0.1); width:fit-content; word-break:break-all;" title="Click to Peek/Hide">••••-••••-••••-••••</code>
+                                    <div style="display:flex; gap:6px;">
+                                        <button class="action-reset-hwid" data-uid="${user.id}" data-key="${user.licenseKey}" style="padding:4px 8px; font-size:0.65rem; background:rgba(88, 101, 242, 0.1); border:1px solid #5865F2; color:#5865F2; cursor:pointer; border-radius:4px; font-weight:700; text-transform:uppercase;">HWID Reset</button>
+                                        <button class="action-regen-key" data-uid="${user.id}" data-key="${user.licenseKey}" data-plan="${user.plan}" style="padding:4px 8px; font-size:0.65rem; background:rgba(16, 185, 129, 0.1); border:1px solid #10B981; color:#10B981; cursor:pointer; border-radius:4px; font-weight:700; text-transform:uppercase;">Regen Key</button>
                                     </div>
                                  </div>` : 
-                                `<button class="btn-primary action-gen-key" data-uid="${user.id}" data-plan="${user.plan}" style="padding:4px 8px; font-size:0.7rem; background:transparent; border:1px solid var(--secondary); color:var(--secondary);">Generate</button>`);
+                                `<button class="btn-primary action-gen-key" data-uid="${user.id}" data-plan="${user.plan}" style="padding:6px 12px; font-size:0.7rem; background:#5865F2; color:#fff; border:none; border-radius:6px; font-weight:700;">Generate License</button>`);
 
                         const userActivity = globalActivity.filter(a => a.user === user.id).sort((a,b) => b.time - a.time);
                         let statusText = `<span style="color:var(--text-muted); font-size:0.75rem;">No activity</span>`;
@@ -1186,7 +1186,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         tr.innerHTML = `
                             <td>${user.email}</td>
                             <td><span class="plan-badge">${user.plan}</span></td>
-                            <td>${user.licenseKey ? `<span style="color:var(--secondary); font-family:monospace; font-size:0.85rem;">${user.licenseKey.substring(0,8)}...${user.licenseKey.substring(user.licenseKey.length-4)}</span>` : '<span style="color:var(--text-muted); font-size:0.8rem;">No Key</span>'}</td>
+                            <td style="overflow:visible;">${keyDisplay}</td>
                             <td style="${expiresText==='Expired!'?'color:#ff4d4d':''}">${expiresText}</td>
                             <td style="${lastTrialStyle}">${lastTrialText}</td>
                             <td>${statusText}</td>
@@ -1329,15 +1329,21 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (e.target.classList.contains('admin-license-mask')) {
                         const mask = e.target;
                         const key = mask.getAttribute('data-key');
-                        mask.textContent = mask.textContent.includes('•') ? key : '••••••••';
+                        mask.textContent = mask.textContent.includes('•') ? key : '••••-••••-••••-••••';
                         return;
                     }
 
-                    if (e.target.classList.contains('action-gen-key')) {
+                    if (e.target.classList.contains('action-gen-key') || e.target.classList.contains('action-regen-key')) {
                         const uid = e.target.getAttribute('data-uid');
                         const plan = e.target.getAttribute('data-plan');
+                        const oldKey = e.target.getAttribute('data-key');
+
                         if (plan === 'Free') {
                             alert("Cannot generate keys for Free users.");
+                            return;
+                        }
+
+                        if (oldKey && !confirm("WARNING: Regenerating a key will INVALIDATE the user's current key. Are you sure?")) {
                             return;
                         }
 
@@ -1348,21 +1354,34 @@ document.addEventListener('DOMContentLoaded', () => {
                         };
 
                         const newKey = genKey();
-                        e.target.textContent = 'Generating...';
+                        const originalText = e.target.textContent;
+                        e.target.textContent = 'Updating...';
+                        e.target.disabled = true;
                         
                         try {
+                            // 1. Update user document
                             await updateDoc(doc(db, "users", uid), { licenseKey: newKey });
-                            // Also register in global licenses collection for app-lookup
+                            
+                            // 2. Clear old license from global collection if it exists
+                            if (oldKey) {
+                                await deleteDoc(doc(db, "licenses", oldKey));
+                            }
+
+                            // 3. Register new license
                             await setDoc(doc(db, "licenses", newKey), {
                                 userId: uid,
                                 plan: plan,
                                 status: "active",
+                                hwid: null, // Always starts fresh
                                 createdAt: Date.now()
                             });
-                            refreshDashboard(); // Refresh UI
+                            
+                            console.log(`✅ Key ${oldKey ? 'Regenerated' : 'Generated'}: ${newKey}`);
+                            refreshDashboard(); 
                         } catch(err) {
                             alert("Error generating key: " + err.message);
-                            e.target.textContent = 'Generate';
+                            e.target.textContent = originalText;
+                            e.target.disabled = false;
                         }
                         return;
                     }

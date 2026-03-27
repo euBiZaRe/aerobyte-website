@@ -872,9 +872,9 @@ footer {
 .recent-activity-table th:nth-child(5), .recent-activity-table td:nth-child(5) { width: 180px; min-width: 180px; text-align: right; }
 
 /* Master Database Table (7 Columns) - No Truncation Layout */
-.master-database-table th:nth-child(1), .master-database-table td:nth-child(1) { width: 280px; min-width: 280px; }
-.master-database-table th:nth-child(2), .master-database-table td:nth-child(2) { width: 180px; min-width: 180px; } /* Plan */
-.master-database-table th:nth-child(3), .master-database-table td:nth-child(3) { width: 200px; min-width: 200px; } /* Key */
+.master-database-table th:nth-child(1), .master-database-table td:nth-child(1) { width: 250px; min-width: 250px; }
+.master-database-table th:nth-child(2), .master-database-table td:nth-child(2) { width: 140px; min-width: 140px; } /* Plan */
+.master-database-table th:nth-child(3), .master-database-table td:nth-child(3) { width: 260px; min-width: 260px; } /* Key - Expanded for buttons */
 .master-database-table th:nth-child(4), .master-database-table td:nth-child(4) { width: 130px; min-width: 130px; } /* Expires */
 .master-database-table th:nth-child(5), .master-database-table td:nth-child(5) { width: 180px; min-width: 180px; } /* Last Trial */
 .master-database-table th:nth-child(6), .master-database-table td:nth-child(6) { width: 220px; min-width: 220px; color: #10B981; padding-right: 15px !important; }
