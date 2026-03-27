@@ -125,6 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                     <div id="stripe-loader-status" style="padding: 20px; text-align: center; color: var(--text-muted); background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.1);">
                                         <i class="fas fa-microchip"></i> <span id="stripe-status-text">System Standby...</span><br>
                                         <button id="manualRetryStripe" style="margin-top: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.7rem;">Initialize Manually</button>
+                                        <div id="stripe-debug-log" style="margin-top: 10px; font-size: 10px; opacity: 0.5; font-family: monospace; text-align: left; padding: 5px; background: #000; border-radius: 4px; display: none;"></div>
                                     </div>
                                 </div>
                             </div>
@@ -362,32 +363,43 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    const stripeLog = (msg) => {
+        const logBox = document.getElementById('stripe-debug-log');
+        if (logBox) {
+            logBox.style.display = 'block';
+            logBox.innerHTML += `<div>> ${msg}</div>`;
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+        console.log(`[StripeLog] ${msg}`);
+    };
+
     // --- STRIPE ELEMENTS INTEGRATION ---
     const loadStripeElements = async () => {
+        const elementDiv = document.getElementById('payment-element');
+        if (!elementDiv) return;
+
+        // SHOW SPINNER IMMEDIATELY
+        elementDiv.innerHTML = `
+            <div id="stripe-mounting-point" style="padding: 20px; text-align: center; color: var(--text-muted); background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.1);">
+                <i class="fas fa-spinner fa-spin"></i> Synchronizing Session...
+                <div id="stripe-debug-log" style="margin-top: 10px; font-size: 10px; opacity: 0.5; font-family: monospace; text-align: left; padding: 5px; background: #000; border-radius: 4px; display: block;"></div>
+            </div>
+        `;
+
+        stripeLog("Auth Handshake Started...");
         const currentUser = auth.currentUser;
         if (!currentUser) {
-            console.error("❌ Cannot load elements: User not logged in.");
+            stripeLog("Error: Auth state null.");
             return;
         }
+        stripeLog(`User identified: ${currentUser.uid.substring(0,6)}...`);
 
         const msgContainer = document.getElementById('payment-message');
         const submitBtn = document.getElementById('submitPaymentBtn');
-        const elementDiv = document.getElementById('payment-element');
-        const loaderStatus = document.getElementById('stripe-status-text');
-
-        if (!elementDiv) return;
-        if (loaderStatus) loaderStatus.textContent = "Connecting to Secure Gateway...";
-
-        // Only show spinner if first load
-        elementDiv.innerHTML = `
-            <div style="padding: 20px; text-align: center; color: var(--text-muted); background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.1);">
-                <i class="fas fa-spinner fa-spin"></i> Synchronizing Session...
-            </div>
-        `;
         submitBtn.disabled = true;
 
         try {
-            console.log("🌐 Contacting Payment Gateway...");
+            stripeLog("Opening Backend Tunnel...");
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 30000);
 
@@ -402,61 +414,63 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             clearTimeout(timeoutId);
 
-            if (!response.ok) throw new Error(`Status ${response.status}`);
+            stripeLog(`Response Received: ${response.status}`);
+            if (!response.ok) throw new Error(`Gateway returned ${response.status}`);
 
             const data = await response.json();
             const { clientSecret, paymentIntentId } = data;
             
-            if (!clientSecret) throw new Error("Security Error: Fragmented session key received.");
+            if (!clientSecret) throw new Error("Security Error: Null secret.");
             
-            console.log("✅ Secure Session Established.");
+            stripeLog("Session Sync Complete.");
             currentPaymentIntentId = paymentIntentId;
-
-            const appearance = {
-                theme: 'night',
-                variables: {
-                    colorPrimary: '#5865F2',
-                    colorBackground: '#1a1b24',
-                    colorText: '#ffffff',
-                    colorDanger: '#df1b41',
-                    fontFamily: 'Outfit, sans-serif',
-                    spacingUnit: '4px',
-                    borderRadius: '8px',
-                },
-            };
 
             // RE-INITIALIZE STRIPE IF NULL
             if (!stripe && typeof Stripe !== 'undefined') {
                 stripe = Stripe(STRIPE_PK);
+                stripeLog("SDK Re-initialized.");
             }
-            if (!stripe) throw new Error("Payment SDK not available in browser.");
+            if (!stripe) throw new Error("Stripe SDK missing.");
 
-            elements = stripe.elements({ appearance, clientSecret });
+            stripeLog("Generating Payment Interface...");
+            elements = stripe.elements({ 
+                appearance: {
+                    theme: 'night',
+                    variables: {
+                        colorPrimary: '#5865F2',
+                        colorBackground: '#1a1b24',
+                        colorText: '#ffffff',
+                        spacingUnit: '4px',
+                        borderRadius: '8px',
+                    },
+                }, 
+                clientSecret 
+            });
 
-            const paymentElementOptions = { layout: "tabs" };
-            const paymentElement = elements.create("payment", paymentElementOptions);
+            const paymentElement = elements.create("payment", { layout: "tabs" });
             
-            // Clear spinner right before mounting
-            elementDiv.innerHTML = '';
-            paymentElement.mount("#payment-element");
+            stripeLog("Mounting Secure Fields...");
+            const mountPoint = document.getElementById('stripe-mounting-point');
+            if (mountPoint) mountPoint.innerHTML = '<div id="actual-mount"></div>';
+            
+            paymentElement.mount("#actual-mount");
 
             paymentElement.on('ready', () => {
-                console.log("🎨 Checkout interface ready.");
+                stripeLog("Ready.");
                 submitBtn.disabled = false;
             });
 
         } catch (err) {
-            console.error("❌ Stripe Load Failure:", err);
-            let userMsg = err.message;
-            if (err.name === 'AbortError') userMsg = "Connection timed out (Server may be waking up). Please try again in 10s.";
-            
-            msgContainer.textContent = "Security Notice: " + userMsg;
+            stripeLog(`Exception: ${err.message}`);
+            console.error(err);
+            msgContainer.textContent = "Security Notice: " + err.message;
             msgContainer.style.display = 'block';
             
             elementDiv.innerHTML = `
                 <div style="padding: 20px; text-align: center; color: #ff4d4d; background: rgba(255,77,77,0.05); border-radius: 12px; border: 1px solid rgba(255,77,77,0.2);">
                     <i class="fas fa-exclamation-triangle"></i> Session Failed<br>
-                    <small style="opacity: 0.7;">${userMsg}</small>
+                    <small>${err.message}</small>
+                    <button onclick="location.reload()" style="margin-top: 10px; display: block; width: 100%; padding: 5px; background: #ff4d4d; color: #fff; border: none; border-radius: 4px;">Reload Page</button>
                 </div>
             `;
         }
