@@ -370,7 +370,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000);
+            const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout for Render cold starts
 
             const response = await fetch(`${BACKEND_URL}/create-payment-intent`, {
                 method: 'POST',
@@ -382,6 +382,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 signal: controller.signal
             });
             clearTimeout(timeoutId);
+
+            if (!response.ok) throw new Error(`HTTP Error ${response.status}`);
 
             const { clientSecret, paymentIntentId } = await response.json();
             if (!clientSecret) throw new Error("Backend did not provide a secure session key.");
