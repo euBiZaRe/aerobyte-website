@@ -353,41 +353,50 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- STRIPE ELEMENTS INTEGRATION ---
     const loadStripeElements = async () => {
-        if (!auth.currentUser) return;
+        const currentUser = auth.currentUser;
+        if (!currentUser) {
+            console.error("❌ Cannot load elements: User not logged in.");
+            return;
+        }
+
         const msgContainer = document.getElementById('payment-message');
         const submitBtn = document.getElementById('submitPaymentBtn');
         const elementDiv = document.getElementById('payment-element');
 
-        // Only show spinner if first load
-        if (!elements) {
-            elementDiv.innerHTML = `
-                <div style="padding: 20px; text-align: center; color: var(--text-muted); background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.1);">
-                    <i class="fas fa-spinner fa-spin"></i> Loading Secure Fields...
-                </div>
-            `;
-        }
+        if (!elementDiv) return;
+
+        // Force 'Loading' state to show JS is running
+        elementDiv.innerHTML = `
+            <div style="padding: 20px; text-align: center; color: var(--text-muted); background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.1);">
+                <i class="fas fa-spinner fa-spin"></i> Loading Secure Fields...
+            </div>
+        `;
         submitBtn.disabled = true;
 
         try {
+            console.log("🌐 Contacting Payment Gateway...");
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout for Render cold starts
+            const timeoutId = setTimeout(() => controller.abort(), 30000);
 
             const response = await fetch(`${BACKEND_URL}/create-payment-intent`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
-                    userId: auth.currentUser.uid,
+                    userId: currentUser.uid,
                     tier: selectedTier 
                 }),
                 signal: controller.signal
             });
             clearTimeout(timeoutId);
 
-            if (!response.ok) throw new Error(`HTTP Error ${response.status}`);
+            if (!response.ok) throw new Error(`Status ${response.status}`);
 
-            const { clientSecret, paymentIntentId } = await response.json();
-            if (!clientSecret) throw new Error("Backend did not provide a secure session key.");
+            const data = await response.json();
+            const { clientSecret, paymentIntentId } = data;
             
+            if (!clientSecret) throw new Error("Security Error: Fragmented session key received.");
+            
+            console.log("✅ Secure Session Established.");
             currentPaymentIntentId = paymentIntentId;
 
             const appearance = {
@@ -407,29 +416,67 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const paymentElementOptions = { layout: "tabs" };
             const paymentElement = elements.create("payment", paymentElementOptions);
+            
+            // Clear spinner right before mounting
+            elementDiv.innerHTML = '';
             paymentElement.mount("#payment-element");
 
             paymentElement.on('ready', () => {
+                console.log("🎨 Checkout interface ready.");
                 submitBtn.disabled = false;
             });
 
         } catch (err) {
-            console.error("Stripe Elements Error:", err);
-            msgContainer.textContent = "Security Notice: Failed to load payment fields. " + err.message;
+            console.error("❌ Stripe Load Failure:", err);
+            let userMsg = err.message;
+            if (err.name === 'AbortError') userMsg = "Connection timed out (Server may be waking up). Please try again in 10s.";
+            
+            msgContainer.textContent = "Security Notice: " + userMsg;
             msgContainer.style.display = 'block';
+            
+            elementDiv.innerHTML = `
+                <div style="padding: 20px; text-align: center; color: #ff4d4d; background: rgba(255,77,77,0.05); border-radius: 12px; border: 1px solid rgba(255,77,77,0.2);">
+                    <i class="fas fa-exclamation-triangle"></i> Session Failed<br>
+                    <small style="opacity: 0.7;">${userMsg}</small>
+                </div>
+            `;
         }
     };
 
     // Trigger Elements Load when modal opens
     checkoutTriggers.forEach(btn => {
-        btn.addEventListener('click', () => {
-            if (!auth.currentUser) {
+        btn.addEventListener('click', async () => {
+            // Wait for auth to be fully ready if it's currently null
+            let currentUser = auth.currentUser;
+            if (!currentUser) {
+                // Peek once more just in case
+                await new Promise(resolve => {
+                    const unsubscribe = onAuthStateChanged(auth, u => {
+                        currentUser = u;
+                        unsubscribe();
+                        resolve();
+                    });
+                    setTimeout(resolve, 1000); // Max wait 1s
+                });
+            }
+
+            if (!currentUser) {
+                console.warn("⚠️ Checkout triggered but user not authenticated.");
                 openAuthModal();
                 return;
             }
+
             modal.classList.add('active');
             document.body.style.overflow = 'hidden';
-            loadStripeElements();
+            
+            // Re-identify elements inside modal (in case injection was late)
+            const elementDiv = document.getElementById('payment-element');
+            if (elementDiv) {
+                console.log("💳 Initializing Stripe Elements for User:", currentUser.uid);
+                loadStripeElements();
+            } else {
+                console.error("❌ Critical Error: Stripe container (#payment-element) not found!");
+            }
         });
     });
 
