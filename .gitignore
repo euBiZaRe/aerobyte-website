@@ -1,11 +1,16 @@
-# Firebase & Discord Secrets
-serviceAccountKey.json
-*.json
-!package.json
-!manifest.json
-node_modules/
 .env
-.venv/
-logs/
+serviceAccountKey.json
 __pycache__/
-*.pyc
+logs/
+bot_state.json
+*.log
+.next/
+node_modules/
+out/
+build/
+dist/
+bin/
+obj/
+*.exe
+*.dll
+*.pdb

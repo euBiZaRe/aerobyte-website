@@ -1,7 +1,6 @@
 discord.py
 google-auth
-google-auth-oauthlib
-google-auth-httplib2
-google-api-python-client
 requests
-firebase-admin
+google-cloud-firestore
+google-api-python-client
+urllib3
