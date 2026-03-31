@@ -3,120 +3,90 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="AeroByte: Next-Gen Model Training with Advanced Analytics and Unlimited VRAM Options">
-    <title>AeroByte Premium | Next-Gen Model Training</title>
+    <meta name="description" content="AeroByte: Premium Software Solutions for Gaming and Model Training">
+    <title>AeroByte | Premium Software Hub</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
-    <script src="https://js.stripe.com/v3/"></script>
-    <link rel="stylesheet" href="styles.css?v=3.5">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css?v=3.6">
+    <style>
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 40px;
+            margin-top: 60px;
+        }
+        .product-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 40px;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100%;
+        }
+        .product-card:hover {
+            transform: translateY(-10px);
+            border-color: var(--primary);
+            box-shadow: 0 20px 40px rgba(0, 240, 255, 0.1);
+        }
+        .product-tag {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--primary);
+            margin-bottom: 10px;
+            display: block;
+        }
+    </style>
 </head>
 <body>
     <nav class="navbar">
         <div class="nav-container">
             <a href="index.html" class="logo">AeroByte<span class="accent">.shop</span></a>
             <ul class="nav-links">
-                <li><a href="features.html">Features</a></li>
-                <li><a href="index.html#pricing">Pricing</a></li>
-                <li><a href="index.html#download">Download</a></li>
+                <li class="dropdown">
+                    <a href="#" class="dropdown-trigger">Products <i class="fas fa-chevron-down" style="font-size: 0.8rem; margin-left: 5px;"></i></a>
+                    <ul class="dropdown-menu">
+                        <li><a href="rl-bot-trainer.html">RL Bot Trainer</a></li>
+                        <li><a href="among-us-mod-menu.html">Among Us Mod Menu</a></li>
+                    </ul>
+                </li>
                 <li><a href="faq.html">FAQ</a></li>
                 <li><a href="credits.html">Credits</a></li>
                 <li><a href="https://discord.com/invite/tDp5hTQrzM" target="_blank" title="Join Our Server" style="font-size: 1.2rem; color: #5865F2;"><i class="fab fa-discord"></i></a></li>
                 <li><a href="#" class="btn-primary login-btn">Sign In</a></li>
-                <script>if(localStorage.getItem('isLoggedIn')==='true'){const b=document.querySelector('.login-btn');b.textContent='Profile';b.href='profile.html';b.setAttribute('data-auth','logged-in');}</script>
             </ul>
         </div>
     </nav>
 
-    <header class="hero">
-        <div class="hero-content">
-            <div class="badge">AeroByte v3.2.4 <span class="status-dot"></span> PROFESSIONAL</div>
-            <div class="sub-badge">Neural Cluster Active</div>
-            <h1 class="main-title">Next-Gen <br> <span class="gradient-text">Model Training</span></h1>
-            <p class="subtitle">Unlock professional-grade reinforcement learning with integrated GigaLearn infrastructure, unlimited VRAM options, and our Advanced Visualizer Pro.</p>
-            <div class="hero-actions">
-                <a href="#pricing" class="btn-primary glow-btn">Upgrade to Pro</a>
-                <a href="#features" class="btn-secondary">Explore Features</a>
-            </div>
+    <header class="hero" style="text-align: center; justify-content: center; flex-direction: column; min-height: 80vh;">
+        <div class="hero-content" style="max-width: 800px; margin: 0 auto;">
+            <div class="badge">AERO-HUB v1.0.0 <span class="status-dot"></span> HUB ACTIVE</div>
+            <h1 class="main-title">Premium <span class="gradient-text">Software Hub</span></h1>
+            <p class="subtitle">Experience the next generation of gaming tools and model training infrastructure. High-performance, secure, and built for the elite.</p>
         </div>
-        <div class="hero-graphic">
-            <div class="orb orb-1"></div>
-            <div class="orb orb-2"></div>
-            <div class="glass-panel">
-                <div class="metric">
-                    <span class="metric-val">100%</span>
-                    <span class="metric-label">VRAM Utilization</span>
+
+        <div class="product-grid" style="max-width: 1100px; margin: 60px auto 0; text-align: left;">
+            <div class="product-card">
+                <div>
+                    <span class="product-tag">AI & Machine Learning</span>
+                    <h3>RL Bot Trainer</h3>
+                    <p style="color: var(--text-muted); margin-bottom: 20px;">Professional-grade reinforcement learning with integrated GigaLearn infrastructure and unlimited VRAM options.</p>
                 </div>
-                <div class="metric">
-                    <span class="metric-val">60 FPS</span>
-                    <span class="metric-label">Visualizer Sync</span>
+                <a href="rl-bot-trainer.html" class="btn-primary glow-btn" style="text-align: center;">Launch Trainer</a>
+            </div>
+            <div class="product-card">
+                <div>
+                    <span class="product-tag">Gaming Tools</span>
+                    <h3>Among Us Mod Menu</h3>
+                    <p style="color: var(--text-muted); margin-bottom: 20px;">The ultimate companion for Among Us. Glassmorphic UI, feature-rich, and built on the BepInEx framework.</p>
                 </div>
+                <a href="among-us-mod-menu.html" class="btn-secondary" style="text-align: center;">View Details</a>
             </div>
         </div>
     </header>
-
-    <section id="features" class="features-section">
-        <h2 class="section-title">Unlock <span class="gradient-text">Better Models</span></h2>
-        <div class="features-grid">
-            <div class="feature-card">
-                <div class="feature-icon">🚀</div>
-                <h3>Unlimited VRAM Support</h3>
-                <p>Bypass hardware limitations by utilizing cloud-synced VRAM optimization. Train larger models without OOM errors.</p>
-            </div>
-            <div class="feature-card glass-featured">
-                <div class="feature-icon">🧠</div>
-                <h3>GigaLearn Integration</h3>
-                <p>Native integration with GigaLearn infrastructure for unparalleled reinforcement learning convergence rates.</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">👁️</div>
-                <h3>AeroByte Visual Simulator</h3>
-                <p>Launch the dedicated visualizer window for 3D stadium telemetry. Compare models head-to-head with the new Bot Comparator.</p>
-            </div>
-        </div>
-    </section>
-
-    <section id="download" class="download-section" style="max-width: 1000px; margin: 0 auto; padding: 100px 20px; text-align: center;">
-        <div class="glass-panel" style="padding: 60px; border-radius: 24px;">
-            <h2 class="section-title" style="margin-bottom: 20px;">Get Started with <span class="gradient-text">AeroByte</span></h2>
-            <p class="subtitle" style="margin-bottom: 40px;">Download the native software straight from our repository to your local machine.</p>
-            <!-- Direct GitHub ZIP link for the specified release asset automatically triggers a download -->
-            <button onclick="window.location.href='https://github.com/x84kjbyf2c-stack/AeroByte-Studio/releases/download/v1.2/AeroByte_Launcher.exe'" class="btn-primary glow-btn" style="padding: 15px 30px; font-size: 1.2rem; display: inline-block; border: none; font-family: inherit; font-weight: inherit;">
-                ⬇️ Download AeroByte v1.2
-            </button>
-            <p style="margin-top: 20px; color: var(--text-muted); font-size: 0.9rem;">*Requires Windows 10/11 x64 and a dedicated GPU.</p>
-        </div>
-    </section>
-
-    <section id="pricing" class="pricing-section">
-        <h2 class="section-title">Elevate Your <span class="gradient-text">Training</span></h2>
-        <div class="pricing-grid">
-            <div class="pricing-card">
-                <h3>Basic</h3>
-                <div class="price">Free</div>
-                <ul class="plan-features">
-                    <li>Standard bot training presets</li>
-                    <li>Limited local VRAM usage</li>
-                    <li>Basic visualizer telemetry</li>
-                    <li>Community support</li>
-                </ul>
-                <button class="btn-secondary plan-btn">Current Plan</button>
-            </div>
-            <div class="pricing-card pro-card">
-                <div class="popular-badge">Most Popular</div>
-                <h3>Professional</h3>
-                <div class="price">Flexible <span class="period">Tiers</span></div>
-                <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 20px;">48h, 7d, 30d, 90d, 365d, or Lifetime</p>
-                <ul class="plan-features pro-features">
-                    <li><strong>GigaLearn Infrastructure</strong></li>
-                    <li><strong>AeroByte Visual Simulator</strong></li>
-                    <li><strong>Pro Security Tokens & Bot Comparator</strong></li>
-                    <li>Premium 24/7 Support</li>
-                </ul>
-                <button class="btn-primary glow-btn plan-btn checkout-trigger">Choose Duration</button>
-            </div>
-        </div>
-    </section>
-
-    <!-- Modals are now dynamically injected by script.js -->
 
     <footer>
         <div class="footer-content">
@@ -132,4 +102,3 @@
     <script type="module" src="script-v1.js?v=4.2"></script>
 </body>
 </html>
-
