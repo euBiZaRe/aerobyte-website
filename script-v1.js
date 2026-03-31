@@ -815,8 +815,23 @@ document.addEventListener('DOMContentLoaded', () => {
                                 await updateDoc(doc(db, "users", user.uid), { plan: "Free", expiresAt: null });
                             }
                         }
-                    } else {
-                        // Self-healing for new accounts
+                    }
+
+                    // 1. Update UI Text immediately
+                    planBadge.textContent = plan === "Owner" ? "Owner" : plan + " Plan";
+
+                    // 2. License Key UI Setup (Always visible now)
+                    const licenseKeyContainer = document.getElementById('licenseKeyContainer');
+                    const licenseKeyDisplay = document.getElementById('licenseKeyDisplay');
+                    if (licenseKeyContainer && licenseKeyDisplay) {
+                        licenseKeyContainer.style.display = "block";
+                        const actualKey = userData.licenseKey || "AB-WAIT-FOR-ADMIN-2026";
+                        licenseKeyDisplay.setAttribute('data-key', actualKey);
+                        licenseKeyDisplay.textContent = '••••••••'; 
+                    }
+
+                    // 3. Self-healing for new accounts
+                    if (!userDoc.exists()) {
                         try {
                             console.log("🛠️ New account detected. Initializing profile with license key...");
                             const newKey = generateLicenseKey();
@@ -835,12 +850,15 @@ document.addEventListener('DOMContentLoaded', () => {
                                 createdAt: Date.now()
                             });
                             console.log("✅ New account profile initialized with key:", newKey);
+                            
+                            // Update UI with new key immediately
+                            if (licenseKeyDisplay) licenseKeyDisplay.setAttribute('data-key', newKey);
                         } catch (initErr) {
                             console.error("❌ New account initialization failed:", initErr);
                         }
                     }
 
-                    // Self-healing for existing Free users without a key
+                    // 4. Self-healing for existing Free users without a key
                     if (!userData.licenseKey) {
                         try {
                             console.log("🛠️ Existing user missing license key. Generating...");
@@ -856,23 +874,12 @@ document.addEventListener('DOMContentLoaded', () => {
                             });
                             userData.licenseKey = newKey;
                             console.log("✅ Successfully assigned self-healed license key:", newKey);
+                            
+                            // Update UI with new key immediately
+                            if (licenseKeyDisplay) licenseKeyDisplay.setAttribute('data-key', newKey);
                         } catch (healingErr) {
-                            console.error("❌ Self-healing failed:", healingErr);
+                            console.error("❌ Self-healing failed. Permissions might be blocked:", healingErr);
                         }
-                    }
-                    
-                    planBadge.textContent = plan === "Owner" ? "Owner" : plan + " Plan";
-
-                    // License Key Logic
-                    const licenseKeyContainer = document.getElementById('licenseKeyContainer');
-                    const licenseKeyDisplay = document.getElementById('licenseKeyDisplay');
-                    if (licenseKeyContainer && licenseKeyDisplay) {
-                        // Always show for all users now
-                        licenseKeyContainer.style.display = "block";
-                        const actualKey = userData.licenseKey || "AB-WAIT-FOR-ADMIN-2026";
-                        
-                        licenseKeyDisplay.setAttribute('data-key', actualKey);
-                        licenseKeyDisplay.textContent = '••••••••'; // Stay hidden by default
                     }
                     
                     // --- LIVE COUNTDOWN SYSTEM (V2) ---

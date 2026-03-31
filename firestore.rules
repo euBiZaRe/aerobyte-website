@@ -5,25 +5,23 @@ service cloud.firestore {
     
     // User Profiles
     match /users/{userId} {
-      // Users can manage their own profile (Read, Create their initial doc, Update info)
       allow read, create, update: if request.auth != null && request.auth.uid == userId;
       
-      // Admin bypass: Owners can manage ANY user document (Read and Write)
       allow read, write: if request.auth != null && 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.plan == 'Owner';
+        (request.auth.token.email == 'aerobytebot@gmail.com' || 
+         request.auth.token.email == 'adamfrawi@gmail.com' ||
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.plan == 'Owner');
     }
     
     // License Keys
     match /licenses/{licenseId} {
-      // Allow anyone to read (for the launcher to validate)
       allow read: if true;
-      
-      // Allow users to create their own license docs during redemption
       allow create: if request.auth != null;
 
-      // Admin bypass: Owners can manage ANY license document (Update and Delete)
       allow write: if request.auth != null && 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.plan == 'Owner';
+        (request.auth.token.email == 'aerobytebot@gmail.com' || 
+         request.auth.token.email == 'adamfrawi@gmail.com' ||
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.plan == 'Owner');
     }
     
     // Giveaway / Promo Codes
@@ -31,9 +29,10 @@ service cloud.firestore {
       // Users can check, update (mark used), and delete a code when they use it
       allow read, update, delete: if request.auth != null;
       
-      // Only Admins (Owners) can create codes
       allow create: if request.auth != null && 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.plan == 'Owner';
+        (request.auth.token.email == 'aerobytebot@gmail.com' || 
+         request.auth.token.email == 'adamfrawi@gmail.com' ||
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.plan == 'Owner');
     }
   }
 }
