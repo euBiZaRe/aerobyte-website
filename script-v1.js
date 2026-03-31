@@ -1747,7 +1747,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const currentUser = auth.currentUser;
             if (currentUser) {
-                // Case A: User is logged in - Link immediately
+                // Case A: User is already logged in - Link immediately
                 await updateDoc(doc(db, "users", currentUser.uid), {
                     discordId: String(discordUser.id),
                     discordUsername: discordUser.username,
@@ -1761,26 +1761,61 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 setTimeout(() => window.location.reload(), 1500);
             } else {
-                // Case B: Guest - Queue link for after login
-                localStorage.setItem('pendingDiscordId', discordUser.id);
-                localStorage.setItem('pendingDiscordUsername', discordUser.username);
-                localStorage.setItem('pendingDiscordAvatar', discordUser.avatar || '');
-                localStorage.removeItem('waitingForDiscord');
+                // Case B: Guest - 1-Click Discord SSO!
+                console.log("🛠️ Initializing 1-Click Discord Sign On for:", discordUser.username);
                 
-                alert(`Discord Verified: ${discordUser.username}\n\nPlease Sign In or Sign Up now to link this account to AeroByte and enable Bot License Lookup.`);
+                const synthEmail = `discord_${discordUser.id}@aerobyte.shop`;
+                const synthPass = `Aero!Discord!${discordUser.id}`; // Deterministic, secure key based on their immutable ID
                 
-                // Trigger Login Modal
-                const authModal = document.getElementById('authModal');
-                if (authModal) {
-                    authModal.classList.add('active');
-                    document.body.style.overflow = 'hidden';
+                try {
+                    // Try to Log In first
+                    await signInWithEmailAndPassword(auth, synthEmail, synthPass);
+                    console.log("✅ Discord SSO Login Successful!");
+                    localStorage.removeItem('waitingForDiscord');
+                    setTimeout(() => window.location.reload(), 1000);
+                } catch (loginErr) {
+                    // If login fails, account doesn't exist. Create it!
+                    if (loginErr.code === 'auth/user-not-found' || loginErr.code === 'auth/invalid-credential') {
+                        console.log("🛠️ First time Discord user. Provisioning account...");
+                        if (discordStatusMsg) discordStatusMsg.textContent = 'Provisioning new account...';
+                        
+                        const newCreds = await createUserWithEmailAndPassword(auth, synthEmail, synthPass);
+                        const newUser = newCreds.user;
+                        const newKey = generateLicenseKey();
+                        
+                        await setDoc(doc(db, "users", newUser.uid), {
+                            email: synthEmail,
+                            plan: "Free",
+                            licenseKey: newKey,
+                            discordId: String(discordUser.id),
+                            discordUsername: discordUser.username,
+                            discordAvatar: discordUser.avatar || null,
+                            createdAt: Date.now()
+                        });
+                        
+                        await setDoc(doc(db, "licenses", newKey), {
+                            userId: newUser.uid,
+                            plan: "Free",
+                            status: "active",
+                            hwid: null,
+                            createdAt: Date.now()
+                        });
+                        
+                        console.log("✅ Discord SSO Provisioning Complete!");
+                        localStorage.removeItem('waitingForDiscord');
+                        setTimeout(() => window.location.reload(), 1500);
+                    } else {
+                        throw loginErr;
+                    }
                 }
             }
         }).catch(err => {
             console.error("❌ Discord OAuth Error:", err);
             if (discordStatusMsg) {
-                discordStatusMsg.textContent = "Discord verification failed.";
+                discordStatusMsg.textContent = "Discord sign-in failed: " + err.message;
                 discordStatusMsg.style.color = "#ff4d4d";
+            } else {
+                alert("Discord sign-in failed: " + err.message);
             }
         });
     };
