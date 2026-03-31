@@ -1083,6 +1083,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             return snap;
                         } catch (e) {
                             console.warn(`⚠️ Failed to fetch ${name}:`, e.message);
+                            if (name === "users") alert(`🛠️ Admin Diagnostic - Error fetching users: ${e.message}`);
                             return { forEach: () => {}, size: 0 }; // Return empty mock
                         }
                     };
