@@ -752,6 +752,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     }
 
+                    // Admin Auto-Upgrade: Ensure hardcoded admins always have 'Owner' plan
+                    if (user.email === 'aerobytebot@gmail.com' || user.email === 'adamfrawi@gmail.com') {
+                        if (plan !== 'Owner') {
+                            console.log("🛡️ Admin auto-upgrade triggered for:", user.email);
+                            plan = 'Owner';
+                            await updateDoc(doc(db, "users", user.uid), { plan: 'Owner' });
+                        }
+                    }
+
                     // 1. Update UI Text immediately
                     planBadge.textContent = plan === "Owner" ? "Owner" : plan + " Plan";
 
