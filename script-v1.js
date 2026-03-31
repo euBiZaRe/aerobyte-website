@@ -318,7 +318,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeModalBtns = document.querySelectorAll('.close-modal');
     const checkoutForm = document.getElementById('checkoutForm');
     const payBtn = document.querySelector('.stripe-pay-btn');
-    const isProfilePage = window.location.pathname.includes('profile.html');
+    const isProfilePage = window.location.pathname.includes('profile.html') || window.location.pathname.endsWith('/profile');
     const loginBtns = document.querySelectorAll('.login-btn');
 
     // Global Close Button Handler
@@ -770,6 +770,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- EVENT DELEGATION (Fixes "Sign In button not working") ---
     document.body.addEventListener('click', (e) => {
         if (e.target.classList.contains('login-btn')) {
+            // If already logged in, navigate to profile instead of opening auth modal
+            if (e.target.getAttribute('data-auth') === 'logged-in') {
+                e.preventDefault();
+                window.location.href = 'profile.html';
+                return;
+            }
             openAuthModal(e);
         }
         
@@ -897,6 +903,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Auth State Listener
+    let authResolved = false;
     onAuthStateChanged(auth, (user) => {
         const hasDiscordHash = window.location.hash.includes('access_token=');
         const ssoInProgress = sessionStorage.getItem('discordSSOInProgress') === 'true';
@@ -908,9 +915,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log("⏳ Profile: Delaying guest redirect (Discord SSO active)...");
                 return; 
             }
+            // Skip redirect on very first callback — Firebase hasn't resolved auth yet
+            if (!authResolved) {
+                console.log("⏳ Profile: Auth not resolved yet, waiting for Firebase...");
+                authResolved = true;
+                return;
+            }
             window.location.href = 'index.html';
             return;
         }
+        authResolved = true;
 
         loginBtns.forEach(btn => {
             if (user) {
@@ -1202,8 +1216,20 @@ document.addEventListener('DOMContentLoaded', () => {
         // Dedicated Admin Page Specific Logic
         const isAdminPage = window.location.pathname.toLowerCase().includes('admin');
         if (isAdminPage) {
+            // Mark auth as resolved after first callback
+            const wasResolved = authResolved;
+            authResolved = true;
 
-            if (!user || (user.email !== 'aerobytebot@gmail.com' && user.email !== 'adamfrawi@gmail.com')) {
+            if (!user) {
+                // If this is the very first callback (Firebase still waking up), wait briefly before redirecting
+                if (!wasResolved) {
+                    console.log("⏳ Admin: Auth not resolved yet, waiting for Firebase...");
+                    return;
+                }
+                window.location.href = 'index.html';
+                return;
+            }
+            if (user.email !== 'aerobytebot@gmail.com' && user.email !== 'adamfrawi@gmail.com') {
                 window.location.href = 'index.html';
                 return;
             }
@@ -1811,14 +1837,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // (Discord OAuth handle moved inside Auth Listener for reliability)
 
-    const profileLogoutBtn = document.getElementById('profileLogoutBtn');
-    if (profileLogoutBtn) {
-        profileLogoutBtn.addEventListener('click', () => {
-            signOut(auth).then(() => {
-                window.location.href = 'index.html';
-            }).catch(console.error);
-        });
-    }
 
     // Smooth Scrolling for anchor links
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
