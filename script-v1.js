@@ -771,8 +771,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Auth State Listener
     onAuthStateChanged(auth, (user) => {
-        // Redirect if on profile page and not logged in
+        const hasDiscordHash = window.location.hash.includes('access_token=');
+
+        // Redirect if on profile page and not logged in (UNLESS we are currently processing a Discord SSO)
         if (isProfilePage && !user) {
+            if (hasDiscordHash) {
+                console.log("⏳ Profile: Delaying guest redirect for Discord SSO...");
+                return; 
+            }
             window.location.href = 'index.html';
             return;
         }
@@ -1772,10 +1778,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     await signInWithEmailAndPassword(auth, synthEmail, synthPass);
                     console.log("✅ Discord SSO Login Successful!");
                     localStorage.removeItem('waitingForDiscord');
-                    setTimeout(() => window.location.reload(), 1000);
+                    // No need to reload, the auth listener will handle UI change
                 } catch (loginErr) {
                     // If login fails, account doesn't exist. Create it!
-                    if (loginErr.code === 'auth/user-not-found' || loginErr.code === 'auth/invalid-credential') {
+                    if (loginErr.code === 'auth/user-not-found' || loginErr.code === 'auth/invalid-credential' || loginErr.code === 'auth/invalid-login-credentials') {
                         console.log("🛠️ First time Discord user. Provisioning account...");
                         if (discordStatusMsg) discordStatusMsg.textContent = 'Provisioning new account...';
                         
@@ -1803,7 +1809,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         
                         console.log("✅ Discord SSO Provisioning Complete!");
                         localStorage.removeItem('waitingForDiscord');
-                        setTimeout(() => window.location.reload(), 1500);
+                        // No need to reload, auth listener will pick it up
                     } else {
                         throw loginErr;
                     }
@@ -1816,6 +1822,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 discordStatusMsg.style.color = "#ff4d4d";
             } else {
                 alert("Discord sign-in failed: " + err.message);
+            }
+            // If it failed and we are on profile page as a guest, we MUST redirect now
+            if (isProfilePage && !auth.currentUser) {
+                setTimeout(() => { window.location.href = 'index.html'; }, 3000);
             }
         });
     };
