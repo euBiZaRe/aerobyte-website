@@ -772,11 +772,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Auth State Listener
     onAuthStateChanged(auth, (user) => {
         const hasDiscordHash = window.location.hash.includes('access_token=');
+        const ssoInProgress = sessionStorage.getItem('discordSSOInProgress') === 'true';
 
         // Redirect if on profile page and not logged in (UNLESS we are currently processing a Discord SSO)
         if (isProfilePage && !user) {
-            if (hasDiscordHash) {
-                console.log("⏳ Profile: Delaying guest redirect for Discord SSO...");
+            if (hasDiscordHash || ssoInProgress) {
+                console.log("⏳ Profile: Delaying guest redirect (Discord SSO active)...");
                 return; 
             }
             window.location.href = 'index.html';
@@ -1732,27 +1733,33 @@ document.addEventListener('DOMContentLoaded', () => {
         const accessToken = params.get('access_token');
         if (!accessToken) return;
 
-        // Clean URL instantly
-        window.history.replaceState({}, document.title, window.location.pathname);
-        console.log("🔄 Handling Discord Hash...");
+        // --- NEW: SECURE PROCESSING STATE ---
+        sessionStorage.setItem('discordSSOInProgress', 'true');
+        console.log("🔄 Starting Secure Discord Handshake...");
 
         // Show a temporary status if on profile
         const discordStatusMsg = document.getElementById('discordStatusMsg');
-        if (discordStatusMsg) {
-            discordStatusMsg.textContent = 'Verifying Discord account...';
-            discordStatusMsg.style.display = 'block';
-            discordStatusMsg.style.color = '#fff';
-        }
+        const loginBanner = document.getElementById('loginStatusBanner');
+        const loginText = document.getElementById('loginStatusText');
+
+        const updateStatus = (msg, color = '#fff') => {
+            if (discordStatusMsg) { discordStatusMsg.textContent = msg; discordStatusMsg.style.display = 'block'; discordStatusMsg.style.color = color; }
+            if (loginBanner) loginBanner.style.display = 'block';
+            if (loginText) loginText.textContent = msg;
+        };
+
+        updateStatus('Verifying Discord Identity...');
 
         fetch('https://discord.com/api/users/@me', {
             headers: { 'Authorization': `Bearer ${accessToken}` }
         })
         .then(res => res.json())
         .then(async discordUser => {
-            if (!discordUser.id) throw new Error("Discord API error");
+            if (!discordUser.id) throw new Error("Discord API error: Handshake failed.");
             
             const currentUser = auth.currentUser;
             if (currentUser) {
+                updateStatus(`Linking ${discordUser.username}...`);
                 // Case A: User is already logged in - Link immediately
                 await updateDoc(doc(db, "users", currentUser.uid), {
                     discordId: String(discordUser.id),
@@ -1760,30 +1767,40 @@ document.addEventListener('DOMContentLoaded', () => {
                     discordAvatar: discordUser.avatar || null
                 });
                 console.log("✅ Discord Linked Successfully!");
-                localStorage.removeItem('waitingForDiscord');
                 
-                if (discordStatusMsg) {
-                    discordStatusMsg.innerHTML = `<span style="color: #10B981;">● Discord Linked: ${discordUser.username}</span>`;
-                }
-                setTimeout(() => window.location.reload(), 1500);
+                updateStatus(`Successfully Linked: ${discordUser.username}`, '#10B981');
+                
+                // Cleanup and Reload
+                sessionStorage.removeItem('discordSSOInProgress');
+                window.history.replaceState({}, document.title, window.location.pathname);
+                setTimeout(() => window.location.reload(), 1000);
             } else {
                 // Case B: Guest - 1-Click Discord SSO!
+                updateStatus(`Authenticating via Discord...`);
                 console.log("🛠️ Initializing 1-Click Discord Sign On for:", discordUser.username);
                 
                 const synthEmail = `discord_${discordUser.id}@aerobyte.shop`;
-                const synthPass = `Aero!Discord!${discordUser.id}`; // Deterministic, secure key based on their immutable ID
+                const synthPass = `Aero!Discord!${discordUser.id}`; // Deterministic, secure key
                 
                 try {
                     // Try to Log In first
                     await signInWithEmailAndPassword(auth, synthEmail, synthPass);
+                    updateStatus(`Welcome back, ${discordUser.username}!`, '#10B981');
                     console.log("✅ Discord SSO Login Successful!");
-                    localStorage.removeItem('waitingForDiscord');
-                    // No need to reload, the auth listener will handle UI change
+                    
+                    // Finalize and Clean Up
+                    sessionStorage.removeItem('discordSSOInProgress');
+                    window.history.replaceState({}, document.title, window.location.pathname);
                 } catch (loginErr) {
                     // If login fails, account doesn't exist. Create it!
-                    if (loginErr.code === 'auth/user-not-found' || loginErr.code === 'auth/invalid-credential' || loginErr.code === 'auth/invalid-login-credentials') {
+                    const isNewUser = loginErr.code === 'auth/user-not-found' || 
+                                     loginErr.code === 'auth/invalid-credential' || 
+                                     loginErr.code === 'auth/invalid-login-credentials' ||
+                                     loginErr.code === 'auth/id-token-expired';
+
+                    if (isNewUser) {
+                        updateStatus(`Provisioning License for ${discordUser.username}...`);
                         console.log("🛠️ First time Discord user. Provisioning account...");
-                        if (discordStatusMsg) discordStatusMsg.textContent = 'Provisioning new account...';
                         
                         const newCreds = await createUserWithEmailAndPassword(auth, synthEmail, synthPass);
                         const newUser = newCreds.user;
@@ -1807,9 +1824,12 @@ document.addEventListener('DOMContentLoaded', () => {
                             createdAt: Date.now()
                         });
                         
+                        updateStatus(`Account Created! Syncing profile...`, '#10B981');
                         console.log("✅ Discord SSO Provisioning Complete!");
-                        localStorage.removeItem('waitingForDiscord');
-                        // No need to reload, auth listener will pick it up
+                        
+                        // Finalize and Clean Up
+                        sessionStorage.removeItem('discordSSOInProgress');
+                        window.history.replaceState({}, document.title, window.location.pathname);
                     } else {
                         throw loginErr;
                     }
@@ -1817,12 +1837,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }).catch(err => {
             console.error("❌ Discord OAuth Error:", err);
-            if (discordStatusMsg) {
-                discordStatusMsg.textContent = "Discord sign-in failed: " + err.message;
-                discordStatusMsg.style.color = "#ff4d4d";
-            } else {
-                alert("Discord sign-in failed: " + err.message);
-            }
+            updateStatus("Authentication Failed: " + err.message, "#ff4d4d");
+            
+            // Critical: If we failed, we MUST clear the blocker so the redirect can happen (or user can retry)
+            sessionStorage.removeItem('discordSSOInProgress');
+            window.history.replaceState({}, document.title, window.location.pathname);
+
             // If it failed and we are on profile page as a guest, we MUST redirect now
             if (isProfilePage && !auth.currentUser) {
                 setTimeout(() => { window.location.href = 'index.html'; }, 3000);
