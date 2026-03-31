@@ -25,6 +25,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // PRE-WARM BACKEND (Wake up Render free instance immediately)
     fetch(BACKEND_URL).catch(() => {}); 
 
+    // Helper to generate a standardized license key
+    const generateLicenseKey = () => {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        const rand = (len) => Array.from({length: len}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+        return `${rand(4)}-${rand(4)}-${rand(4)}-${rand(4)}`;
+    };
+
     try {
         if (typeof Stripe !== 'undefined') {
             stripe = Stripe(STRIPE_PK);
@@ -239,9 +246,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const expiresAt = Date.now() + durationMs;
 
                 // Generate Key
-                const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-                const rand = (len) => Array.from({length: len}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-                const newKey = `${rand(4)}-${rand(4)}-${rand(4)}-${rand(4)}`;
+                const newKey = generateLicenseKey();
 
                 // 1. Fulfill
                 await updateDoc(doc(db, "users", uid), {
@@ -731,10 +736,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 createUserWithEmailAndPassword(auth, email, password)
                     .then(async (userCredential) => {
                         const user = userCredential.user;
+                        const newKey = generateLicenseKey();
+                        
                         await setDoc(doc(db, "users", user.uid), {
                             email: user.email,
-                            plan: "Free"
+                            plan: "Free",
+                            licenseKey: newKey,
+                            createdAt: Date.now()
                         });
+                        
+                        await setDoc(doc(db, "licenses", newKey), {
+                            userId: user.uid,
+                            plan: "Free",
+                            status: "active",
+                            createdAt: Date.now()
+                        });
+
                         closeAuthModalFn();
                         alert('Account created successfully! Welcome to AeroByte.');
                     })
@@ -800,8 +817,48 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     } else {
                         // Self-healing for new accounts
-                        userData = { email: user.email, plan: "Free" };
-                        await setDoc(doc(db, "users", user.uid), userData);
+                        try {
+                            console.log("🛠️ New account detected. Initializing profile with license key...");
+                            const newKey = generateLicenseKey();
+                            userData = { 
+                                email: user.email, 
+                                plan: "Free",
+                                licenseKey: newKey,
+                                createdAt: Date.now()
+                            };
+                            await setDoc(doc(db, "users", user.uid), userData);
+                            
+                            await setDoc(doc(db, "licenses", newKey), {
+                                userId: user.uid,
+                                plan: "Free",
+                                status: "active",
+                                createdAt: Date.now()
+                            });
+                            console.log("✅ New account profile initialized with key:", newKey);
+                        } catch (initErr) {
+                            console.error("❌ New account initialization failed:", initErr);
+                        }
+                    }
+
+                    // Self-healing for existing Free users without a key
+                    if (!userData.licenseKey) {
+                        try {
+                            console.log("🛠️ Existing user missing license key. Generating...");
+                            const newKey = generateLicenseKey();
+                            await updateDoc(doc(db, "users", user.uid), {
+                                licenseKey: newKey
+                            });
+                            await setDoc(doc(db, "licenses", newKey), {
+                                userId: user.uid,
+                                plan: userData.plan || "Free",
+                                status: "active",
+                                createdAt: Date.now()
+                            });
+                            userData.licenseKey = newKey;
+                            console.log("✅ Successfully assigned self-healed license key:", newKey);
+                        } catch (healingErr) {
+                            console.error("❌ Self-healing failed:", healingErr);
+                        }
                     }
                     
                     planBadge.textContent = plan === "Owner" ? "Owner" : plan + " Plan";
@@ -810,15 +867,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     const licenseKeyContainer = document.getElementById('licenseKeyContainer');
                     const licenseKeyDisplay = document.getElementById('licenseKeyDisplay');
                     if (licenseKeyContainer && licenseKeyDisplay) {
-                        if (plan !== "Free") {
-                            licenseKeyContainer.style.display = "block";
-                            const actualKey = userData.licenseKey || "AB-WAIT-FOR-ADMIN-2026";
-                            
-                            licenseKeyDisplay.setAttribute('data-key', actualKey);
-                            licenseKeyDisplay.textContent = '••••••••'; // Stay hidden by default
-                        } else {
-                            licenseKeyContainer.style.display = "none";
-                        }
+                        // Always show for all users now
+                        licenseKeyContainer.style.display = "block";
+                        const actualKey = userData.licenseKey || "AB-WAIT-FOR-ADMIN-2026";
+                        
+                        licenseKeyDisplay.setAttribute('data-key', actualKey);
+                        licenseKeyDisplay.textContent = '••••••••'; // Stay hidden by default
                     }
                     
                     // --- LIVE COUNTDOWN SYSTEM (V2) ---
@@ -1121,18 +1175,15 @@ document.addEventListener('DOMContentLoaded', () => {
                             if (timeAgoMs < SIX_HOURS_MS) lastTrialStyle = "color: #f59e0b; font-weight: 600;";
                         }
 
-                        const isFree = user.plan === 'Free';
-                        const keyDisplay = isFree ? 
-                            `<span style="color:var(--text-muted); font-size:0.75rem;">No Key (Free)</span>` :
-                            (user.licenseKey ? 
-                                `<div style="display:flex; flex-direction:column; gap:8px; width:100%;">
-                                    <code class="admin-license-mask" data-key="${user.licenseKey}" style="font-family:monospace; background:rgba(255,255,255,0.05); padding:4px 8px; border-radius:6px; cursor:pointer; font-size:0.85rem; border:1px solid rgba(255,255,255,0.1); width:fit-content; word-break:break-all;" title="Click to Peek/Hide">••••-••••-••••-••••</code>
-                                    <div style="display:flex; gap:6px;">
-                                        <button class="action-reset-hwid" data-uid="${user.id}" data-key="${user.licenseKey}" style="padding:4px 8px; font-size:0.65rem; background:rgba(88, 101, 242, 0.1); border:1px solid #5865F2; color:#5865F2; cursor:pointer; border-radius:4px; font-weight:700; text-transform:uppercase;">HWID Reset</button>
-                                        <button class="action-regen-key" data-uid="${user.id}" data-key="${user.licenseKey}" data-plan="${user.plan}" style="padding:4px 8px; font-size:0.65rem; background:rgba(16, 185, 129, 0.1); border:1px solid #10B981; color:#10B981; cursor:pointer; border-radius:4px; font-weight:700; text-transform:uppercase;">Regen Key</button>
-                                    </div>
-                                 </div>` : 
-                                `<button class="btn-primary action-gen-key" data-uid="${user.id}" data-plan="${user.plan}" style="padding:6px 12px; font-size:0.7rem; background:#5865F2; color:#fff; border:none; border-radius:6px; font-weight:700;">Generate License</button>`);
+                        const keyDisplay = user.licenseKey ? 
+                            `<div style="display:flex; flex-direction:column; gap:8px; width:100%;">
+                                <code class="admin-license-mask" data-key="${user.licenseKey}" style="font-family:monospace; background:rgba(255,255,255,0.05); padding:4px 8px; border-radius:6px; cursor:pointer; font-size:0.85rem; border:1px solid rgba(255,255,255,0.1); width:fit-content; word-break:break-all;" title="Click to Peek/Hide">••••-••••-••••-••••</code>
+                                <div style="display:flex; gap:6px;">
+                                    <button class="action-reset-hwid" data-uid="${user.id}" data-key="${user.licenseKey}" style="padding:4px 8px; font-size:0.65rem; background:rgba(88, 101, 242, 0.1); border:1px solid #5865F2; color:#5865F2; cursor:pointer; border-radius:4px; font-weight:700; text-transform:uppercase;">HWID Reset</button>
+                                    <button class="action-regen-key" data-uid="${user.id}" data-key="${user.licenseKey}" data-plan="${user.plan}" style="padding:4px 8px; font-size:0.65rem; background:rgba(16, 185, 129, 0.1); border:1px solid #10B981; color:#10B981; cursor:pointer; border-radius:4px; font-weight:700; text-transform:uppercase;">Regen Key</button>
+                                </div>
+                             </div>` : 
+                            `<button class="btn-primary action-gen-key" data-uid="${user.id}" data-plan="${user.plan}" style="padding:6px 12px; font-size:0.7rem; background:#5865F2; color:#fff; border:none; border-radius:6px; font-weight:700;">Generate License</button>`;
 
                         const userActivity = globalActivity.filter(a => a.user === user.id).sort((a,b) => b.time - a.time);
                         let statusText = `<span style="color:var(--text-muted); font-size:0.75rem;">No activity</span>`;
@@ -1329,9 +1380,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             confirmUI.querySelector('.confirm-regen-yes').onclick = async () => {
                                 confirmUI.innerHTML = '<span style="font-size:0.6rem; color:var(--text-muted);">Generating...</span>';
                                 try {
-                                    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-                                    const rand = (len) => Array.from({length: len}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-                                    const newKey = `${rand(4)}-${rand(4)}-${rand(4)}-${rand(4)}`;
+                                    const newKey = generateLicenseKey();
                                     
                                     await updateDoc(doc(db, "users", uid), { licenseKey: newKey });
                                     if (oldKey) await deleteDoc(doc(db, "licenses", oldKey));
@@ -1347,9 +1396,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         // Just Generate (No old key)
                         regenBtn.textContent = 'Updating...'; regenBtn.disabled = true;
                         try {
-                            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-                            const rand = (len) => Array.from({length: len}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-                            const newKey = `${rand(4)}-${rand(4)}-${rand(4)}-${rand(4)}`;
+                        const newKey = generateLicenseKey();
                             await updateDoc(doc(db, "users", uid), { licenseKey: newKey });
                             await setDoc(doc(db, "licenses", newKey), {
                                 userId: uid, plan: plan, status: "active", hwid: null, createdAt: Date.now()

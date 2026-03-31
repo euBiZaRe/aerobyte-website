@@ -1,89 +1,228 @@
-import firebase_admin
-from firebase_admin import credentials, firestore
-import time
-
-# --- AERO_BYTE LICENSE VALIDATOR (CLIENT-SIDE SIMULATION) ---
-# This script demonstrates how your application can verify keys.
-
+import sys
+import os
 import subprocess
+import json
+import time
+import urllib.request
+import urllib.error
+import urllib.parse
+from datetime import datetime, timezone
+
+# --- AERO_BYTE LICENSE VALIDATOR (REST EDITION) ---
+# Uses Firestore REST API directly to avoid gRPC/DNS issues on Windows.
+
+FIRESTORE_PROJECT_ID = "aerobytebot"
+
+def get_service_account_key():
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    key_path = os.path.join(script_dir, 'serviceAccountKey.json')
+    if not os.path.exists(key_path):
+        return None, f"Service account key missing at {key_path}"
+    try:
+        with open(key_path, 'r') as f:
+            return json.load(f), None
+    except Exception as e:
+        return None, f"Could not read service account key: {e}"
+
+def get_access_token(service_account_key):
+    """Get a Google OAuth2 access token using a service account JWT."""
+    try:
+        import base64
+        import hmac
+        import hashlib
+        import struct
+
+        now = int(time.time())
+        
+        # Build JWT header and payload
+        header = base64.urlsafe_b64encode(json.dumps({"alg": "RS256", "typ": "JWT"}).encode()).rstrip(b'=').decode()
+        payload_data = {
+            "iss": service_account_key['client_email'],
+            "scope": "https://www.googleapis.com/auth/datastore",
+            "aud": "https://oauth2.googleapis.com/token",
+            "iat": now,
+            "exp": now + 3600
+        }
+        payload = base64.urlsafe_b64encode(json.dumps(payload_data).encode()).rstrip(b'=').decode()
+        
+        signing_input = f"{header}.{payload}".encode()
+        
+        # Sign with private key using cryptography library
+        from cryptography.hazmat.primitives import hashes, serialization
+        from cryptography.hazmat.primitives.asymmetric import padding
+        
+        private_key_pem = service_account_key['private_key'].encode()
+        private_key = serialization.load_pem_private_key(private_key_pem, password=None)
+        signature = private_key.sign(signing_input, padding.PKCS1v15(), hashes.SHA256())
+        
+        signature_b64 = base64.urlsafe_b64encode(signature).rstrip(b'=').decode()
+        jwt_token = f"{header}.{payload}.{signature_b64}"
+        
+        # Exchange JWT for access token
+        token_data = urllib.parse.urlencode({
+            'grant_type': 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+            'assertion': jwt_token
+        }).encode()
+        
+        req = urllib.request.Request(
+            'https://oauth2.googleapis.com/token',
+            data=token_data,
+            headers={'Content-Type': 'application/x-www-form-urlencoded'}
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            token_resp = json.loads(resp.read().decode())
+            return token_resp.get('access_token'), None
+    except Exception as e:
+        return None, f"Auth Error: {e}"
+
+def firestore_get(access_token, collection, document_id):
+    """Fetch a Firestore document via REST API."""
+    url = f"https://firestore.googleapis.com/v1/projects/{FIRESTORE_PROJECT_ID}/databases/(default)/documents/{collection}/{document_id}"
+    req = urllib.request.Request(url, headers={'Authorization': f'Bearer {access_token}'})
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            return json.loads(resp.read().decode()), None
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            return None, "notfound"
+        return None, f"HTTP {e.code}"
+    except Exception as e:
+        return None, str(e)
+
+def firestore_update(access_token, collection, document_id, fields_dict):
+    """Update specific fields in a Firestore document via REST API."""
+    url = f"https://firestore.googleapis.com/v1/projects/{FIRESTORE_PROJECT_ID}/databases/(default)/documents/{collection}/{document_id}"
+    # Build update mask
+    field_names = list(fields_dict.keys())
+    mask = "&".join(f"updateMask.fieldPaths={f}" for f in field_names)
+    url = f"{url}?{mask}"
+    
+    # Build Firestore field value format
+    fs_fields = {}
+    for k, v in fields_dict.items():
+        if isinstance(v, str):
+            fs_fields[k] = {"stringValue": v}
+        elif isinstance(v, bool):
+            fs_fields[k] = {"booleanValue": v}
+        elif isinstance(v, int):
+            fs_fields[k] = {"integerValue": str(v)}
+    
+    body = json.dumps({"fields": fs_fields}).encode()
+    req = urllib.request.Request(url, data=body, method='PATCH',
+                                  headers={
+                                      'Authorization': f'Bearer {access_token}',
+                                      'Content-Type': 'application/json'
+                                  })
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            return True, None
+    except Exception as e:
+        return False, str(e)
+
+def parse_firestore_value(field_val):
+    """Extract a Python value from a Firestore field value dict."""
+    if not field_val:
+        return None
+    if 'stringValue' in field_val:
+        return field_val['stringValue']
+    if 'integerValue' in field_val:
+        return int(field_val['integerValue'])
+    if 'doubleValue' in field_val:
+        return float(field_val['doubleValue'])
+    if 'booleanValue' in field_val:
+        return field_val['booleanValue']
+    if 'timestampValue' in field_val:
+        return field_val['timestampValue']  # ISO 8601 string
+    if 'nullValue' in field_val:
+        return None
+    return None
 
 def get_hwid():
-    # Returns a unique Windows Hardware ID
     try:
         cmd = 'wmic csproduct get uuid'
-        uuid = subprocess.check_output(cmd, shell=True).decode().split('\n')[1].strip()
-        return uuid
+        output = subprocess.check_output(cmd, shell=True).decode()
+        lines = [line.strip() for line in output.split('\n') if line.strip()]
+        if len(lines) > 1:
+            return lines[1]
+        return "UNKNOWN_HWID"
     except:
         return "UNKNOWN_HWID"
 
 def validate_license(key_to_check):
-    # 1. Initialize Firebase (Ensure you have your serviceAccountKey.json)
-    if not firebase_admin._apps:
-        try:
-            cred = credentials.Certificate('serviceAccountKey.json')
-            firebase_admin.initialize_app(cred)
-        except Exception as e:
-            return f"❌ Configuration Error: Please ensure 'serviceAccountKey.json' is present. ({e})"
+    # Load service account credentials
+    sa_key, err = get_service_account_key()
+    if err:
+        return f"ERROR: {err}", 1
 
-    db = firestore.client()
+    # Get OAuth2 access token
+    access_token, err = get_access_token(sa_key)
+    if err:
+        return f"ERROR: {err}", 1
+
     current_hwid = get_hwid()
 
-    print(f"🔍 Validating License: {key_to_check}...")
+    # 1. Check the global licenses collection
+    lic_doc, err = firestore_get(access_token, 'licenses', key_to_check)
+    if err == "notfound":
+        return "ERROR: Invalid License Key", 1
+    if err:
+        return f"ERROR: Could not reach license server ({err})", 1
 
-    # 2. Check the global licenses collection
-    lic_ref = db.collection('licenses').document(key_to_check)
-    lic_doc = lic_ref.get()
+    fields = lic_doc.get('fields', {})
+    user_id = parse_firestore_value(fields.get('userId'))
+    registered_hwid = parse_firestore_value(fields.get('hwid'))
 
-    if not lic_doc.exists:
-        return "❌ Invalid License Key: This key does not exist in our database."
-
-    lic_data = lic_doc.to_dict()
-    user_id = lic_data.get('userId')
-    registered_hwid = lic_data.get('hwid') # Hardware ID bound to this key
-    
     if not user_id:
-        return "❌ Corrupt License: No user associated with this key."
+        return "ERROR: Corrupt License (No User)", 1
 
-    # --- HWID LOCKING CHECK ---
+    # 2. HWID Locking
     if not registered_hwid:
-        # First-time use: Bind this key to this computer's HWID
-        lic_ref.update({'hwid': current_hwid})
-        print(f"🔗 First-run detected. Binding license to this hardware...")
+        firestore_update(access_token, 'licenses', key_to_check, {'hwid': current_hwid})
     elif registered_hwid != current_hwid:
-        return "❌ HWID Mismatch: This license is already in use on another computer.\nPlease contact support to reset your HWID."
+        return "ERROR: HWID Mismatch (Locked to another PC)", 2
 
-    # 3. Check the user's actual subscription status and expiry
-    user_ref = db.collection('users').document(user_id)
-    user_doc = user_ref.get()
+    # 3. User & Plan Verification
+    user_doc, err = firestore_get(access_token, 'users', user_id)
+    if err == "notfound":
+        return "ERROR: User record missing", 1
+    if err:
+        return f"ERROR: Could not fetch user record ({err})", 1
 
-    if not user_doc.exists:
-        return "❌ Error: Associated user account no longer exists."
+    user_fields = user_doc.get('fields', {})
+    plan = (parse_firestore_value(user_fields.get('plan')) or 'Free').upper()
+    expires_at_raw = parse_firestore_value(user_fields.get('expiresAt'))
 
-    user_data = user_doc.to_dict()
-    plan = user_data.get('plan', 'Free')
-    expires_at = user_data.get('expiresAt') # Milliseconds timestamp
 
-    # 4. Check Expiration
-    current_time_ms = int(time.time() * 1000)
+    # Robust Expiry Handling (Firestore Timestamp string OR numeric epoch)
+    if expires_at_raw:
+        try:
+            now_dt = datetime.now(timezone.utc)
+            # Firestore may return ISO 8601 timestamp string
+            if isinstance(expires_at_raw, str):
+                expiry_dt = datetime.fromisoformat(expires_at_raw.replace('Z', '+00:00'))
+                is_expired = now_dt > expiry_dt
+            else:
+                # Numeric: ms if > 10^11, else seconds
+                expiry_ts = float(expires_at_raw)
+                if expiry_ts > 1e11:
+                    expiry_ts /= 1000.0
+                expiry_dt = datetime.fromtimestamp(expiry_ts, timezone.utc)
+                is_expired = now_dt > expiry_dt
 
-    if plan == 'Free':
-        return "❌ Access Denied: This key is linked to a Free plan."
+            if is_expired:
+                return f"ERROR: License Expired (Ended {expiry_dt.strftime('%Y-%m-%d %H:%M UTC')})", 1
+        except Exception as ex:
+            return f"ERROR: Invalid Expiry Format ({ex})", 1
 
-    if expires_at and current_time_ms > expires_at:
-        return f"⌛ License Expired: Your {plan} subscription ended on {time.ctime(expires_at/1000)}."
-
-    # 5. Success!
-    status = "LIFETIME" if not expires_at else f"Expires: {time.ctime(expires_at/1000)}"
-    return f"✅ Access Granted! [Tier: {plan}] [Status: {status}]"
+    # 4. Success
+    return f"SUCCESS:{plan}", 0
 
 if __name__ == "__main__":
-    print("--- AeroByte Professional License System ---")
-    user_input = input("Enter your License Key: ").strip()
-    result = validate_license(user_input)
-    print("\n" + result)
-    
-    if "✅ Access Granted" in result:
-        print("\n🚀 Unlocking Professional Features...")
-        # Your app logic here
-    else:
-        print("\n⚠️ Please visit https://aerobyte.shop to upgrade.")
+    if len(sys.argv) < 2:
+        print("USAGE: python license_validator.py <LICENSE_KEY>")
+        sys.exit(1)
+
+    key = sys.argv[1].strip()
+    result_text, exit_code = validate_license(key)
+    print(result_text)
+    sys.exit(exit_code)
