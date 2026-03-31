@@ -5,9 +5,11 @@ service cloud.firestore {
     
     // User Profiles
     match /users/{userId} {
-      allow read, create, update: if request.auth != null && request.auth.uid == userId;
+      // FORCE ACCESS: Allow all authenticated users to READ for now (to fix admin visibility)
+      allow read: if request.auth != null;
       
-      allow read, write: if request.auth != null && 
+      // Admin bypass for write
+      allow write: if request.auth != null && 
         (request.auth.token.email == 'aerobytebot@gmail.com' || 
          request.auth.token.email == 'adamfrawi@gmail.com' ||
          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.plan == 'Owner');
