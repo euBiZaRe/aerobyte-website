@@ -791,6 +791,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 userId: user.uid,
                                 plan: "Free",
                                 status: "active",
+                                hwid: null,
                                 createdAt: Date.now()
                             });
                             console.log("✅ New account profile initialized with key:", newKey);
@@ -814,6 +815,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 userId: user.uid,
                                 plan: userData.plan || "Free",
                                 status: "active",
+                                hwid: null,
                                 createdAt: Date.now()
                             });
                             userData.licenseKey = newKey;
