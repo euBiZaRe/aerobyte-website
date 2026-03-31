@@ -4,3 +4,4 @@ requests
 google-cloud-firestore
 google-api-python-client
 urllib3
+aiohttp

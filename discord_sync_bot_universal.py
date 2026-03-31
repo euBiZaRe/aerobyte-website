@@ -6,6 +6,8 @@ import time
 from pathlib import Path
 from typing import Any
 
+import aiohttp
+from aiohttp import web
 import discord
 import google.auth.transport.requests
 import requests
@@ -292,6 +294,21 @@ async def expiry_loop() -> None:
             logger.exception("Unexpected expiry loop failure.")
 
 
+async def handle_ping(request):
+    return web.Response(text="Bot is alive!")
+
+
+async def start_web_server():
+    app = web.Application()
+    app.router.add_get("/", handle_ping)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    port = int(os.getenv("PORT", 8080))
+    site = web.TCPSite(runner, "0.0.0.0", port)
+    logger.info("Starting heartbeat web server on port %s", port)
+    await site.start()
+
+
 @bot.event
 async def on_ready() -> None:
     global sync_task, expiry_task
@@ -299,6 +316,9 @@ async def on_ready() -> None:
     logger.info("Logged in as %s (%s)", bot.user, bot.user.id if bot.user else "unknown")
     for guild in bot.guilds:
         logger.info("Connected to server: %s (%s)", guild.name, guild.id)
+
+    # Start heartbeat server
+    asyncio.create_task(start_web_server())
 
     if sync_task is None or sync_task.done():
         sync_task = asyncio.create_task(sync_loop(), name="firestore-sync-loop")
