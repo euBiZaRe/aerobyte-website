@@ -47,7 +47,14 @@ const handleDiscordHash = () => {
         const discordStatusMsg = document.getElementById('discordStatusMsg');
         const loginBanner = document.getElementById('loginStatusBanner');
         const loginText = document.getElementById('loginStatusText');
-        if (discordStatusMsg) { discordStatusMsg.textContent = msg; discordStatusMsg.style.display = 'block'; discordStatusMsg.style.color = color; }
+        
+        console.log(`[SSO Status] ${msg}`); // Always log
+        
+        if (discordStatusMsg) { 
+            discordStatusMsg.textContent = msg; 
+            discordStatusMsg.style.display = 'block'; 
+            discordStatusMsg.style.color = color; 
+        }
         if (loginBanner) loginBanner.style.display = 'block';
         if (loginText) loginText.textContent = msg;
     };
@@ -123,8 +130,15 @@ const handleDiscordHash = () => {
     });
 };
 
-// Start Handshake IMMEDIATELY
-handleDiscordHash();
+// Start Handshake IMMEDIATELY with Safety Box
+try {
+    handleDiscordHash();
+} catch (e) {
+    console.error("🚨 Critical SSO Execution Failure:", e);
+    // Force release lock if we crashed internally
+    window.DISCORD_SSO_LOCK = false;
+    sessionStorage.removeItem('discordSSOInProgress');
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     let stripe = null;
@@ -182,6 +196,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>`;
             document.body.insertAdjacentHTML('beforeend', authHTML);
+
+            // ATTACH DISCORD LISTENER IMMEDIATELY AFTER INJECTION
+            const discordBtn = document.getElementById('discordLoginBtn');
+            if (discordBtn) {
+                discordBtn.addEventListener('click', () => {
+                    const CLIENT_ID = '1219213136270659616';
+                    const REDIRECT_URI = encodeURIComponent(window.location.origin + '/profile.html');
+                    const url = `https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=token&scope=identify%20email`;
+                    
+                    localStorage.setItem('waitingForDiscord', 'true');
+                    window.location.href = url;
+                });
+            }
         }
 
         if (!document.getElementById('checkoutModal')) {
@@ -1819,7 +1846,5 @@ document.addEventListener('DOMContentLoaded', () => {
             if (statusText) statusText.textContent = "Manual Override Triggered. Initializing...";
             loadStripeElements();
         }
-    });
-
     });
 });
