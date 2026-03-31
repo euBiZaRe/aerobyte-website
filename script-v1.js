@@ -1847,4 +1847,18 @@ document.addEventListener('DOMContentLoaded', () => {
             loadStripeElements();
         }
     });
+
+    // Profile Logout Listener
+    const profileLogoutBtn = document.getElementById('profileLogoutBtn');
+    if (profileLogoutBtn) {
+        profileLogoutBtn.addEventListener('click', () => {
+            signOut(auth).then(() => {
+                localStorage.removeItem('isLoggedIn');
+                window.location.href = 'index.html';
+            }).catch(err => {
+                console.error("Sign Out Error:", err);
+                alert("Error signing out: " + err.message);
+            });
+        });
+    }
 });
