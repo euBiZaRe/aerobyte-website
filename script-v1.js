@@ -940,6 +940,24 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
+        // --- GLOBAL EXPIRATION DOWNGRADER (runs on every page) ---
+        if (user) {
+            getDoc(doc(db, "users", user.uid)).then(async (userDoc) => {
+                if (!userDoc.exists()) return;
+                const userData = userDoc.data();
+                const plan = userData.plan;
+                const expiresAt = Number(userData.expiresAt);
+
+                if ((plan === "Premium" || plan === "Trial") && expiresAt > 0 && Date.now() > expiresAt) {
+                    console.log(`⏰ Plan expired for ${user.email}. Downgrading to Free...`);
+                    await updateDoc(doc(db, "users", user.uid), { plan: "Free", expiresAt: null });
+                    console.log("✅ Downgraded to Free.");
+                    // Reload profile page so UI reflects the change immediately
+                    if (isProfilePage) window.location.reload();
+                }
+            }).catch(err => console.warn("⚠️ Expiry check failed:", err.message));
+        }
+
         // Profile Page specific logic
         if (isProfilePage && user) {
             const profileEmail = document.getElementById('profileEmail');
