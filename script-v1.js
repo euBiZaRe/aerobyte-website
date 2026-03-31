@@ -1653,11 +1653,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- DISCORD OAUTH LOGIC ---
     const DISCORD_CLIENT_ID = '1486472707825467463';
     
-    // Automatically detect redirect URI; fallback to production if on local file
-    let REDIRECT_URI = window.location.origin + window.location.pathname;
-    if (window.location.protocol === 'file:' || window.location.hostname === '') {
-        REDIRECT_URI = 'https://aerobyte.shop/' + (window.location.pathname.split('/').pop() || 'index.html');
-    }
+    // Force a strict Redirect URI to match Discord Developer Portal exactly (Option A).
+    // Using profile.html as the universal callback destination.
+    let REDIRECT_URI = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+        ? 'http://localhost:3000/profile.html' 
+        : 'https://aerobyte.shop/profile.html';
 
     const handleDiscordOAuth = () => {
         localStorage.setItem('waitingForDiscord', 'true');
