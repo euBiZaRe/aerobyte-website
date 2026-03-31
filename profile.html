@@ -11,6 +11,13 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://js.stripe.com/v3/"></script>
     <link rel="stylesheet" href="styles.css?v=3.5">
+    <script>
+        // Synchronous Redirect Guard for Discord SSO
+        if (window.location.hash.includes('access_token=')) {
+            window.DISCORD_SSO_LOCK = true;
+            console.log("🛑 Discord SSO Lock Engaged (Inline)");
+        }
+    </script>
 </head>
 
 <body>
@@ -117,7 +124,7 @@
         </div>
     </footer>
 
-    <script type="module" src="script-v1.js?v=3.9"></script>
+    <script type="module" src="script-v1.js?v=4.0"></script>
 </body>
 
 </html>

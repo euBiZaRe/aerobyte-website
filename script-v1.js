@@ -19,18 +19,118 @@ const db = getFirestore(app);
 const STRIPE_PK = 'pk_test_51TFKE1IlExQEZUkSBzHPPiTVBWXwQRvpmW3HlVK7wT35MrB0FDyu2dEzLKvNIre6E70huYkcX5mdgRZtmen2D20700hv4OukTE';
 const BACKEND_URL = 'https://aerobyte-website.onrender.com';
 
+// --- TOP LEVEL HELPERS (Prioritized) ---
+const generateLicenseKey = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    const rand = (len) => Array.from({length: len}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+    return `${rand(4)}-${rand(4)}-${rand(4)}-${rand(4)}`;
+};
+
+// --- GLOBAL DISCORD OAUTH HANDLER (v4.0) ---
+const handleDiscordHash = () => {
+    const hash = window.location.hash;
+    if (!hash.includes('access_token=')) return;
+    
+    const isLinkingAction = window.location.pathname.includes('profile.html') || localStorage.getItem('waitingForDiscord') === 'true';
+    if (!isLinkingAction) return;
+
+    const params = new URLSearchParams(hash.substring(1));
+    const accessToken = params.get('access_token');
+    if (!accessToken) return;
+
+    // Engaged! Block all redirects immediately
+    window.DISCORD_SSO_LOCK = true; 
+    sessionStorage.setItem('discordSSOInProgress', 'true');
+    console.log("🔄 Starting Secure Discord Handshake...");
+
+    const updateStatus = (msg, color = '#fff') => {
+        const discordStatusMsg = document.getElementById('discordStatusMsg');
+        const loginBanner = document.getElementById('loginStatusBanner');
+        const loginText = document.getElementById('loginStatusText');
+        if (discordStatusMsg) { discordStatusMsg.textContent = msg; discordStatusMsg.style.display = 'block'; discordStatusMsg.style.color = color; }
+        if (loginBanner) loginBanner.style.display = 'block';
+        if (loginText) loginText.textContent = msg;
+    };
+
+    updateStatus('Verifying Discord Identity...');
+
+    fetch('https://discord.com/api/users/@me', {
+        headers: { 'Authorization': `Bearer ${accessToken}` }
+    })
+    .then(res => res.json())
+    .then(async discordUser => {
+        if (!discordUser.id) throw new Error("Discord API error.");
+        
+        const currentUser = auth.currentUser;
+        if (currentUser) {
+            updateStatus(`Linking ${discordUser.username}...`);
+            await updateDoc(doc(db, "users", currentUser.uid), {
+                discordId: String(discordUser.id),
+                discordUsername: discordUser.username,
+                discordAvatar: discordUser.avatar || null
+            });
+            updateStatus(`Successfully Linked!`, '#10B981');
+            sessionStorage.removeItem('discordSSOInProgress');
+            window.DISCORD_SSO_LOCK = false;
+            window.history.replaceState({}, document.title, window.location.pathname);
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            updateStatus(`Authenticating...`);
+            const synthEmail = `discord_${discordUser.id}@aerobyte.shop`;
+            const synthPass = `Aero!Discord!${discordUser.id}`;
+            
+            try {
+                await signInWithEmailAndPassword(auth, synthEmail, synthPass);
+                updateStatus(`Welcome back, ${discordUser.username}!`, '#10B981');
+                sessionStorage.removeItem('discordSSOInProgress');
+                window.DISCORD_SSO_LOCK = false;
+                window.history.replaceState({}, document.title, window.location.pathname);
+            } catch (loginErr) {
+                const isNewUser = loginErr.code === 'auth/user-not-found' || 
+                                 loginErr.code.includes('invalid-credential') || 
+                                 loginErr.code.includes('invalid-login-credentials');
+
+                if (isNewUser) {
+                    updateStatus(`Creating account for ${discordUser.username}...`);
+                    const newCreds = await createUserWithEmailAndPassword(auth, synthEmail, synthPass);
+                    const newUser = newCreds.user;
+                    const newKey = generateLicenseKey();
+                    
+                    await setDoc(doc(db, "users", newUser.uid), {
+                        email: synthEmail, plan: "Free", licenseKey: newKey,
+                        discordId: String(discordUser.id), discordUsername: discordUser.username,
+                        discordAvatar: discordUser.avatar || null, createdAt: Date.now()
+                    });
+                    
+                    await setDoc(doc(db, "licenses", newKey), {
+                        userId: newUser.uid, plan: "Free", status: "active", hwid: null, createdAt: Date.now()
+                    });
+                    
+                    updateStatus(`Success! Syncing Profile...`, '#10B981');
+                    sessionStorage.removeItem('discordSSOInProgress');
+                    window.DISCORD_SSO_LOCK = false;
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                } else { throw loginErr; }
+            }
+        }
+    }).catch(err => {
+        console.error("❌ OAuth Error:", err);
+        updateStatus("Failed: " + err.message, "#ff4d4d");
+        sessionStorage.removeItem('discordSSOInProgress');
+        window.DISCORD_SSO_LOCK = false;
+        window.history.replaceState({}, document.title, window.location.pathname);
+        if (window.location.pathname.includes('profile.html')) setTimeout(() => { window.location.href = 'index.html'; }, 3000);
+    });
+};
+
+// Start Handshake IMMEDIATELY
+handleDiscordHash();
+
 document.addEventListener('DOMContentLoaded', () => {
     let stripe = null;
 
     // PRE-WARM BACKEND (Wake up Render free instance immediately)
-    fetch(BACKEND_URL).catch(() => {}); 
-
-    // Helper to generate a standardized license key
-    const generateLicenseKey = () => {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-        const rand = (len) => Array.from({length: len}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-        return `${rand(4)}-${rand(4)}-${rand(4)}-${rand(4)}`;
-    };
+    fetch(BACKEND_URL).catch(() => {});
 
     try {
         if (typeof Stripe !== 'undefined') {
@@ -773,10 +873,11 @@ document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, (user) => {
         const hasDiscordHash = window.location.hash.includes('access_token=');
         const ssoInProgress = sessionStorage.getItem('discordSSOInProgress') === 'true';
+        const globalLock = window.DISCORD_SSO_LOCK === true;
 
         // Redirect if on profile page and not logged in (UNLESS we are currently processing a Discord SSO)
         if (isProfilePage && !user) {
-            if (hasDiscordHash || ssoInProgress) {
+            if (hasDiscordHash || ssoInProgress || globalLock) {
                 console.log("⏳ Profile: Delaying guest redirect (Discord SSO active)...");
                 return; 
             }
@@ -1720,134 +1821,5 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- GLOBAL DISCORD OAUTH HANDLER (v3.4) ---
-    const handleDiscordHash = () => {
-        const hash = window.location.hash;
-        if (!hash.includes('access_token=')) return;
-        
-        // Use 'waitingForDiscord' or being on profile as a trigger
-        const isLinkingAction = window.location.pathname.includes('profile.html') || localStorage.getItem('waitingForDiscord') === 'true';
-        if (!isLinkingAction) return;
-
-        const params = new URLSearchParams(hash.substring(1));
-        const accessToken = params.get('access_token');
-        if (!accessToken) return;
-
-        // --- NEW: SECURE PROCESSING STATE ---
-        sessionStorage.setItem('discordSSOInProgress', 'true');
-        console.log("🔄 Starting Secure Discord Handshake...");
-
-        // Show a temporary status if on profile
-        const discordStatusMsg = document.getElementById('discordStatusMsg');
-        const loginBanner = document.getElementById('loginStatusBanner');
-        const loginText = document.getElementById('loginStatusText');
-
-        const updateStatus = (msg, color = '#fff') => {
-            if (discordStatusMsg) { discordStatusMsg.textContent = msg; discordStatusMsg.style.display = 'block'; discordStatusMsg.style.color = color; }
-            if (loginBanner) loginBanner.style.display = 'block';
-            if (loginText) loginText.textContent = msg;
-        };
-
-        updateStatus('Verifying Discord Identity...');
-
-        fetch('https://discord.com/api/users/@me', {
-            headers: { 'Authorization': `Bearer ${accessToken}` }
-        })
-        .then(res => res.json())
-        .then(async discordUser => {
-            if (!discordUser.id) throw new Error("Discord API error: Handshake failed.");
-            
-            const currentUser = auth.currentUser;
-            if (currentUser) {
-                updateStatus(`Linking ${discordUser.username}...`);
-                // Case A: User is already logged in - Link immediately
-                await updateDoc(doc(db, "users", currentUser.uid), {
-                    discordId: String(discordUser.id),
-                    discordUsername: discordUser.username,
-                    discordAvatar: discordUser.avatar || null
-                });
-                console.log("✅ Discord Linked Successfully!");
-                
-                updateStatus(`Successfully Linked: ${discordUser.username}`, '#10B981');
-                
-                // Cleanup and Reload
-                sessionStorage.removeItem('discordSSOInProgress');
-                window.history.replaceState({}, document.title, window.location.pathname);
-                setTimeout(() => window.location.reload(), 1000);
-            } else {
-                // Case B: Guest - 1-Click Discord SSO!
-                updateStatus(`Authenticating via Discord...`);
-                console.log("🛠️ Initializing 1-Click Discord Sign On for:", discordUser.username);
-                
-                const synthEmail = `discord_${discordUser.id}@aerobyte.shop`;
-                const synthPass = `Aero!Discord!${discordUser.id}`; // Deterministic, secure key
-                
-                try {
-                    // Try to Log In first
-                    await signInWithEmailAndPassword(auth, synthEmail, synthPass);
-                    updateStatus(`Welcome back, ${discordUser.username}!`, '#10B981');
-                    console.log("✅ Discord SSO Login Successful!");
-                    
-                    // Finalize and Clean Up
-                    sessionStorage.removeItem('discordSSOInProgress');
-                    window.history.replaceState({}, document.title, window.location.pathname);
-                } catch (loginErr) {
-                    // If login fails, account doesn't exist. Create it!
-                    const isNewUser = loginErr.code === 'auth/user-not-found' || 
-                                     loginErr.code === 'auth/invalid-credential' || 
-                                     loginErr.code === 'auth/invalid-login-credentials' ||
-                                     loginErr.code === 'auth/id-token-expired';
-
-                    if (isNewUser) {
-                        updateStatus(`Provisioning License for ${discordUser.username}...`);
-                        console.log("🛠️ First time Discord user. Provisioning account...");
-                        
-                        const newCreds = await createUserWithEmailAndPassword(auth, synthEmail, synthPass);
-                        const newUser = newCreds.user;
-                        const newKey = generateLicenseKey();
-                        
-                        await setDoc(doc(db, "users", newUser.uid), {
-                            email: synthEmail,
-                            plan: "Free",
-                            licenseKey: newKey,
-                            discordId: String(discordUser.id),
-                            discordUsername: discordUser.username,
-                            discordAvatar: discordUser.avatar || null,
-                            createdAt: Date.now()
-                        });
-                        
-                        await setDoc(doc(db, "licenses", newKey), {
-                            userId: newUser.uid,
-                            plan: "Free",
-                            status: "active",
-                            hwid: null,
-                            createdAt: Date.now()
-                        });
-                        
-                        updateStatus(`Account Created! Syncing profile...`, '#10B981');
-                        console.log("✅ Discord SSO Provisioning Complete!");
-                        
-                        // Finalize and Clean Up
-                        sessionStorage.removeItem('discordSSOInProgress');
-                        window.history.replaceState({}, document.title, window.location.pathname);
-                    } else {
-                        throw loginErr;
-                    }
-                }
-            }
-        }).catch(err => {
-            console.error("❌ Discord OAuth Error:", err);
-            updateStatus("Authentication Failed: " + err.message, "#ff4d4d");
-            
-            // Critical: If we failed, we MUST clear the blocker so the redirect can happen (or user can retry)
-            sessionStorage.removeItem('discordSSOInProgress');
-            window.history.replaceState({}, document.title, window.location.pathname);
-
-            // If it failed and we are on profile page as a guest, we MUST redirect now
-            if (isProfilePage && !auth.currentUser) {
-                setTimeout(() => { window.location.href = 'index.html'; }, 3000);
-            }
-        });
-    };
-    handleDiscordHash();
+    });
 });
