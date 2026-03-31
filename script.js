@@ -1498,11 +1498,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
                             // --- AUTOMATED KEY LIFECYCLE MANAGEMENT ---
                             if (planVal === 'Free') {
-                                // Downscale: Delete key if it exists
                                 if (oldKey) {
-                                    await deleteDoc(doc(db, "licenses", oldKey));
-                                    updateData.licenseKey = null;
+                                    await updateDoc(doc(db, "licenses", oldKey), { plan: "Free" });
                                 }
+                                updateData.expiresAt = null;
                             } else if (planVal !== oldPlan || !oldKey) {
                                 // Plan changed OR user has no key yet: Issue new key
                                 const genKey = () => {

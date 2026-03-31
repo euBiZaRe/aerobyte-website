@@ -1376,10 +1376,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         const plan = regenBtn.getAttribute('data-plan');
                         const oldKey = regenBtn.getAttribute('data-key');
 
-                        if (plan === 'Free') {
-                            alert("Cannot generate keys for Free users.");
-                            return;
-                        }
 
                         if (oldKey) {
                             regenBtn.style.display = 'none';
@@ -1478,7 +1474,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             let updateData = { plan: planVal, expiresAt: expiresAt };
 
                             if (planVal === 'Free') {
-                                if (oldKey) { await deleteDoc(doc(db, "licenses", oldKey)); updateData.licenseKey = null; }
+                                if (oldKey) { await updateDoc(doc(db, "licenses", oldKey), { plan: "Free" }); }
+                                updateData.expiresAt = null;
                             } else if (planVal !== oldPlan || !oldKey) {
                                 const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
                                 const rand = (len) => Array.from({length: len}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
