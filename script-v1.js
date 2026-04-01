@@ -163,6 +163,9 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error("❌ Stripe Initialization Error:", e);
     }
     let elements;
+    
+    // Initialize Modals
+    setTimeout(injectModals, 0); 
 
     // --- DYNAMIC MODAL INJECTION ---
     const injectModals = () => {
@@ -1330,15 +1333,22 @@ document.addEventListener('DOMContentLoaded', () => {
                     planBadge.textContent = "Free Plan";
                 });
             }
+        }
 
-            // Reveal Admin Panel
-            if (user.email === 'aerobytebot@gmail.com' || user.email === 'adamfrawi@gmail.com') {
-                    // Dedicated Admin Page Specific Logic
+        // --- DEDICATED ADMIN DASHBOARD LOGIC ---
         const isAdminPage = window.location.pathname.toLowerCase().includes('admin');
         if (isAdminPage) {
             authResolved = true;
 
             if (!user) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            // Check for admin permission
+            const adminEmails = ['aerobytebot@gmail.com', 'adamfrawi@gmail.com'];
+            if (!adminEmails.includes(user.email)) {
+                console.warn("⛔ Unauthorized admin access attempt:", user.email);
                 window.location.href = 'index.html';
                 return;
             }
@@ -1350,11 +1360,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log("🔄 SaaS Dashboard Syncing...");
                 
                 try {
-                    const fetchWithLog = async (name, query) => {
-                        const snap = await getDocs(query);
-                        return snap;
-                    };
-
                     const [userSnap, licSnap, promoSnap] = await Promise.all([
                         getDocs(collection(db, "users")),
                         getDocs(collection(db, "licenses")),
@@ -1516,12 +1521,13 @@ document.addEventListener('DOMContentLoaded', () => {
             // Tabs / Sidebar Logic
             const navItems = document.querySelectorAll('.saas-nav-item');
             navItems.forEach(item => {
-                item.onclick = () => {
+                const navItemClick = () => {
                     navItems.forEach(i => i.classList.remove('active'));
                     item.classList.add('active');
                     const tabName = item.textContent.trim();
                     if (tabName === 'User Database') refreshDashboard();
                 };
+                item.addEventListener('click', navItemClick);
             });
 
             // Promotion Generator
