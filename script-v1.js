@@ -1540,6 +1540,13 @@ const initAeroByte = () => {
 
                         const initials = (user.discordUsername || user.email || "A").charAt(0).toUpperCase();
                         const planClass = (user.plan === 'Owner' || user.plan === 'Premium') ? 'saas-pill-purple' : 'saas-pill-blue';
+                        let expiryInfo = '';
+                        if (user.plan === 'Trial' && user.planExpiresAt) {
+                            const expDate = new Date(user.planExpiresAt);
+                            const now = Date.now();
+                            const diffDays = Math.ceil((user.planExpiresAt - now) / (1000 * 60 * 60 * 24));
+                            expiryInfo = `<p style="font-size: 0.6rem; color: ${diffDays < 3 ? 'var(--danger)' : 'var(--text-muted)'}; margin-top: 4px;">Exp: ${expDate.toLocaleDateString()} (${diffDays}d)</p>`;
+                        }
 
                         userRow.innerHTML = `
                             <div class="saas-user-info">
@@ -1549,7 +1556,10 @@ const initAeroByte = () => {
                                     <p style="font-size: 0.7rem; color: var(--text-muted); margin:0;">${user.email}</p>
                                 </div>
                             </div>
-                            <div><span class="saas-pill ${planClass}">${user.plan}</span></div>
+                            <div>
+                                <span class="saas-pill ${planClass}">${user.plan}</span>
+                                ${expiryInfo}
+                            </div>
                             <div>
                                 <div class="saas-status-dot" style="background: ${statusColor};"></div>
                                 <span style="font-size: 0.75rem; color: var(--text-muted); margin-left: 10px;">${statusLabel}</span>
@@ -1696,96 +1706,103 @@ const initAeroByte = () => {
                 };
             }
 
+            const showUserSettingsModal = async (uid) => {
+                try {
+                    const userDoc = await getDoc(doc(db, "users", uid));
+                    if (!userDoc.exists()) return;
+                    const userData = userDoc.data();
+
+                    let overlay = document.getElementById('userSettingsModal');
+                    if (!overlay) {
+                        overlay = document.createElement('div');
+                        overlay.id = 'userSettingsModal';
+                        overlay.style = `position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:2000;opacity:0;visibility:hidden;transition:all 0.3s ease;`;
+                        document.body.appendChild(overlay);
+                    }
+
+                    overlay.innerHTML = `
+                        <div class="saas-card" style="width: 400px; padding: 30px; border: 1px solid var(--primary); box-shadow: 0 0 30px var(--glow-purple);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                                <h3 style="margin: 0; color: #fff;">Manage User</h3>
+                                <button id="closeUserSettings" style="background: none; border: none; color: var(--text-muted); cursor: pointer;"><i class="fas fa-times"></i></button>
+                            </div>
+                            
+                            <div style="text-align: center; margin-bottom: 25px;">
+                                <div class="saas-avatar" style="width: 60px; height: 60px; margin: 0 auto 10px; font-size: 1.5rem; background: var(--gradient-saas);">
+                                    ${(userData.discordUsername || userData.email || "A").charAt(0).toUpperCase()}
+                                </div>
+                                <p style="font-weight: 700; color: #fff; margin: 0;">${userData.discordUsername || 'Unlinked User'}</p>
+                                <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0;">${userData.email}</p>
+                            </div>
+
+                            <div style="margin-bottom: 20px;">
+                                <label style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 8px;">Subscription Plan</label>
+                                <select id="editUserPlan" style="width: 100%; background: #0F172A; border: 1px solid var(--border-color); color: #fff; padding: 12px; border-radius: 8px; font-family: inherit;">
+                                    <option value="Trial" ${userData.plan === 'Trial' ? 'selected' : ''}>Trial</option>
+                                    <option value="Premium" ${userData.plan === 'Premium' ? 'selected' : ''}>Premium</option>
+                                    <option value="Lifetime" ${userData.plan === 'Lifetime' ? 'selected' : ''}>Lifetime</option>
+                                    <option value="Owner" ${userData.plan === 'Owner' ? 'selected' : ''}>Owner</option>
+                                </select>
+                            </div>
+
+                            <div id="trialDurationSection" style="margin-bottom: 20px; display: ${userData.plan === 'Trial' ? 'block' : 'none'};">
+                                <label style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 8px;">Trial Validity (Days)</label>
+                                <input type="number" id="editTrialDays" value="30" style="width: 100%; background: #0F172A; border: 1px solid var(--border-color); color: #fff; padding: 12px; border-radius: 8px; font-family: inherit;">
+                                <p style="font-size: 0.6rem; color: var(--accent); margin-top: 5px;">* Trial will expire X days from now.</p>
+                            </div>
+
+                            <button id="saveUserSetttings" class="btn-primary" style="width: 100%;" data-uid="${uid}">
+                                <i class="fas fa-save"></i> Update Membership
+                            </button>
+                        </div>
+                    `;
+
+                    const planSelect = overlay.querySelector('#editUserPlan');
+                    const trialSection = overlay.querySelector('#trialDurationSection');
+                    planSelect.onchange = (e) => {
+                        trialSection.style.display = e.target.value === 'Trial' ? 'block' : 'none';
+                    };
+
+                    overlay.style.opacity = '1';
+                    overlay.style.visibility = 'visible';
+
+                    overlay.querySelector('#closeUserSettings').onclick = () => {
+                        overlay.style.opacity = '0';
+                        overlay.style.visibility = 'hidden';
+                    };
+
+                    overlay.querySelector('#saveUserSetttings').onclick = async () => {
+                        const newPlan = planSelect.value;
+                        const saveBtn = overlay.querySelector('#saveUserSetttings');
+                        saveBtn.disabled = true;
+                        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+                        
+                        try {
+                            const updateData = { plan: newPlan };
+                            if (newPlan === 'Trial') {
+                                const days = parseInt(document.getElementById('editTrialDays').value) || 30;
+                                updateData.planExpiresAt = Date.now() + (days * 24 * 60 * 60 * 1000);
+                            } else {
+                                updateData.planExpiresAt = null; // Lifetime/Owner etc don't expire
+                            }
+
+                            await updateDoc(doc(db, "users", uid), updateData);
+                            overlay.style.opacity = '0';
+                            overlay.style.visibility = 'hidden';
+                            refreshDashboard();
+                        } catch (err) {
+                            alert("Error: " + err.message);
+                            saveBtn.disabled = false;
+                            saveBtn.innerHTML = '<i class="fas fa-save"></i> Update Membership';
+                        }
+                    };
+                } catch (err) { alert(err.message); }
+            };
+
             refreshStats(); // Initial load
             refreshDashboard();
         }
 
-        // --- USER SETTINGS MODAL (v5.8) ---
-        const showUserSettingsModal = async (uid) => {
-            try {
-                const userDoc = await getDoc(doc(db, "users", uid));
-                if (!userDoc.exists()) return;
-                const userData = userDoc.data();
-
-                // Create overlay if not exists
-                let overlay = document.getElementById('userSettingsModal');
-                if (!overlay) {
-                    overlay = document.createElement('div');
-                    overlay.id = 'userSettingsModal';
-                    overlay.className = 'modal-overlay'; // Assuming styles exist or adding them
-                    overlay.style = `
-                        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-                        background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);
-                        display: flex; align-items: center; justify-content: center; z-index: 2000;
-                        opacity: 0; visibility: hidden; transition: all 0.3s ease;
-                    `;
-                    document.body.appendChild(overlay);
-                }
-
-                overlay.innerHTML = `
-                    <div class="saas-card" style="width: 400px; padding: 30px; border: 1px solid var(--primary); box-shadow: 0 0 30px var(--glow-purple);">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                            <h3 style="margin: 0; color: #fff;">Manage User</h3>
-                            <button id="closeUserSettings" style="background: none; border: none; color: var(--text-muted); cursor: pointer;"><i class="fas fa-times"></i></button>
-                        </div>
-                        
-                        <div style="text-align: center; margin-bottom: 25px;">
-                            <div class="saas-avatar" style="width: 60px; height: 60px; margin: 0 auto 10px; font-size: 1.5rem; background: var(--gradient-saas);">
-                                ${(userData.discordUsername || userData.email || "A").charAt(0).toUpperCase()}
-                            </div>
-                            <p style="font-weight: 700; color: #fff; margin: 0;">${userData.discordUsername || 'Unlinked User'}</p>
-                            <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0;">${userData.email}</p>
-                        </div>
-
-                        <div style="margin-bottom: 20px;">
-                            <label style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 8px;">Subscription Plan</label>
-                            <select id="editUserPlan" style="width: 100%; background: #0F172A; border: 1px solid var(--border-color); color: #fff; padding: 12px; border-radius: 8px; font-family: inherit;">
-                                <option value="Trial" ${userData.plan === 'Trial' ? 'selected' : ''}>Trial</option>
-                                <option value="Premium" ${userData.plan === 'Premium' ? 'selected' : ''}>Premium</option>
-                                <option value="Lifetime" ${userData.plan === 'Lifetime' ? 'selected' : ''}>Lifetime</option>
-                                <option value="Owner" ${userData.plan === 'Owner' ? 'selected' : ''}>Owner</option>
-                            </select>
-                        </div>
-
-                        <button id="saveUserSetttings" class="btn-primary" style="width: 100%;" data-uid="${uid}">
-                            <i class="fas fa-save"></i> Update Membership
-                        </button>
-                    </div>
-                `;
-
-                overlay.style.opacity = '1';
-                overlay.style.visibility = 'visible';
-
-                // Close logic
-                const closeBtn = overlay.querySelector('#closeUserSettings');
-                closeBtn.onclick = () => {
-                    overlay.style.opacity = '0';
-                    overlay.style.visibility = 'hidden';
-                };
-
-                // Save Logic
-                const saveBtn = overlay.querySelector('#saveUserSetttings');
-                saveBtn.onclick = async () => {
-                    const newPlan = document.getElementById('editUserPlan').value;
-                    saveBtn.disabled = true;
-                    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-                    
-                    try {
-                        await updateDoc(doc(db, "users", uid), { plan: newPlan });
-                        overlay.style.opacity = '0';
-                        overlay.style.visibility = 'hidden';
-                        refreshDashboard(); // Refresh current tab
-                    } catch (err) {
-                        alert("Error: " + err.message);
-                        saveBtn.disabled = false;
-                        saveBtn.innerHTML = '<i class="fas fa-save"></i> Update Membership';
-                    }
-                };
-
-            } catch (err) {
-                alert("Failed to load user data: " + err.message);
-            }
-        };
     });
 
     // --- DISCORD OAUTH LOGIC ---
