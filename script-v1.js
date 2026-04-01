@@ -152,6 +152,7 @@ try {
 const initAeroByte = () => {
     console.log("🛠️ Initializing AeroByte Core...");
     let stripe = null;
+    const ADMIN_EMAILS = ['aerobytebot@gmail.com', 'adamfrawi@gmail.com'];
 
     // PRE-WARM BACKEND (Wake up Render free instance immediately)
     fetch(BACKEND_URL).catch(() => {});
@@ -1325,8 +1326,14 @@ const initAeroByte = () => {
                                 </div>
                             `;
                             discordStatusMsg.style.display = 'block';
-                            discordStatusMsg.style.color = 'inherit';
                         }
+                    }
+
+                    // Show Admin Dashboard link if user is administrator
+                    const adminPanelLaunch = document.getElementById('adminPanelLaunch');
+                    if (adminPanelLaunch && ADMIN_EMAILS.includes(user.email)) {
+                        console.log("🛡️ Admin mode detected. Showing dashboard launch button.");
+                        adminPanelLaunch.style.display = 'block';
                     }
 
                     // (OAuth handling moved to top-level for guest support)
@@ -1348,8 +1355,7 @@ const initAeroByte = () => {
             }
 
             // Check for admin permission
-            const adminEmails = ['aerobytebot@gmail.com', 'adamfrawi@gmail.com'];
-            if (!adminEmails.includes(user.email)) {
+            if (!ADMIN_EMAILS.includes(user.email)) {
                 console.warn("⛔ Unauthorized admin access attempt:", user.email);
                 window.location.href = 'index.html';
                 return;
