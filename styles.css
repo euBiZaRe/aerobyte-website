@@ -15,6 +15,7 @@
     --glow-purple: rgba(124, 58, 237, 0.3);
     --glow-blue: rgba(59, 130, 246, 0.3);
     --gradient-saas: linear-gradient(135deg, #7C3AED, #3B82F6);
+    --gradient-glow: linear-gradient(90deg, #7C3AED, #3B82F6); /* Default glow gradient */
     --font-heading: 'Outfit', sans-serif;
     --font-body: 'Inter', sans-serif;
 }
