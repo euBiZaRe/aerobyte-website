@@ -1463,9 +1463,10 @@ const initAeroByte = () => {
                                             <span style="font-size:0.6rem; color:#10B981; font-weight:bold;">Active</span>
                                         </div>
                                         <code class="admin-license-mask" data-key="${pKey}" style="font-family:monospace; font-size:0.75rem; color:var(--primary); margin: 5px 0; cursor:pointer;">••••-••••-••••-••••</code>
-                                        <div style="display:flex; gap:6px;">
+                                        <div style="display:flex; gap:8px;">
                                             <button class="saas-manage-btn action-reset-hwid" data-uid="${user.id}" data-key="${pKey}" data-product="${p}">HWID</button>
                                             <button class="saas-manage-btn action-regen-key" data-uid="${user.id}" data-key="${pKey}" data-plan="${user.plan || 'Trial'}" data-product="${p}">Regen</button>
+                                            ${pKey && pKey !== 'None' ? `<button class="saas-ban-btn action-ban-hwid" data-uid="${user.id}" data-key="${pKey}" data-product="${p}"><i class="fas fa-hammer"></i> BAN</button>` : ''}
                                         </div>
                                     </div>`;
                             } else {
@@ -1644,6 +1645,47 @@ const initAeroByte = () => {
                     catch (err) { alert(err.message); }
                 }
 
+                if (target.classList.contains('action-ban-hwid')) {
+                    if (!confirm("Are you sure you want to BAN this HWID? This will prevent all access from this device.")) return;
+                    // First, get the current license doc to see if it even HAS an HWID
+                    try {
+                        const licSnap = await getDoc(doc(db, "licenses", key));
+                        if (!licSnap.exists() || !licSnap.data().hwid) {
+                            alert("This license does not have an associated HWID to ban yet.");
+                            return;
+                        }
+                        const curHwid = licSnap.data().hwid;
+                        const reason = prompt("Enter ban reason:", "Violating Terms of Service");
+                        if (!reason) return;
+
+                        // Add to banned_hwids
+                        await setDoc(doc(db, "banned_hwids", curHwid), {
+                            hwid: curHwid,
+                            reason: reason,
+                            bannedAt: Date.now(),
+                            bannedBy: auth.currentUser.email,
+                            originalKey: key,
+                            originalUser: uid
+                        });
+
+                        // Mark license as banned
+                        await updateDoc(doc(db, "licenses", key), { status: "banned", hwid: "BANNED" });
+                        alert("HWID Banned Successfully!");
+                        refreshLicenses();
+                    } catch (err) { alert(err.message); }
+                }
+
+                if (target.classList.contains('action-unban-hwid')) {
+                    const bHwid = target.getAttribute('data-hwid');
+                    if (confirm(`Unban HWID: ${bHwid}?`)) {
+                        try {
+                            await deleteDoc(doc(db, "banned_hwids", bHwid));
+                            alert("HWID Unbanned!");
+                            refreshBans();
+                        } catch (err) { alert(err.message); }
+                    }
+                }
+
                 if (target.classList.contains('action-manage')) {
                     showUserSettingsModal(uid);
                 }
@@ -1660,6 +1702,8 @@ const initAeroByte = () => {
             if (tbody) tbody.addEventListener('click', handleAdminAction);
             const invContainer = document.getElementById('adminLicenseInventoryBody');
             if (invContainer) invContainer.addEventListener('click', handleAdminAction);
+            const banContainer = document.getElementById('adminBansBody');
+            if (banContainer) banContainer.addEventListener('click', handleAdminAction);
 
             // Tabs / Sidebar Logic
             const navItems = document.querySelectorAll('.saas-nav-item');
@@ -1687,6 +1731,7 @@ const initAeroByte = () => {
                     if (tabId === 'tabUserDatabase') refreshDashboard();
                     if (tabId === 'tabLicenseKeys') refreshLicenses();
                     if (tabId === 'tabActivityLogs') refreshActivity();
+                    if (tabId === 'tabSecurityBans') refreshBans();
                 });
             });
 

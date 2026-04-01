@@ -25,6 +25,7 @@
                 <div class="saas-nav-item"><i class="fas fa-magic"></i> Generate Keys</div>
                 <div class="saas-nav-item"><i class="fas fa-history"></i> Activity Logs</div>
                 <div class="saas-nav-item"><i class="fas fa-cog"></i> Platform Settings</div>
+                <div class="saas-nav-item"><i class="fas fa-shield-alt"></i> Security Bans</div>
             </nav>
 
             <div class="sidebar-footer" style="margin-top: auto; padding-top: 20px; border-top: 1px solid var(--border-color);">
@@ -184,6 +185,22 @@
                 
                 <div class="saas-card" style="margin-top: 30px; padding: 30px; opacity: 0.6;">
                     <p><i class="fas fa-tools"></i> Advanced configuration panel is locked for current build.</p>
+                </div>
+            </div>
+            <!-- Tab 7: Security & Bans -->
+            <div id="tabSecurityBans" class="saas-tab-content">
+                <div class="saas-content-header">
+                    <div>
+                        <h1 style="font-size: 1.8rem; margin: 0;">Security <span class="gradient-text" style="background: var(--gradient-saas); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Nexus</span></h1>
+                        <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 5px;">Manage hardware bans and platform access restrictions.</p>
+                    </div>
+                </div>
+                
+                <div id="adminBansBody" class="saas-card-container" style="margin-top: 30px;">
+                    <div style="padding: 40px; text-align: center; color: var(--text-muted);">
+                        <i class="fas fa-shield-virus fa-2x" style="margin-bottom: 15px; opacity: 0.5;"></i>
+                        <p>No active hardware bans detected.</p>
+                    </div>
                 </div>
             </div>
         </main>
