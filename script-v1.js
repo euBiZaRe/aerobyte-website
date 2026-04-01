@@ -1470,15 +1470,32 @@ document.addEventListener('DOMContentLoaded', () => {
                             if (timeAgoMs < SIX_HOURS_MS) lastTrialStyle = "color: #f59e0b; font-weight: 600;";
                         }
 
-                        const keyDisplay = user.licenseKey ? 
-                            `<div style="display:flex; flex-direction:column; gap:8px; width:100%;">
-                                <code class="admin-license-mask" data-key="${user.licenseKey}" style="font-family:monospace; background:rgba(255,255,255,0.05); padding:4px 8px; border-radius:6px; cursor:pointer; font-size:0.85rem; border:1px solid rgba(255,255,255,0.1); width:fit-content; word-break:break-all;" title="Click to Peek/Hide">••••-••••-••••-••••</code>
-                                <div style="display:flex; gap:6px;">
-                                    <button class="action-reset-hwid" data-uid="${user.id}" data-key="${user.licenseKey}" style="padding:4px 8px; font-size:0.65rem; background:rgba(88, 101, 242, 0.1); border:1px solid #5865F2; color:#5865F2; cursor:pointer; border-radius:4px; font-weight:700; text-transform:uppercase;">HWID Reset</button>
-                                    <button class="action-regen-key" data-uid="${user.id}" data-key="${user.licenseKey}" data-plan="${user.plan}" style="padding:4px 8px; font-size:0.65rem; background:rgba(16, 185, 129, 0.1); border:1px solid #10B981; color:#10B981; cursor:pointer; border-radius:4px; font-weight:700; text-transform:uppercase;">Regen Key</button>
-                                </div>
-                             </div>` : 
-                            `<button class="btn-primary action-gen-key" data-uid="${user.id}" data-plan="${user.plan}" style="padding:6px 12px; font-size:0.7rem; background:#5865F2; color:#fff; border:none; border-radius:6px; font-weight:700;">Generate License</button>`;
+                        const products = ["RL Bot Trainer", "Among Us Mod Menu"];
+                        let keyDisplay = `<div style="display:flex; flex-direction:column; gap:12px; width:100%;">`;
+                        
+                        products.forEach(p => {
+                            const pKey = (user.licenseKeys && user.licenseKeys[p]) || (p === "RL Bot Trainer" ? user.licenseKey : null);
+                            
+                            keyDisplay += `<div style="border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom:8px; last-child { border-bottom: none; }">
+                                <div style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase; font-weight:800; margin-bottom:4px; display:flex; align-items:center; gap:5px;">
+                                    ${p} ${pKey ? '<i class="fas fa-check-circle" style="color:#10B981; font-size:0.6rem;"></i>' : ''}
+                                </div>`;
+                                
+                            if (pKey) {
+                                keyDisplay += `
+                                    <div style="display:flex; flex-direction:column; gap:5px;">
+                                        <code class="admin-license-mask" data-key="${pKey}" style="font-family:monospace; background:rgba(255,255,255,0.05); padding:4px 8px; border-radius:6px; cursor:pointer; font-size:0.8rem; border:1px solid rgba(255,255,255,0.1); width:fit-content;" title="Click to Peek/Hide">••••-••••-••••-••••</code>
+                                        <div style="display:flex; gap:6px;">
+                                            <button class="action-reset-hwid" data-uid="${user.id}" data-key="${pKey}" data-product="${p}" style="padding:4px 8px; font-size:0.65rem; background:rgba(88, 101, 242, 0.1); border:1px solid #5865F2; color:#5865F2; cursor:pointer; border-radius:4px; font-weight:700; text-transform:uppercase;">HWID Reset</button>
+                                            <button class="action-regen-key" data-uid="${user.id}" data-key="${pKey}" data-plan="${user.plan}" data-product="${p}" style="padding:4px 8px; font-size:0.65rem; background:rgba(16, 185, 129, 0.1); border:1px solid #10B981; color:#10B981; cursor:pointer; border-radius:4px; font-weight:700; text-transform:uppercase;">Regen</button>
+                                        </div>
+                                    </div>`;
+                            } else {
+                                keyDisplay += `<button class="btn-primary action-gen-key" data-uid="${user.id}" data-plan="${user.plan}" data-product="${p}" style="padding:6px 10px; font-size:0.65rem; background:rgba(88, 101, 242, 0.2); color:#5865F2; border:1px solid #5865F2; border-radius:6px; font-weight:700; text-transform:uppercase; cursor:pointer;">Generate ${p.split(' ')[0]} License</button>`;
+                            }
+                            keyDisplay += `</div>`;
+                        });
+                        keyDisplay += `</div>`;
 
                         const userActivity = globalActivity.filter(a => a.user === user.id).sort((a,b) => b.time - a.time);
                         let statusText = `<span style="color:var(--text-muted); font-size:0.75rem;">No activity</span>`;
@@ -1651,6 +1668,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const uid = regenBtn.getAttribute('data-uid');
                         const plan = regenBtn.getAttribute('data-plan');
                         const oldKey = regenBtn.getAttribute('data-key');
+                        const product = regenBtn.getAttribute('data-product') || "RL Bot Trainer";
 
 
                         if (oldKey) {
@@ -1673,10 +1691,22 @@ document.addEventListener('DOMContentLoaded', () => {
                                 try {
                                     const newKey = generateLicenseKey();
                                     
-                                    await updateDoc(doc(db, "users", uid), { licenseKey: newKey });
+                                    // Update appropriate field in users collection
+                                    const userRef = doc(db, "users", uid);
+                                    if (product === "RL Bot Trainer") {
+                                        await updateDoc(userRef, { 
+                                            licenseKey: newKey,
+                                            [`licenseKeys.${product}`]: newKey
+                                        });
+                                    } else {
+                                        await updateDoc(userRef, { 
+                                            [`licenseKeys.${product}`]: newKey
+                                        });
+                                    }
+
                                     if (oldKey) await deleteDoc(doc(db, "licenses", oldKey));
                                     await setDoc(doc(db, "licenses", newKey), {
-                                        userId: uid, plan: plan, status: "active", hwid: null, createdAt: Date.now()
+                                        userId: uid, plan: plan, product: product, status: "active", hwid: null, createdAt: Date.now()
                                     });
                                     refreshDashboard();
                                 } catch(err) { alert("Error: " + err.message); cleanup(); }
@@ -1687,10 +1717,20 @@ document.addEventListener('DOMContentLoaded', () => {
                         // Just Generate (No old key)
                         regenBtn.textContent = 'Updating...'; regenBtn.disabled = true;
                         try {
-                        const newKey = generateLicenseKey();
-                            await updateDoc(doc(db, "users", uid), { licenseKey: newKey });
+                            const newKey = generateLicenseKey();
+                            const userRef = doc(db, "users", uid);
+                            if (product === "RL Bot Trainer") {
+                                await updateDoc(userRef, { 
+                                    licenseKey: newKey,
+                                    [`licenseKeys.${product}`]: newKey
+                                });
+                            } else {
+                                await updateDoc(userRef, { 
+                                    [`licenseKeys.${product}`]: newKey
+                                });
+                            }
                             await setDoc(doc(db, "licenses", newKey), {
-                                userId: uid, plan: plan, status: "active", hwid: null, createdAt: Date.now()
+                                userId: uid, plan: plan, product: product, status: "active", hwid: null, createdAt: Date.now()
                             });
                             refreshDashboard(); 
                         } catch(err) { alert("Error: " + err.message); regenBtn.textContent = 'Generate'; regenBtn.disabled = false; }
