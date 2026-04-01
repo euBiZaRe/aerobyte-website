@@ -361,30 +361,38 @@ document.addEventListener('DOMContentLoaded', () => {
                 const uid = auth.currentUser.uid;
                 
                 // --- GRANULAR DURATION CALCULATION ---
-                let durationMs = 0;
-                if (promoData.durationMs) {
-                    durationMs = promoData.durationMs;
-                } else {
-                    // Legacy Fallback
-                    const durationDays = promoData.days || 30;
-                    durationMs = durationDays * 24 * 60 * 60 * 1000;
-                }
+                const durationMs = promoData.durationMs || 0;
+                const isLifetime = promoData.isLifetime === true;
 
-                const expiresAt = Date.now() + durationMs;
+                const expiresAt = isLifetime ? null : (Date.now() + durationMs);
 
-                // Generate Key
                 const newKey = generateLicenseKey();
+                const product = promoData.product || "RL Bot Trainer";
 
                 // 1. Fulfill
-                await updateDoc(doc(db, "users", uid), {
+                const userUpdate = {
                     plan: "Premium",
-                    expiresAt: expiresAt,
-                    licenseKey: newKey
-                });
+                    expiresAt: expiresAt
+                };
+                
+                // Track key by product in user document for easier profile fetching
+                if (!auth.currentUser.licenseKeys) {
+                    userUpdate.licenseKeys = {};
+                }
+                userUpdate[`licenseKeys.${product.replace(/\s+/g, '')}`] = newKey;
+                
+                // For backward compatibility with existing systems
+                if (product === "RL Bot Trainer") {
+                    userUpdate.licenseKey = newKey;
+                }
+
+                await updateDoc(doc(db, "users", uid), userUpdate);
                 
                 await setDoc(doc(db, "licenses", newKey), {
                     userId: uid,
                     plan: "Premium",
+                    product: product,
+                    isLifetime: isLifetime,
                     status: "active",
                     createdAt: Date.now()
                 });
@@ -397,11 +405,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 // Format alert message based on available data
-                let successMsg = `Success! Giveaway code redeemed.`;
-                if (promoData.durationMs) {
-                    successMsg = `Success! Giveaway code redeemed for ${promoData.days||0}d ${promoData.hours||0}h ${promoData.mins||0}m of Premium.`;
+                let successMsg = `Success! ${product} code redeemed.`;
+                if (isLifetime) {
+                    successMsg = `Success! ${product} Lifetime Premium activated.`;
+                } else if (promoData.durationMs) {
+                    successMsg = `Success! ${product} code redeemed for ${promoData.days||0}d ${promoData.hours||0}h ${promoData.mins||0}m of Premium.`;
                 } else {
-                    successMsg = `Success! Giveaway code redeemed for ${promoData.days||30} days of Premium.`;
+                    successMsg = `Success! ${product} code redeemed for ${promoData.days||30} days of Premium.`;
                 }
                 alert(successMsg);
                 window.location.reload();
@@ -808,6 +818,55 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Profile Key Listeners (Delegated)
+    document.body.addEventListener('click', (e) => {
+        // Toggle Profile Key
+        const toggleBtn = e.target.closest('.toggle-profile-key');
+        if (toggleBtn) {
+            const container = toggleBtn.parentElement;
+            const keyDisplay = container.querySelector('.profile-license-key');
+            if (keyDisplay) {
+                const isHidden = keyDisplay.textContent.includes('•');
+                const actualKey = keyDisplay.getAttribute('data-key');
+                keyDisplay.textContent = isHidden ? actualKey : '••••••••';
+                const icon = toggleBtn.querySelector('i');
+                if (icon) icon.className = isHidden ? 'fas fa-eye-slash' : 'fas fa-eye';
+                toggleBtn.title = isHidden ? 'Hide Key' : 'Show Key';
+            }
+            return;
+        }
+
+        // Copy Profile Key
+        const copyBtn = e.target.closest('.copy-profile-key');
+        if (copyBtn) {
+            const actualKey = copyBtn.getAttribute('data-key');
+            if (actualKey) {
+                navigator.clipboard.writeText(actualKey).then(() => {
+                    const icon = copyBtn.querySelector('i');
+                    const originalClass = icon.className;
+                    icon.className = 'fas fa-check';
+                    setTimeout(() => { if(icon) icon.className = originalClass; }, 2000);
+                });
+            }
+            return;
+        }
+
+        // Peek/Hide directly on the code element
+        const keyDisplay = e.target.closest('.profile-license-key');
+        if (keyDisplay) {
+            const isHidden = keyDisplay.textContent.includes('•');
+            const actualKey = keyDisplay.getAttribute('data-key');
+            keyDisplay.textContent = isHidden ? actualKey : '••••••••';
+            const toggleBtn = keyDisplay.parentElement.querySelector('.toggle-profile-key');
+            if (toggleBtn) {
+                const icon = toggleBtn.querySelector('i');
+                if (icon) icon.className = isHidden ? 'fas fa-eye-slash' : 'fas fa-eye';
+                toggleBtn.title = isHidden ? 'Hide Key' : 'Show Key';
+            }
+            return;
+        }
+    });
+
     if (closeAuthBtn) closeAuthBtn.addEventListener('click', closeAuthModalFn);
     
     if (authModal) {
@@ -996,14 +1055,43 @@ document.addEventListener('DOMContentLoaded', () => {
                     // 1. Update UI Text immediately
                     planBadge.textContent = plan === "Owner" ? "Owner" : plan + " Plan";
 
-                    // 2. License Key UI Setup (Always visible now)
-                    const licenseKeyContainer = document.getElementById('licenseKeyContainer');
-                    const licenseKeyDisplay = document.getElementById('licenseKeyDisplay');
-                    if (licenseKeyContainer && licenseKeyDisplay) {
-                        licenseKeyContainer.style.display = "block";
-                        const actualKey = userData.licenseKey || "AB-WAIT-FOR-ADMIN-2026";
-                        licenseKeyDisplay.setAttribute('data-key', actualKey);
-                        licenseKeyDisplay.textContent = '••••••••'; 
+                    // 2. Dynamic License Keys Loading (v4.3)
+                    const keysWrapper = document.getElementById('licenseKeysWrapper');
+                    const keysList = document.getElementById('licenseKeysList');
+                    if (keysWrapper && keysList) {
+                        try {
+                            const licSnap = await getDocs(query(collection(db, "licenses"), where("userId", "==", user.uid)));
+                            if (!licSnap.empty) {
+                                keysWrapper.style.display = 'flex';
+                                keysList.innerHTML = '';
+                                licSnap.forEach(licDoc => {
+                                    const licData = licDoc.data();
+                                    const licKey = licDoc.id;
+                                    const product = licData.product || "RL Bot Trainer";
+                                    const isLifetime = licData.isLifetime === true;
+                                    const status = isLifetime ? "Lifetime" : (licData.status || "active");
+                                    
+                                    const row = document.createElement('div');
+                                    row.style.cssText = "display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.03); padding: 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05);";
+                                    row.innerHTML = `
+                                        <div style="flex: 1;">
+                                            <div style="font-size: 0.8rem; font-weight: 700; color: #fff; margin-bottom: 4px;">${product}</div>
+                                            <div style="font-size: 0.65rem; color: ${isLifetime?'#FFD14D':(status==='active'?'#10B981':'#ff4d4d')}; text-transform: uppercase; letter-spacing: 1px; font-weight: 800;">
+                                                ${isLifetime ? '<i class="fas fa-infinity" style="font-size:0.6rem; margin-right:3px;"></i> ' : ''}${status}
+                                            </div>
+                                        </div>
+                                        <div style="display: flex; align-items: center; gap: 10px;">
+                                            <code class="profile-license-key" data-key="${licKey}" style="background: rgba(0,0,0,0.2); padding: 6px 12px; border-radius: 6px; font-family: monospace; border: 1px solid rgba(255,255,255,0.1); color: var(--secondary); cursor: pointer; font-size: 0.9rem;" title="Click to Reveal">••••••••</code>
+                                            <button class="toggle-profile-key" style="background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.9rem;" title="Show Key"><i class="fas fa-eye"></i></button>
+                                            <button class="copy-profile-key" data-key="${licKey}" style="background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.9rem;" title="Copy Key"><i class="fas fa-copy"></i></button>
+                                        </div>
+                                    `;
+                                    keysList.appendChild(row);
+                                });
+                            }
+                        } catch (err) {
+                            console.error("Error loading keys:", err);
+                        }
                     }
 
                     // 3. Self-healing for new accounts
@@ -1346,16 +1434,25 @@ document.addEventListener('DOMContentLoaded', () => {
                         const tr = document.createElement('tr');
                         
                         let expiresText = "Never (Lifetime)";
-                        const expiresAtMs = Number(user.expiresAt);
-                        if ((user.plan === "Premium" || user.plan === "Trial") && expiresAtMs > 0) {
-                            const diff = expiresAtMs - Date.now();
-                            if (diff > 0) {
-                                const d = Math.floor(diff / 86400000);
-                                const h = Math.floor((diff % 86400000) / 3600000);
-                                const m = Math.floor((diff % 3600000) / 60000);
-                                expiresText = d > 0 ? `${d}d ${h}h` : h > 0 ? `${h}h ${m}m` : `${m}m`;
+                        const expiresAtMs = user.expiresAt ? Number(user.expiresAt) : null;
+                        
+                        if (user.licenseKeys) {
+                            // If user has multiple keys, handles display elsewhere or show summary here
+                        }
+
+                        if ((user.plan === "Premium" || user.plan === "Trial")) {
+                            if (expiresAtMs === null) {
+                                expiresText = "Lifetime";
                             } else {
-                                expiresText = "Expired!";
+                                const diff = expiresAtMs - Date.now();
+                                if (diff > 0) {
+                                    const d = Math.floor(diff / 86400000);
+                                    const h = Math.floor((diff % 86400000) / 3600000);
+                                    const m = Math.floor((diff % 3600000) / 60000);
+                                    expiresText = d > 0 ? `${d}d ${h}h` : h > 0 ? `${h}h ${m}m` : `${m}m`;
+                                } else {
+                                    expiresText = "Expired!";
+                                }
                             }
                         } else if (user.plan === "Free" || user.plan === "Media" || user.plan === "Owner") {
                             expiresText = "N/A";
@@ -1752,13 +1849,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     const dInput = document.getElementById('promoDays');
                     const hInput = document.getElementById('promoHours');
                     const mInput = document.getElementById('promoMins');
+                    const pInput = document.getElementById('promoProduct');
+                    const lToggle = document.getElementById('promoLifetime');
                     
                     const days = parseInt(dInput?.value) || 0;
                     const hours = parseInt(hInput?.value) || 0;
                     const mins = parseInt(mInput?.value) || 0;
+                    const product = pInput?.value || "RL Bot Trainer";
+                    const isLifetime = lToggle?.checked || false;
                     
-                    const totalMs = (days * 24 * 60 * 60 * 1000) + (hours * 60 * 60 * 1000) + (mins * 60 * 1000);
-                    if (totalMs <= 0) {
+                    const totalMs = isLifetime ? 0 : ((days * 24 * 60 * 60 * 1000) + (hours * 60 * 60 * 1000) + (mins * 60 * 1000));
+                    if (!isLifetime && totalMs <= 0) {
                         alert("Please enter a valid duration.");
                         return;
                     }
@@ -1778,6 +1879,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             days: days,
                             hours: hours,
                             mins: mins,
+                            product: product,
+                            isLifetime: isLifetime,
                             createdAt: Date.now(),
                             createdBy: auth.currentUser.email
                         });
@@ -1791,12 +1894,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         
                         if (promoResModal && codeDisplay && durationDisplay) {
                             codeDisplay.textContent = newCode;
-                            durationDisplay.textContent = `Duration: ${days}d ${hours}h ${mins}m`;
+                            durationDisplay.textContent = isLifetime ? `${product} | Lifetime` : `${product} | ${days}d ${hours}h ${mins}m`;
                             promoResModal.classList.add('active');
                             document.body.style.overflow = 'hidden';
                         } else {
                             // Fallback if modal isn't injected for some reason
-                            alert(`🎁 Code Generated: ${newCode}\nDuration: ${days} Days`);
+                            alert(`🎁 Code Generated: ${newCode}\nProduct: ${product}\nDuration: ${isLifetime ? 'Lifetime' : days + ' Days'}`);
                         }
 
                         genBtn.textContent = 'Generate One-Time Code';
@@ -1824,6 +1927,54 @@ document.addEventListener('DOMContentLoaded', () => {
                             }, 2000);
                         });
                     }
+                }
+
+                // --- DIRECT PROVISIONER HANDLER ---
+                if (e.target && e.target.id === 'provisionDirectBtn') {
+                    const btn = e.target;
+                    const product = document.getElementById('directProduct')?.value || "RL Bot Trainer";
+                    
+                    btn.textContent = 'Generating...';
+                    btn.disabled = true;
+                    
+                    try {
+                        const newKey = generateLicenseKey();
+                        await setDoc(doc(db, "licenses", newKey), {
+                            product: product,
+                            isLifetime: true,
+                            status: "active",
+                            userId: null,
+                            createdAt: Date.now(),
+                            provisionedBy: auth.currentUser?.email || 'Admin'
+                        });
+
+                        const promoResModal = document.getElementById('promoResultModal');
+                        const codeDisplay = document.getElementById('generatedCodeDisplay');
+                        const durationDisplay = document.getElementById('generatedDurationDisplay');
+                        if (promoResModal && codeDisplay && durationDisplay) {
+                            codeDisplay.textContent = newKey;
+                            durationDisplay.textContent = `${product} | Direct Permanent License`;
+                            promoResModal.classList.add('active');
+                            document.body.style.overflow = 'hidden';
+                            const modalTitle = promoResModal.querySelector('h2');
+                            if (modalTitle) modalTitle.textContent = "Permanent Key Generated";
+                        } else {
+                            alert(`✅ Permanent Key Generated: ${newKey}\nProduct: ${product}`);
+                        }
+                    } catch (err) {
+                        alert("Error: " + err.message);
+                    } finally {
+                        btn.textContent = 'Generate Permanent Key';
+                        btn.disabled = false;
+                    }
+                }
+            });
+
+            // --- LIFETIME TOGGLE HANDLER ---
+            document.body.addEventListener('change', (e) => {
+                if (e.target && e.target.id === 'promoLifetime') {
+                    const wrapper = document.getElementById('durationInputsWrapper');
+                    if (wrapper) wrapper.style.display = e.target.checked ? 'none' : 'block';
                 }
             });
         }
