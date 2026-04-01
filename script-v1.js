@@ -156,7 +156,7 @@ const initAeroByte = () => {
         'aerobytebot@gmail.com', 
         'adamfrawi@gmail.com',
         'discord_1220002225385111683@aerobyte.shop'
-    ];
+    ].map(e => e.toLowerCase().trim());
 
     // PRE-WARM BACKEND (Wake up Render free instance immediately)
     fetch(BACKEND_URL).catch(() => {});
@@ -1335,8 +1335,8 @@ const initAeroByte = () => {
 
                     // Show Admin Dashboard link if user is administrator
                     const adminPanelLaunch = document.getElementById('adminPanelLaunch');
-                    if (adminPanelLaunch && ADMIN_EMAILS.includes(user.email)) {
-                        console.log("🛡️ Admin mode detected. Showing dashboard launch button.");
+                    if (adminPanelLaunch && ADMIN_EMAILS.includes(user.email.toLowerCase().trim())) {
+                        console.log("🛡️ Admin mode detected: ", user.email);
                         adminPanelLaunch.style.display = 'block';
                     }
 
@@ -1359,8 +1359,11 @@ const initAeroByte = () => {
             }
 
             // Check for admin permission
-            if (!ADMIN_EMAILS.includes(user.email)) {
-                console.warn("⛔ Unauthorized admin access attempt:", user.email);
+            const currentEmail = user.email ? user.email.toLowerCase().trim() : '';
+            console.log("🛠️ Admin Access Check:", currentEmail);
+            
+            if (!ADMIN_EMAILS.includes(currentEmail)) {
+                console.warn("⛔ Unauthorized admin access attempt:", currentEmail);
                 window.location.href = 'index.html';
                 return;
             }
