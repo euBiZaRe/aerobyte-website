@@ -1047,3 +1047,83 @@ footer {
     color: #fff;
     font-family: 'Outfit', sans-serif;
 }
+/* FAQ Tabs */
+.faq-tabs {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-bottom: 40px;
+}
+
+.faq-tab {
+    padding: 12px 30px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 30px;
+    color: var(--text-muted);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.faq-tab.active {
+    background: var(--gradient-glow);
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 4px 15px rgba(138, 43, 226, 0.3);
+}
+
+.faq-tab:hover:not(.active) {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.faq-content.hidden {
+    display: none !important;
+}
+
+/* Among Us Specific Theme */
+body.among-us-page {
+    --primary: #FF4D4D; /* Emergency Red */
+    --secondary: #00F0FF; /* Oxygen Cyan */
+    --gradient-glow: linear-gradient(90deg, #FF4D4D, #8A2BE2);
+}
+
+.among-us-page .badge {
+    background: rgba(255, 77, 77, 0.1);
+    border-color: rgba(255, 77, 77, 0.3);
+    color: #FF4D4D;
+}
+
+.among-us-page .status-dot {
+    background: #FF4D4D;
+    box-shadow: 0 0 10px #FF4D4D;
+}
+
+.feature-category-title {
+    grid-column: 1 / -1;
+    margin: 40px 0 20px;
+    font-size: 1.8rem;
+    color: var(--primary);
+    border-left: 4px solid var(--primary);
+    padding-left: 15px;
+}
+
+.feature-card.among-us-card {
+    border-left: 2px solid transparent;
+}
+
+.feature-card.among-us-card:hover {
+    border-left-color: var(--primary);
+}
+
+.radar-preview {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 12px;
+    padding: 15px;
+    margin-top: 15px;
+    font-family: monospace;
+    font-size: 0.85rem;
+    color: #00ff88;
+    border: 1px solid rgba(0, 255, 136, 0.2);
+}

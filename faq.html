@@ -39,39 +39,92 @@
     </header>
 
     <section id="faq" class="faq-section" style="max-width: 800px; margin: 0 auto; padding: 40px 20px 100px;">
-        <div class="faq-grid" style="display: flex; flex-direction: column; gap: 20px;">
-            
-            <div class="feature-card glass-featured text-left" style="padding: 30px;">
-                <h3 style="margin-bottom: 10px; color: var(--text-main);">What is GigaLearn Integration?</h3>
-                <p style="color: var(--text-muted);">GigaLearn Integration connects your local Rocket League bot training (via RLGym) directly to our massive cloud reinforcement learning clusters. It allows your model to converge up to 10x faster by parallelizing environment steps across hundreds of instances instead of relying on a single local GPU.</p>
-            </div>
-
-            <div class="feature-card text-left" style="padding: 30px;">
-                <h3 style="margin-bottom: 10px; color: var(--text-main);">How does the "Unlimited VRAM Scaling" work?</h3>
-                <p style="color: var(--text-muted);">Our Professional tier offloads the heaviest neural network operations (like large transformer or recurrent model memory loads) to our cloud cluster dynamically. This prevents the common CUDA Out of Memory (OOM) errors often seen on local hardware like the 11GB GPUs when running intensive "KILLER" preset configs.</p>
-            </div>
-
-            <div class="feature-card text-left" style="padding: 30px;">
-                <h3 style="margin-bottom: 10px; color: var(--text-main);">Can I migrate from the Community/Basic plan to Pro without losing my models?</h3>
-                <p style="color: var(--text-muted);">Absolutely. Your custom checkpoints and pre-trained models seamlessly sync when you upgrade to Pro. There are no format conversions required; simply log into your AeroByte account through the software, and your local workspace will be linked to the cloud.</p>
-            </div>
-
-            <div class="feature-card text-left" style="padding: 30px;">
-                <h3 style="margin-bottom: 10px; color: var(--text-main);">Is AeroByte Trainer suitable for beginners?</h3>
-                <p style="color: var(--text-muted);">Yes! We provide built-in training presets that work perfectly out of the box. You don't need any prior machine learning or Python experience to get started.</p>
-            </div>
-
-            <div class="feature-card text-left" style="padding: 30px;">
-                <h3 style="margin-bottom: 10px; color: var(--text-main);">Can I use custom bots or scripts?</h3>
-                <p style="color: var(--text-muted);">Absolutely. AeroByte supports custom Python scripts and integrates seamlessly with popular community bots and custom model files.</p>
-            </div>
-
-            <div class="feature-card glass-featured text-left" style="padding: 30px;">
-                <h3 style="margin-bottom: 10px; color: var(--text-main);">How do I cancel my subscription?</h3>
-                <p style="color: var(--text-muted);">You can manage your subscription or cancel at any time directly through your account dashboard. You will retain access to the Professional features until the end of your current billing cycle.</p>
-            </div>
-
+        <div class="faq-tabs">
+            <button class="faq-tab active" data-tab="rl">RL Bot Trainer</button>
+            <button class="faq-tab" data-tab="among">Among Us Mod Menu</button>
         </div>
+
+        <!-- RL Bot Trainer FAQ -->
+        <div id="faq-rl" class="faq-content">
+            <div class="faq-grid" style="display: flex; flex-direction: column; gap: 20px;">
+                <div class="feature-card glass-featured text-left" style="padding: 30px;">
+                    <h3 style="margin-bottom: 10px; color: var(--text-main);">What is GigaLearn Integration?</h3>
+                    <p style="color: var(--text-muted);">GigaLearn Integration connects your local Rocket League bot training (via RLGym) directly to our massive cloud reinforcement learning clusters. It allows your model to converge up to 10x faster by parallelizing environment steps across hundreds of instances instead of relying on a single local GPU.</p>
+                </div>
+
+                <div class="feature-card text-left" style="padding: 30px;">
+                    <h3 style="margin-bottom: 10px; color: var(--text-main);">How does the "Unlimited VRAM Scaling" work?</h3>
+                    <p style="color: var(--text-muted);">Our Professional tier offloads the heaviest neural network operations (like large transformer or recurrent model memory loads) to our cloud cluster dynamically. This prevents the common CUDA Out of Memory (OOM) errors often seen on local hardware like the 11GB GPUs when running intensive "KILLER" preset configs.</p>
+                </div>
+
+                <div class="feature-card text-left" style="padding: 30px;">
+                    <h3 style="margin-bottom: 10px; color: var(--text-main);">Can I migrate from the Community/Basic plan to Pro without losing my models?</h3>
+                    <p style="color: var(--text-muted);">Absolutely. Your custom checkpoints and pre-trained models seamlessly sync when you upgrade to Pro. There are no format conversions required; simply log into your AeroByte account through the software, and your local workspace will be linked to the cloud.</p>
+                </div>
+
+                <div class="feature-card text-left" style="padding: 30px;">
+                    <h3 style="margin-bottom: 10px; color: var(--text-main);">Is AeroByte Trainer suitable for beginners?</h3>
+                    <p style="color: var(--text-muted);">Yes! We provide built-in training presets that work perfectly out of the box. You don't need any prior machine learning or Python experience to get started.</p>
+                </div>
+
+                <div class="feature-card text-left" style="padding: 30px;">
+                    <h3 style="margin-bottom: 10px; color: var(--text-main);">Can I use custom bots or scripts?</h3>
+                    <p style="color: var(--text-muted);">Absolutely. AeroByte supports custom Python scripts and integrates seamlessly with popular community bots and custom model files.</p>
+                </div>
+
+                <div class="feature-card glass-featured text-left" style="padding: 30px;">
+                    <h3 style="margin-bottom: 10px; color: var(--text-main);">How do I cancel my subscription?</h3>
+                    <p style="color: var(--text-muted);">You can manage your subscription or cancel at any time directly through your account dashboard. You will retain access to the Professional features until the end of your current billing cycle.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Among Us FAQ -->
+        <div id="faq-among" class="faq-content hidden">
+            <div class="faq-grid" style="display: flex; flex-direction: column; gap: 20px;">
+                <div class="feature-card glass-featured text-left" style="padding: 30px;">
+                    <h3 style="margin-bottom: 10px; color: var(--text-main);">What are the prerequisites for the Among Us Mod Menu?</h3>
+                    <p style="color: var(--text-muted);">You only need Among Us installed via Steam or Epic Games. Our menu is built on the BepInEx 6 (IL2CPP) framework and is optimized for the latest game versions.</p>
+                </div>
+
+                <div class="feature-card text-left" style="padding: 30px;">
+                    <h3 style="margin-bottom: 10px; color: var(--text-main);">How do I install the mod?</h3>
+                    <p style="color: var(--text-muted);">Installation is simple. Our package comes pre-bundled with BepInEx. Simply download the ZIP and extract all contents directly into your main Among Us folder (the one containing Among Us.exe). Launch the game to activate the menu.</p>
+                </div>
+
+                <div class="feature-card text-left" style="padding: 30px;">
+                    <h3 style="margin-bottom: 10px; color: var(--text-main);">How do I access the Web Radar?</h3>
+                    <p style="color: var(--text-muted);">While the game is running, you can access the tactical radar on any device by navigating to <code>http://YOUR_PC_IP:8080</code>. This allows you to have a secondary map display on a phone, tablet, or second monitor.</p>
+                </div>
+
+                <div class="feature-card text-left" style="padding: 30px;">
+                    <h3 style="margin-bottom: 10px; color: var(--text-main);">Is the menu UI customizable?</h3>
+                    <p style="color: var(--text-muted);">No. To ensure the integrity of the software and protect the proprietary source code from reverse-engineering, the menu is fully locked down for the public release. This ensures a consistent and secure experience for all users.</p>
+                </div>
+
+                <div class="feature-card glass-featured text-left" style="padding: 30px;">
+                    <h3 style="margin-bottom: 10px; color: var(--text-main);">Is the mod menu safe to use?</h3>
+                    <p style="color: var(--text-muted);">AeroByte prioritizes security. Our mod uses custom-built manual patching to ensure stability. However, we always recommend using mods responsibly and being aware of the game's community guidelines.</p>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            document.querySelectorAll('.faq-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    // Update active tab button
+                    document.querySelectorAll('.faq-tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+
+                    // Switch content
+                    const target = tab.getAttribute('data-tab');
+                    document.querySelectorAll('.faq-content').forEach(content => {
+                        content.classList.add('hidden');
+                    });
+                    document.getElementById(`faq-${target}`).classList.remove('hidden');
+                });
+            });
+        </script>
     </section>
 
     <!-- Auth Modal -->
