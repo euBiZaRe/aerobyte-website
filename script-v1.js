@@ -1741,6 +1741,7 @@ const initAeroByte = () => {
                             <div style="margin-bottom: 20px;">
                                 <label style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 8px;">Subscription Plan</label>
                                 <select id="editUserPlan" style="width: 100%; background: #0F172A; border: 1px solid var(--border-color); color: #fff; padding: 12px; border-radius: 8px; font-family: inherit;">
+                                    <option value="Free" ${userData.plan === 'Free' ? 'selected' : ''}>Free</option>
                                     <option value="Trial" ${userData.plan === 'Trial' ? 'selected' : ''}>Trial</option>
                                     <option value="Premium" ${userData.plan === 'Premium' ? 'selected' : ''}>Premium</option>
                                     <option value="Lifetime" ${userData.plan === 'Lifetime' ? 'selected' : ''}>Lifetime</option>
