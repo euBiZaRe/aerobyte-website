@@ -1415,6 +1415,71 @@ const initAeroByte = () => {
                 } catch (err) { console.error("Logs Error:", err); }
             };
 
+            const refreshLicenses = async () => {
+                const container = document.getElementById('adminLicenseInventoryBody');
+                if (!container) return;
+                console.log("🔄 License Inventory Syncing...");
+
+                try {
+                    const [userSnap, licSnap] = await Promise.all([
+                        getDocs(collection(db, "users")),
+                        getDocs(collection(db, "licenses"))
+                    ]);
+
+                    const usersList = [];
+                    userSnap.forEach(docSnap => {
+                        usersList.push({ id: docSnap.id, ...docSnap.data() });
+                    });
+
+                    container.innerHTML = '';
+                    usersList.sort((a,b) => (a.discordUsername || a.email || "").localeCompare(b.discordUsername || b.email || ""));
+
+                    usersList.forEach(user => {
+                        const products = ["RL Bot Trainer", "Among Us Mod Menu"];
+                        const productIcons = { "RL Bot Trainer": "fas fa-car-side", "Among Us Mod Menu": "fas fa-user-secret" };
+                        let hasLicenses = false;
+                        let licensesHtml = '';
+
+                        products.forEach(p => {
+                            const pKey = (user.licenseKeys && user.licenseKeys[p]) || (p === "RL Bot Trainer" ? user.licenseKey : null);
+                            if (pKey) {
+                                hasLicenses = true;
+                                licensesHtml += `
+                                    <div class="saas-mini-card">
+                                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                                            <span style="font-size:0.6rem; text-transform:uppercase; font-weight:800; color:var(--text-muted);"><i class="${productIcons[p]}"></i> ${p}</span>
+                                            <span style="font-size:0.6rem; color:#10B981; font-weight:bold;">Active</span>
+                                        </div>
+                                        <code class="admin-license-mask" data-key="${pKey}" style="font-family:monospace; font-size:0.75rem; color:var(--primary); margin: 5px 0; cursor:pointer;">••••-••••-••••-••••</code>
+                                        <div style="display:flex; gap:6px;">
+                                            <button class="saas-manage-btn action-reset-hwid" data-uid="${user.id}" data-key="${pKey}" data-product="${p}">HWID</button>
+                                            <button class="saas-manage-btn action-regen-key" data-uid="${user.id}" data-key="${pKey}" data-plan="${user.plan}" data-product="${p}">Regen</button>
+                                        </div>
+                                    </div>`;
+                            }
+                        });
+
+                        if (hasLicenses) {
+                            const row = document.createElement('div');
+                            row.className = 'saas-user-row';
+                            row.innerHTML = `
+                                <div class="saas-user-info">
+                                    <div class="saas-avatar">${(user.discordUsername || user.email || "A").charAt(0).toUpperCase()}</div>
+                                    <div>
+                                        <p style="font-weight: 700; color: #fff; margin:0;">${user.discordUsername || 'Unlinked User'}</p>
+                                        <p style="font-size: 0.7rem; color: var(--text-muted); margin:0;">${user.email}</p>
+                                    </div>
+                                </div>
+                                <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap:10px; grid-column: span 3;">
+                                    ${licensesHtml}
+                                </div>
+                            `;
+                            container.appendChild(row);
+                        }
+                    });
+                } catch (err) { console.error("License Error:", err); }
+            };
+
             const refreshDashboard = async () => {
                 if (!tbody) return;
                 console.log("🔄 User Database Syncing...");
@@ -1443,38 +1508,8 @@ const initAeroByte = () => {
                         const userRow = document.createElement('div');
                         userRow.className = 'saas-user-row';
                         
-                        const products = ["RL Bot Trainer", "Among Us Mod Menu"];
-                        const productIcons = { "RL Bot Trainer": "fas fa-car-side", "Among Us Mod Menu": "fas fa-user-secret" };
-
-                        let licensesHtml = '';
-                        products.forEach(p => {
-                            const pKey = (user.licenseKeys && user.licenseKeys[p]) || (p === "RL Bot Trainer" ? user.licenseKey : null);
-                            if (pKey) {
-                                licensesHtml += `
-                                    <div class="saas-mini-card">
-                                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                                            <span style="font-size:0.6rem; text-transform:uppercase; font-weight:800; color:var(--text-muted);"><i class="${productIcons[p]}"></i> ${p}</span>
-                                            <span style="font-size:0.6rem; color:#10B981; font-weight:bold;">Active</span>
-                                        </div>
-                                        <code class="admin-license-mask" data-key="${pKey}" style="font-family:monospace; font-size:0.75rem; color:var(--primary); margin: 5px 0; cursor:pointer;">••••-••••-••••-••••</code>
-                                        <div style="display:flex; gap:6px;">
-                                            <button class="saas-manage-btn action-reset-hwid" data-uid="${user.id}" data-key="${pKey}" data-product="${p}">HWID</button>
-                                            <button class="saas-manage-btn action-regen-key" data-uid="${user.id}" data-key="${pKey}" data-plan="${user.plan}" data-product="${p}">Regen</button>
-                                        </div>
-                                    </div>`;
-                            } else {
-                                licensesHtml += `
-                                    <div class="saas-mini-card" style="border-style: dashed; opacity: 0.6; display: flex; align-items: center; justify-content: center; min-height: 60px;">
-                                        <button class="saas-manage-btn action-gen-key" data-uid="${user.id}" data-product="${p}" data-plan="${user.plan}" style="width:100%; height:100%; background:transparent; border:none; color:var(--text-muted); font-size:0.65rem; font-weight:bold; cursor:pointer;">
-                                            <i class="fas fa-plus-circle"></i> ADD ${p.toUpperCase()}
-                                        </button>
-                                    </div>`;
-                            }
-                        });
-
                         const userActivity = activity.filter(a => a.user === user.id).sort((a,b) => b.time - a.time);
                         let statusColor = '#94A3B8'; let statusLabel = 'Offline'; let lastSeenText = 'Never';
-
                         if (userActivity.length > 0) {
                             const last = userActivity[0];
                             const timeAgoMs = Date.now() - last.time;
@@ -1497,7 +1532,6 @@ const initAeroByte = () => {
                                 </div>
                             </div>
                             <div><span class="saas-pill ${planClass}">${user.plan}</span></div>
-                            <div style="display:flex; flex-direction:column; gap:8px;">${licensesHtml}</div>
                             <div>
                                 <div class="saas-status-dot" style="background: ${statusColor};"></div>
                                 <span style="font-size: 0.75rem; color: var(--text-muted); margin-left: 10px;">${statusLabel}</span>
@@ -1601,6 +1635,7 @@ const initAeroByte = () => {
                     // Lazy Load data for specific tabs
                     if (tabId === 'tabDashboard') refreshStats();
                     if (tabId === 'tabUserDatabase') refreshDashboard();
+                    if (tabId === 'tabLicenseKeys') refreshLicenses();
                     if (tabId === 'tabActivityLogs') refreshActivity();
                 });
             });
@@ -1701,22 +1736,6 @@ const initAeroByte = () => {
         }
     });
 
-    // --- SAAS SIDEBAR TAB SWITCHING ---
-    const navItems = document.querySelectorAll('.saas-nav-item');
-    navItems.forEach(item => {
-        item.addEventListener('click', () => {
-            navItems.forEach(i => i.classList.remove('active'));
-            item.classList.add('active');
-            
-            const tabName = item.textContent.trim();
-            console.log(`🚀 Switching to tab: ${tabName}`);
-            
-            // Basic visibility toggle logic could go here
-            if (tabName === 'User Database') {
-                if(typeof refreshDashboard === 'function') refreshDashboard();
-            }
-        });
-    });
 
     // Profile Logout Listener
     const profileLogoutBtn = document.getElementById('profileLogoutBtn');

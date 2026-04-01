@@ -22,6 +22,7 @@
                 <div class="saas-nav-item"><i class="fas fa-th-large"></i> Dashboard</div>
                 <div class="saas-nav-item active"><i class="fas fa-users"></i> User Database</div>
                 <div class="saas-nav-item"><i class="fas fa-key"></i> License Keys</div>
+                <div class="saas-nav-item"><i class="fas fa-magic"></i> Generate Keys</div>
                 <div class="saas-nav-item"><i class="fas fa-history"></i> Activity Logs</div>
                 <div class="saas-nav-item"><i class="fas fa-cog"></i> Platform Settings</div>
             </nav>
@@ -85,29 +86,37 @@
                 </div>
             </div>
 
-            <!-- Tab 2: User Database (Existing Content) -->
+            <!-- Tab 2: User Database (Simplified View) -->
             <div id="tabUserDatabase" class="saas-tab-content active">
                 <div class="saas-content-header">
                     <div>
                         <h1 style="font-size: 1.8rem; margin: 0;">Member <span class="gradient-text" style="background: var(--gradient-saas); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Database</span></h1>
-                        <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 5px;">Manage platform licenses, HWID resets, and user status.</p>
-                    </div>
-                    
-                    <div style="display: flex; gap: 10px;">
-                        <div class="saas-pill saas-pill-blue"><i class="fas fa-circle" style="font-size: 0.4rem;"></i> Premium Storage</div>
-                        <div class="saas-pill saas-pill-purple"><i class="fas fa-shield-alt" style="font-size: 0.7rem;"></i> Encrypted Access</div>
+                        <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 5px;">Manage platform accounts, subscriptions, and member status.</p>
                     </div>
                 </div>
 
                 <div id="adminUsersTbody" class="saas-card-container">
                     <!-- Skeleton states populated by JS -->
                     <div class="saas-user-row saas-skeleton" style="height: 80px;"></div>
+                </div>
+            </div>
+
+            <!-- Tab 3: License Keys (New Tab for user-key viewing) -->
+            <div id="tabLicenseKeys" class="saas-tab-content">
+                <div class="saas-content-header">
+                    <div>
+                        <h1 style="font-size: 1.8rem; margin: 0;">License <span class="gradient-text" style="background: var(--gradient-saas); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Inventory</span></h1>
+                        <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 5px;">Audit user-specific license keys and HWID associations.</p>
+                    </div>
+                </div>
+
+                <div id="adminLicenseInventoryBody" class="saas-card-container">
                     <div class="saas-user-row saas-skeleton" style="height: 80px;"></div>
                 </div>
             </div>
 
-            <!-- Tab 3: License Keys (Promo Tools) -->
-            <div id="tabLicenseKeys" class="saas-tab-content">
+            <!-- Tab 4: Generate Keys (Renamed) -->
+            <div id="tabGenerateKeys" class="saas-tab-content">
                 <div class="saas-content-header">
                     <div>
                         <h1 style="font-size: 1.8rem; margin: 0;">License <span class="gradient-text" style="background: var(--gradient-saas); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Factory</span></h1>
@@ -147,7 +156,7 @@
                 </div>
             </div>
 
-            <!-- Tab 4: Activity Logs -->
+            <!-- Tab 5: Activity Logs -->
             <div id="tabActivityLogs" class="saas-tab-content">
                 <div class="saas-content-header">
                     <div>
@@ -164,7 +173,7 @@
                 </div>
             </div>
 
-            <!-- Tab 5: Platform Settings -->
+            <!-- Tab 6: Platform Settings -->
             <div id="tabPlatformSettings" class="saas-tab-content">
                 <div class="saas-content-header">
                     <div>
