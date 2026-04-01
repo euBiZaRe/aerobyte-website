@@ -1456,26 +1456,33 @@ const initAeroByte = () => {
                                             <button class="saas-manage-btn action-regen-key" data-uid="${user.id}" data-key="${pKey}" data-plan="${user.plan}" data-product="${p}">Regen</button>
                                         </div>
                                     </div>`;
+                            } else {
+                                // Add button for missing key
+                                licensesHtml += `
+                                    <div class="saas-mini-card" style="border-style: dashed; opacity: 0.8; display: flex; align-items: center; justify-content: center; min-height: 80px;">
+                                        <button class="saas-manage-btn action-gen-key" data-uid="${user.id}" data-product="${p}" data-plan="${user.plan}" style="width:100%; height:100%; background:transparent; border:none; color:var(--primary); font-size:0.65rem; font-weight:bold; cursor:pointer; flex-direction:column; gap:5px;">
+                                            <i class="fas fa-plus-circle" style="font-size: 1rem;"></i>
+                                            <span>ADD ${p.toUpperCase()}</span>
+                                        </button>
+                                    </div>`;
                             }
                         });
 
-                        if (hasLicenses) {
-                            const row = document.createElement('div');
-                            row.className = 'saas-user-row';
-                            row.innerHTML = `
-                                <div class="saas-user-info">
-                                    <div class="saas-avatar">${(user.discordUsername || user.email || "A").charAt(0).toUpperCase()}</div>
-                                    <div>
-                                        <p style="font-weight: 700; color: #fff; margin:0;">${user.discordUsername || 'Unlinked User'}</p>
-                                        <p style="font-size: 0.7rem; color: var(--text-muted); margin:0;">${user.email}</p>
-                                    </div>
+                        const row = document.createElement('div');
+                        row.className = 'saas-user-row';
+                        row.innerHTML = `
+                            <div class="saas-user-info">
+                                <div class="saas-avatar">${(user.discordUsername || user.email || "A").charAt(0).toUpperCase()}</div>
+                                <div style="min-width: 0;">
+                                    <p style="font-weight: 700; color: #fff; margin:0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${user.discordUsername || 'Unlinked User'}</p>
+                                    <p style="font-size: 0.7rem; color: var(--text-muted); margin:0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${user.email}</p>
                                 </div>
-                                <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap:10px; grid-column: span 3;">
-                                    ${licensesHtml}
-                                </div>
-                            `;
-                            container.appendChild(row);
-                        }
+                            </div>
+                            <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap:10px; grid-column: span 3;">
+                                ${licensesHtml}
+                            </div>
+                        `;
+                        container.appendChild(row);
                     });
                 } catch (err) { console.error("License Error:", err); }
             };
@@ -1563,53 +1570,59 @@ const initAeroByte = () => {
                 });
             }
 
-            // Unified Event Listener for Tbody
-            if (tbody) {
-                tbody.addEventListener('click', async (e) => {
-                    const target = e.target.closest('button, code');
-                    if (!target) return;
+            // Unified Event Listener for Admin Actions
+            const handleAdminAction = async (e) => {
+                const target = e.target.closest('button, code');
+                if (!target) return;
 
-                    const uid = target.getAttribute('data-uid');
-                    const key = target.getAttribute('data-key');
-                    const product = target.getAttribute('data-product');
-                    const plan = target.getAttribute('data-plan');
+                const uid = target.getAttribute('data-uid');
+                const key = target.getAttribute('data-key');
+                const product = target.getAttribute('data-product');
+                const plan = target.getAttribute('data-plan');
 
-                    if (target.classList.contains('admin-license-mask')) {
-                        target.textContent = target.textContent.includes('•') ? key : '••••-••••-••••-••••';
+                if (target.classList.contains('admin-license-mask')) {
+                    target.textContent = target.textContent.includes('•') ? key : '••••-••••-••••-••••';
+                }
+
+                if (target.classList.contains('action-gen-key') || target.classList.contains('action-regen-key')) {
+                    if (target.classList.contains('action-regen-key') && !confirm("Regenerate this key? The old one will stop working.")) return;
+                    target.disabled = true; target.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                    try {
+                        const newKey = generateLicenseKey();
+                        const userRef = doc(db, "users", uid);
+                        const updateObj = { [`licenseKeys.${product}`]: newKey };
+                        if (product === "RL Bot Trainer") updateObj.licenseKey = newKey;
+                        await updateDoc(userRef, updateObj);
+                        if (key && key !== 'null' && key !== '') await deleteDoc(doc(db, "licenses", key));
+                        await setDoc(doc(db, "licenses", newKey), {
+                            userId: uid, plan: plan || "Trial", product: product, status: "active", hwid: null, createdAt: Date.now()
+                        });
+                        
+                        // Smart Refresh
+                        const activeTabId = document.querySelector('.saas-tab-content.active')?.id;
+                        if (activeTabId === 'tabUserDatabase') refreshDashboard();
+                        if (activeTabId === 'tabLicenseKeys') refreshLicenses();
+                    } catch (err) { alert(err.message); target.disabled = false; target.innerHTML = 'Retry'; }
+                }
+
+                if (target.classList.contains('action-reset-hwid')) {
+                    if (!confirm("Reset HWID for this license?")) return;
+                    try { await updateDoc(doc(db, "licenses", key), { hwid: null }); alert("HWID Reset Success!"); }
+                    catch (err) { alert(err.message); }
+                }
+
+                if (target.classList.contains('action-delete')) {
+                    const email = target.getAttribute('data-email');
+                    if (confirm(`PERMANENTLY delete user ${email}?`)) {
+                        await deleteDoc(doc(db, "users", uid));
+                        refreshDashboard();
                     }
+                }
+            };
 
-                    if (target.classList.contains('action-gen-key') || target.classList.contains('action-regen-key')) {
-                        if (target.classList.contains('action-regen-key') && !confirm("Regenerate this key? The old one will stop working.")) return;
-                        target.disabled = true; target.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-                        try {
-                            const newKey = generateLicenseKey();
-                            const userRef = doc(db, "users", uid);
-                            const updateObj = { [`licenseKeys.${product}`]: newKey };
-                            if (product === "RL Bot Trainer") updateObj.licenseKey = newKey;
-                            await updateDoc(userRef, updateObj);
-                            if (key && key !== 'null') await deleteDoc(doc(db, "licenses", key));
-                            await setDoc(doc(db, "licenses", newKey), {
-                                userId: uid, plan: plan || "Trial", product: product, status: "active", hwid: null, createdAt: Date.now()
-                            });
-                            refreshDashboard();
-                        } catch (err) { alert(err.message); target.disabled = false; }
-                    }
-
-                    if (target.classList.contains('action-reset-hwid')) {
-                        if (!confirm("Reset HWID for this license?")) return;
-                        try { await updateDoc(doc(db, "licenses", key), { hwid: null }); alert("HWID Reset Success!"); }
-                        catch (err) { alert(err.message); }
-                    }
-
-                    if (target.classList.contains('action-delete')) {
-                        const email = target.getAttribute('data-email');
-                        if (confirm(`PERMANENTLY delete user ${email}?`)) {
-                            await deleteDoc(doc(db, "users", uid));
-                            refreshDashboard();
-                        }
-                    }
-                });
-            }
+            if (tbody) tbody.addEventListener('click', handleAdminAction);
+            const invContainer = document.getElementById('adminLicenseInventoryBody');
+            if (invContainer) invContainer.addEventListener('click', handleAdminAction);
 
             // Tabs / Sidebar Logic
             const navItems = document.querySelectorAll('.saas-nav-item');
