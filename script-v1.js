@@ -1333,64 +1333,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Reveal Admin Panel
             if (user.email === 'aerobytebot@gmail.com' || user.email === 'adamfrawi@gmail.com') {
-                const adminPanelLaunch = document.getElementById('adminPanelLaunch');
-                if (adminPanelLaunch) adminPanelLaunch.style.display = 'block';
-            }
-        }
-
-        // Dedicated Admin Page Specific Logic
+                    // Dedicated Admin Page Specific Logic
         const isAdminPage = window.location.pathname.toLowerCase().includes('admin');
         if (isAdminPage) {
-            // Mark auth as resolved after first callback
-            const wasResolved = authResolved;
             authResolved = true;
 
             if (!user) {
-                // If this is the very first callback (Firebase still waking up), wait briefly before redirecting
-                if (!wasResolved) {
-                    console.log("⏳ Admin: Auth not resolved yet, waiting for Firebase...");
-                    return;
-                }
                 window.location.href = 'index.html';
                 return;
             }
-                     const tbody = document.getElementById('adminUsersTbody');
+
+            const tbody = document.getElementById('adminUsersTbody');
+            
             const refreshDashboard = async () => {
                 if (!tbody) return;
-                
-                console.log("🔄 Starting SaaS Dashboard Sync...");
-                // Skeleton states are already in HTML for initial load
+                console.log("🔄 SaaS Dashboard Syncing...");
                 
                 try {
-                    const twentyFourHoursAgo = Date.now() - (24 * 60 * 60 * 1000);
-                    
                     const fetchWithLog = async (name, query) => {
-                        try {
-                            const snap = await getDocs(query);
-                            return snap;
-                        } catch (e) {
-                            console.warn(`⚠️ Failed to fetch ${name}:`, e.message);
-                            return { forEach: () => {}, size: 0 };
-                        }
+                        const snap = await getDocs(query);
+                        return snap;
                     };
 
                     const [userSnap, licSnap, promoSnap] = await Promise.all([
-                        fetchWithLog("users", collection(db, "users")),
-                        fetchWithLog("licenses", collection(db, "licenses")),
-                        fetchWithLog("promo_codes", collection(db, "promo_codes"))
+                        getDocs(collection(db, "users")),
+                        getDocs(collection(db, "licenses")),
+                        getDocs(collection(db, "promo_codes"))
                     ]);
                     
-                    const userMap = {};
                     const usersList = [];
                     userSnap.forEach(docSnap => {
-                        const data = docSnap.data();
-                        let bestName = data.discordUsername || data.email;
-                        if (bestName.startsWith('discord_') && !data.discordUsername) {
-                            const discId = bestName.split('@')[0].split('_')[1];
-                            bestName = `Discord User (${discId.substring(0,6)}...)`;
-                        }
-                        userMap[docSnap.id] = bestName;
-                        usersList.push({ id: docSnap.id, ...data });
+                        usersList.push({ id: docSnap.id, ...docSnap.data() });
                     });
                     
                     const activity = [];
@@ -1399,42 +1372,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         activity.push({ id: d.id, time: data.createdAt, user: data.userId });
                     });
                     
-                    console.log("📊 Sync Complete. Rendering SaaS Cards...");
                     tbody.innerHTML = '';
-
-                    usersList.sort((a,b) => {
-                        const nameA = (a.discordUsername || a.email || "").toLowerCase();
-                        const nameB = (b.discordUsername || b.email || "").toLowerCase();
-                        return nameA.localeCompare(nameB);
-                    });
+                    usersList.sort((a,b) => (a.discordUsername || a.email || "").localeCompare(b.discordUsername || b.email || ""));
 
                     usersList.forEach(user => {
                         const userRow = document.createElement('div');
                         userRow.className = 'saas-user-row';
                         
-                        let expiresText = "Never (Lifetime)";
-                        const expiresAtMs = user.expiresAt ? Number(user.expiresAt) : null;
-                        
-                        if ((user.plan === "Premium" || user.plan === "Trial")) {
-                            if (expiresAtMs === null) {
-                                expiresText = "Lifetime";
-                            } else {
-                                const diff = expiresAtMs - Date.now();
-                                if (diff > 0) {
-                                    const d = Math.floor(diff / 86400000);
-                                    const h = Math.floor((diff % 86400000) / 3600000);
-                                    expiresText = d > 0 ? `${d}d ${h}h` : `${h}h rem`;
-                                } else {
-                                    expiresText = "Expired";
-                                }
-                            }
-                        }
-
                         const products = ["RL Bot Trainer", "Among Us Mod Menu"];
-                        const productIcons = {
-                            "RL Bot Trainer": "fas fa-car-side",
-                            "Among Us Mod Menu": "fas fa-user-secret"
-                        };
+                        const productIcons = { "RL Bot Trainer": "fas fa-car-side", "Among Us Mod Menu": "fas fa-user-secret" };
 
                         let licensesHtml = '';
                         products.forEach(p => {
@@ -1444,21 +1390,26 @@ document.addEventListener('DOMContentLoaded', () => {
                                     <div class="saas-mini-card">
                                         <div style="display:flex; justify-content:space-between; align-items:center;">
                                             <span style="font-size:0.6rem; text-transform:uppercase; font-weight:800; color:var(--text-muted);"><i class="${productIcons[p]}"></i> ${p}</span>
-                                            <span style="font-size:0.6rem; color:var(--text-muted); opacity:0.5;">Active</span>
+                                            <span style="font-size:0.6rem; color:#10B981; font-weight:bold;">Active</span>
                                         </div>
-                                        <code style="font-family:monospace; font-size:0.75rem; color:var(--primary); margin: 5px 0;">••••-••••-••••-••••</code>
+                                        <code class="admin-license-mask" data-key="${pKey}" style="font-family:monospace; font-size:0.75rem; color:var(--primary); margin: 5px 0; cursor:pointer;">••••-••••-••••-••••</code>
                                         <div style="display:flex; gap:6px;">
-                                            <button class="saas-manage-btn action-reset-hwid" data-uid="${user.id}" data-key="${pKey}" data-product="${p}" style="padding:4px 8px; font-size:0.6rem;">HWID</button>
-                                            <button class="saas-manage-btn action-regen-key" data-uid="${user.id}" data-key="${pKey}" data-plan="${user.plan}" data-product="${p}" style="padding:4px 8px; font-size:0.6rem;">REGEN</button>
+                                            <button class="saas-manage-btn action-reset-hwid" data-uid="${user.id}" data-key="${pKey}" data-product="${p}">HWID</button>
+                                            <button class="saas-manage-btn action-regen-key" data-uid="${user.id}" data-key="${pKey}" data-plan="${user.plan}" data-product="${p}">Regen</button>
                                         </div>
+                                    </div>`;
+                            } else {
+                                licensesHtml += `
+                                    <div class="saas-mini-card" style="border-style: dashed; opacity: 0.6; display: flex; align-items: center; justify-content: center; min-height: 60px;">
+                                        <button class="saas-manage-btn action-gen-key" data-uid="${user.id}" data-product="${p}" data-plan="${user.plan}" style="width:100%; height:100%; background:transparent; border:none; color:var(--text-muted); font-size:0.65rem; font-weight:bold; cursor:pointer;">
+                                            <i class="fas fa-plus-circle"></i> ADD ${p.toUpperCase()}
+                                        </button>
                                     </div>`;
                             }
                         });
 
                         const userActivity = activity.filter(a => a.user === user.id).sort((a,b) => b.time - a.time);
-                        let statusColor = '#94A3B8'; // Offline
-                        let statusLabel = 'Offline';
-                        let lastSeenText = 'Never';
+                        let statusColor = '#94A3B8'; let statusLabel = 'Offline'; let lastSeenText = 'Never';
 
                         if (userActivity.length > 0) {
                             const last = userActivity[0];
@@ -1466,14 +1417,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             const hoursAgo = Math.floor(timeAgoMs / 3600000);
                             const minsAgo = Math.floor((timeAgoMs % 3600000) / 60000);
                             lastSeenText = hoursAgo > 0 ? `${hoursAgo}h ago` : `${minsAgo}m ago`;
-                            
-                            if (timeAgoMs < (15 * 60 * 1000)) {
-                                statusColor = '#10B981'; // Active
-                                statusLabel = 'Active';
-                            } else {
-                                statusColor = '#F59E0B'; // Idle
-                                statusLabel = 'Idle';
-                            }
+                            if (timeAgoMs < (15 * 60 * 1000)) { statusColor = '#10B981'; statusLabel = 'Active'; }
+                            else { statusColor = '#F59E0B'; statusLabel = 'Idle'; }
                         }
 
                         const initials = (user.discordUsername || user.email || "A").charAt(0).toUpperCase();
@@ -1487,110 +1432,27 @@ document.addEventListener('DOMContentLoaded', () => {
                                     <p style="font-size: 0.7rem; color: var(--text-muted); margin:0;">${user.email}</p>
                                 </div>
                             </div>
-                            <div>
-                                <span class="saas-pill ${planClass}">${user.plan}</span>
-                            </div>
-                            <div style="display:flex; flex-direction:column; gap:8px;">
-                                ${licensesHtml || '<p style="font-size:0.7rem; color:var(--text-muted);">No active licenses</p>'}
-                            </div>
+                            <div><span class="saas-pill ${planClass}">${user.plan}</span></div>
+                            <div style="display:flex; flex-direction:column; gap:8px;">${licensesHtml}</div>
                             <div>
                                 <div class="saas-status-dot" style="background: ${statusColor};"></div>
                                 <span style="font-size: 0.75rem; color: var(--text-muted); margin-left: 10px;">${statusLabel}</span>
                             </div>
-                            <div style="font-size: 0.75rem; color: var(--text-muted);">
-                                ${lastSeenText}
-                            </div>
+                            <div style="font-size: 0.75rem; color: var(--text-muted);">${lastSeenText}</div>
                             <div class="saas-action-group">
-                                <button class="saas-manage-btn action-manage" data-uid="${user.id}"><i class="fas fa-ellipsis-h"></i></button>
+                                <button class="saas-manage-btn action-manage" data-uid="${user.id}"><i class="fas fa-cog"></i></button>
                                 <button class="saas-delete-btn action-delete" data-uid="${user.id}" data-email="${user.email}"><i class="fas fa-trash-alt"></i></button>
                             </div>
                         `;
                         tbody.appendChild(userRow);
                     });
                 } catch (err) {
-                    console.error("SaaS Dashboard Error:", err);
-                    tbody.innerHTML = `<div style="padding:40px; text-align:center; color:var(--danger);">Error loading SaaS Dashboard: ${err.message}</div>`;
+                    console.error("Dashboard Error:", err);
+                    tbody.innerHTML = `<div style="padding:40px; text-align:center; color:var(--danger);">Error: ${err.message}</div>`;
                 }
             };
 
-            const rTbody = document.getElementById('recentActivityTbody');
-            if (rTbody) {
-                rTbody.addEventListener('click', async (e) => {
-                    const deleteBtn = e.target.closest('.action-delete-activity');
-                    if (!deleteBtn) return;
-
-                    const docId = deleteBtn.getAttribute('data-id');
-                    const collectionName = deleteBtn.getAttribute('data-col');
-                    const type = deleteBtn.getAttribute('data-type');
-                    
-                    const confirmMsg = type === 'License' 
-                        ? `WARNING: Deleting an active LICENSE (${docId}) will deactivate the user's software. Are you sure?`
-                        : `Are you sure you want to remove this Promo Code record (${docId})? It will be permanently deleted.`;
-
-                    if (confirm(confirmMsg)) {
-                        deleteBtn.style.opacity = '0.5';
-                        deleteBtn.disabled = true;
-                        try {
-                            await deleteDoc(doc(db, collectionName, docId));
-                            refreshDashboard(); // Refresh UI
-                        } catch (err) {
-                            console.error("Delete Error:", err);
-                            alert("Error deleting: " + err.message);
-                            deleteBtn.style.opacity = '1';
-                            deleteBtn.disabled = false;
-                        }
-                    }
-                });
-            }
-
-            // Toggle Activity Log
-            const activityToggle = document.getElementById('activityToggle');
-            const activityContent = document.getElementById('activityContent');
-            const activityChevron = document.getElementById('activityChevron');
-            if (activityToggle && activityContent) {
-                activityToggle.onclick = () => {
-                    const isHidden = activityContent.classList.toggle('hidden');
-                    if (activityChevron) {
-                        activityChevron.style.transform = isHidden ? 'rotate(-90deg)' : 'rotate(0deg)';
-                    }
-                };
-            }
-
-            /* --- ADMIN SIDEBAR DRAWER LOGIC --- */
-            const sidebar = document.getElementById('adminSidebar');
-            const sidebarToggle = document.getElementById('sidebarToggle');
-            const sidebarClose = document.getElementById('sidebarClose');
-
-            if (sidebar && sidebarToggle) {
-                sidebarToggle.onclick = () => {
-                    sidebar.classList.add('active');
-                    sidebarToggle.style.display = 'none';
-                };
-            }
-            if (sidebar && sidebarClose) {
-                sidebarClose.onclick = () => {
-                    sidebar.classList.remove('active');
-                    if (sidebarToggle) sidebarToggle.style.display = 'flex';
-                };
-            }
-
-            // Force Resync Button
-            const resyncBtn = document.getElementById('resyncDashboard');
-            if (resyncBtn) {
-                resyncBtn.onclick = () => {
-                    console.log("🔄 Manual Sync Triggered...");
-                    resyncBtn.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i> Syncing...';
-                    resyncBtn.disabled = true;
-                    refreshDashboard().then(() => {
-                        resyncBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Force Resync';
-                        resyncBtn.disabled = false;
-                    });
-                };
-            }
-
-            refreshDashboard();
-
-            // Unified Search Handler
+            // Global Search
             const userSearch = document.getElementById('userSearch');
             if (userSearch) {
                 userSearch.addEventListener('input', (e) => {
@@ -1603,388 +1465,103 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
 
-            // --- Admin Event Listeners ---
-            if(tbody) {
-                // 1. Change listener for plan/duration selection
-                tbody.addEventListener('change', (e) => {
-                    const planSelect = e.target.closest('.action-plan');
-                    if (planSelect) {
-                        const durationInputs = planSelect.parentElement.querySelector('.duration-inputs');
-                        if (planSelect.value === 'Premium' || planSelect.value === 'Trial') {
-                            durationInputs.style.display = 'flex';
-                        } else {
-                            durationInputs.style.display = 'none';
-                        }
-                    }
-                });
-
-                // 2. Click listener for all row actions
+            // Unified Event Listener for Tbody
+            if (tbody) {
                 tbody.addEventListener('click', async (e) => {
-                    // MASK TOGGLE
-                    const mask = e.target.closest('.admin-license-mask');
-                    if (mask) {
-                        const key = mask.getAttribute('data-key');
-                        mask.textContent = mask.textContent.includes('•') ? key : '••••-••••-••••-••••';
-                        return;
+                    const target = e.target.closest('button, code');
+                    if (!target) return;
+
+                    const uid = target.getAttribute('data-uid');
+                    const key = target.getAttribute('data-key');
+                    const product = target.getAttribute('data-product');
+                    const plan = target.getAttribute('data-plan');
+
+                    if (target.classList.contains('admin-license-mask')) {
+                        target.textContent = target.textContent.includes('•') ? key : '••••-••••-••••-••••';
                     }
 
-                    // REGEN KEY (Inline Confirm)
-                    const regenBtn = e.target.closest('.action-gen-key') || e.target.closest('.action-regen-key');
-                    if (regenBtn) {
-                        const parent = regenBtn.parentElement;
-                        const uid = regenBtn.getAttribute('data-uid');
-                        const plan = regenBtn.getAttribute('data-plan');
-                        const oldKey = regenBtn.getAttribute('data-key');
-                        const product = regenBtn.getAttribute('data-product') || "RL Bot Trainer";
-
-
-                        if (oldKey) {
-                            regenBtn.style.display = 'none';
-                            const confirmUI = document.createElement('div');
-                            confirmUI.className = 'inline-confirm';
-                            confirmUI.innerHTML = `
-                                <span style="font-size:0.6rem; color:#f59e0b; display:block; margin-bottom:2px;">Regen Key?</span>
-                                <div style="display:flex; gap:4px;">
-                                    <button class="confirm-regen-yes" style="padding:4px 8px; font-size:0.6rem; background:#10B981; color:#fff; border:none; border-radius:3px; cursor:pointer; font-weight:800;">Confirm</button>
-                                    <button class="confirm-regen-no" style="padding:4px 8px; font-size:0.6rem; background:#ff4d4d; color:#fff; border:none; border-radius:3px; cursor:pointer; font-weight:800;">Cancel</button>
-                                </div>
-                            `;
-                            parent.appendChild(confirmUI);
-                            
-                            const cleanup = () => { confirmUI.remove(); regenBtn.style.display = 'inline-block'; };
-                            confirmUI.querySelector('.confirm-regen-no').onclick = cleanup;
-                            confirmUI.querySelector('.confirm-regen-yes').onclick = async () => {
-                                confirmUI.innerHTML = '<span style="font-size:0.6rem; color:var(--text-muted);">Generating...</span>';
-                                try {
-                                    const newKey = generateLicenseKey();
-                                    
-                                    // Update appropriate field in users collection
-                                    const userRef = doc(db, "users", uid);
-                                    if (product === "RL Bot Trainer") {
-                                        await updateDoc(userRef, { 
-                                            licenseKey: newKey,
-                                            [`licenseKeys.${product}`]: newKey
-                                        });
-                                    } else {
-                                        await updateDoc(userRef, { 
-                                            [`licenseKeys.${product}`]: newKey
-                                        });
-                                    }
-
-                                    if (oldKey) await deleteDoc(doc(db, "licenses", oldKey));
-                                    await setDoc(doc(db, "licenses", newKey), {
-                                        userId: uid, plan: plan, product: product, status: "active", hwid: null, createdAt: Date.now()
-                                    });
-                                    refreshDashboard();
-                                } catch(err) { alert("Error: " + err.message); cleanup(); }
-                            };
-                            return;
-                        }
-
-                        // Just Generate (No old key)
-                        regenBtn.textContent = 'Updating...'; regenBtn.disabled = true;
+                    if (target.classList.contains('action-gen-key') || target.classList.contains('action-regen-key')) {
+                        if (target.classList.contains('action-regen-key') && !confirm("Regenerate this key? The old one will stop working.")) return;
+                        target.disabled = true; target.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
                         try {
                             const newKey = generateLicenseKey();
                             const userRef = doc(db, "users", uid);
-                            if (product === "RL Bot Trainer") {
-                                await updateDoc(userRef, { 
-                                    licenseKey: newKey,
-                                    [`licenseKeys.${product}`]: newKey
-                                });
-                            } else {
-                                await updateDoc(userRef, { 
-                                    [`licenseKeys.${product}`]: newKey
-                                });
-                            }
+                            const updateObj = { [`licenseKeys.${product}`]: newKey };
+                            if (product === "RL Bot Trainer") updateObj.licenseKey = newKey;
+                            await updateDoc(userRef, updateObj);
+                            if (key && key !== 'null') await deleteDoc(doc(db, "licenses", key));
                             await setDoc(doc(db, "licenses", newKey), {
-                                userId: uid, plan: plan, product: product, status: "active", hwid: null, createdAt: Date.now()
+                                userId: uid, plan: plan || "Trial", product: product, status: "active", hwid: null, createdAt: Date.now()
                             });
-                            refreshDashboard(); 
-                        } catch(err) { alert("Error: " + err.message); regenBtn.textContent = 'Generate'; regenBtn.disabled = false; }
-                        return;
+                            refreshDashboard();
+                        } catch (err) { alert(err.message); target.disabled = false; }
                     }
 
-                    // RESET HWID (Inline Confirm)
-                    const hwidBtn = e.target.closest('.action-reset-hwid');
-                    if (hwidBtn) {
-                        const parent = hwidBtn.parentElement;
-                        const key = hwidBtn.getAttribute('data-key');
-                        hwidBtn.style.display = 'none';
-                        const confirmUI = document.createElement('div');
-                        confirmUI.className = 'inline-confirm';
-                        confirmUI.innerHTML = `
-                            <span style="font-size:0.6rem; color:#f59e0b; display:block; margin-bottom:2px;">Reset HWID?</span>
-                            <div style="display:flex; gap:4px;">
-                                <button class="confirm-hwid-yes" style="padding:4px 8px; font-size:0.6rem; background:#10B981; color:#fff; border:none; border-radius:3px; cursor:pointer; font-weight:800;">Confirm</button>
-                                <button class="confirm-hwid-no" style="padding:4px 8px; font-size:0.6rem; background:#ff4d4d; color:#fff; border:none; border-radius:3px; cursor:pointer; font-weight:800;">Cancel</button>
-                            </div>
-                        `;
-                        parent.appendChild(confirmUI);
-                        const cleanup = () => { confirmUI.remove(); hwidBtn.style.display = 'inline-block'; };
-                        confirmUI.querySelector('.confirm-hwid-no').onclick = cleanup;
-                        confirmUI.querySelector('.confirm-hwid-yes').onclick = async () => {
-                            confirmUI.innerHTML = '<span style="font-size:0.6rem; color:var(--text-muted);">Resetting...</span>';
-                            try {
-                                await setDoc(doc(db, "licenses", key), { hwid: null }, { merge: true });
-                                refreshDashboard();
-                            } catch(err) { alert("Error: " + err.message); cleanup(); }
-                        };
-                        return;
+                    if (target.classList.contains('action-reset-hwid')) {
+                        if (!confirm("Reset HWID for this license?")) return;
+                        try { await updateDoc(doc(db, "licenses", key), { hwid: null }); alert("HWID Reset Success!"); }
+                        catch (err) { alert(err.message); }
                     }
 
-                    // SAVE USER
-                    const saveBtn = e.target.closest('.action-save');
-                    if (saveBtn) {
-                        const uid = saveBtn.getAttribute('data-uid');
-                        const parent = saveBtn.parentElement;
-                        const planVal = parent.querySelector('.action-plan').value;
-                        const daysVal = parseInt(parent.querySelector('.action-days')?.value) || 0;
-                        const hoursVal = parseInt(parent.querySelector('.action-hours')?.value) || 0;
-                        const minsVal = parseInt(parent.querySelector('.action-minutes')?.value) || 0;
-                        
-                        saveBtn.textContent = 'Saving...';
-                        let expiresAt = null;
-                        if (planVal === 'Premium' || planVal === 'Trial') {
-                            const totalMs = (daysVal * 24 * 60 * 60 * 1000) + (hoursVal * 60 * 60 * 1000) + (minsVal * 60 * 1000);
-                            if (totalMs > 0) expiresAt = Date.now() + totalMs;
-                        }
-
-                        try {
-                            const oldDoc = await getDoc(doc(db, "users", uid));
-                            const oldData = oldDoc.data();
-                            const oldKey = oldData.licenseKey;
-                            const oldPlan = oldData.plan;
-                            let updateData = { plan: planVal, expiresAt: expiresAt };
-
-                            if (planVal === 'Free') {
-                                if (oldKey) { await updateDoc(doc(db, "licenses", oldKey), { plan: "Free" }); }
-                                updateData.expiresAt = null;
-                            } else if (planVal !== oldPlan || !oldKey) {
-                                const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-                                const rand = (len) => Array.from({length: len}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-                                const newKey = `${rand(4)}-${rand(4)}-${rand(4)}-${rand(4)}`;
-                                if (oldKey) await deleteDoc(doc(db, "licenses", oldKey));
-                                updateData.licenseKey = newKey;
-                                await setDoc(doc(db, "licenses", newKey), { userId: uid, plan: planVal, status: "active", createdAt: Date.now() });
-                            }
-
-                            await updateDoc(doc(db, "users", uid), updateData);
-                            saveBtn.textContent = 'Saved!'; saveBtn.style.background = '#10B981';
-                            setTimeout(() => { saveBtn.textContent = 'Save'; saveBtn.style.background = ''; refreshDashboard(); }, 1200);
-                        } catch(err) { alert("Error: " + err.message); saveBtn.textContent = 'Save'; }
-                        return;
-                    }
-
-                    // DELETE USER
-                    const deleteBtn = e.target.closest('.action-delete');
-                    if (deleteBtn) {
-                        const uid = deleteBtn.getAttribute('data-uid');
-                        const email = deleteBtn.getAttribute('data-email');
-                        if (confirm(`Remove ${email}?`)) {
-                            deleteBtn.textContent = 'Deleting...'; deleteBtn.disabled = true;
-                            try { await deleteDoc(doc(db, "users", uid)); refreshDashboard(); }
-                            catch (err) { alert("Error: " + err.message); deleteBtn.textContent = 'Delete'; deleteBtn.disabled = false; }
+                    if (target.classList.contains('action-delete')) {
+                        const email = target.getAttribute('data-email');
+                        if (confirm(`PERMANENTLY delete user ${email}?`)) {
+                            await deleteDoc(doc(db, "users", uid));
+                            refreshDashboard();
                         }
                     }
                 });
             }
 
-            // Bulk Auth Synchronizer Logic
-            const importFile = document.getElementById('importUsersFile');
-            const importStatus = document.getElementById('importStatus');
-            if (importFile && importStatus) {
-                importFile.addEventListener('change', (e) => {
-                    const file = e.target.files[0];
-                    if (!file) return;
+            // Tabs / Sidebar Logic
+            const navItems = document.querySelectorAll('.saas-nav-item');
+            navItems.forEach(item => {
+                item.onclick = () => {
+                    navItems.forEach(i => i.classList.remove('active'));
+                    item.classList.add('active');
+                    const tabName = item.textContent.trim();
+                    if (tabName === 'User Database') refreshDashboard();
+                };
+            });
 
-                    importStatus.style.display = 'block';
-                    importStatus.style.color = '#fff';
-                    importStatus.textContent = 'Parsing JSON file... please do not refresh the page.';
-
-                    const reader = new FileReader();
-                    reader.onload = async (event) => {
-                        try {
-                            const data = JSON.parse(event.target.result);
-                            if (!data.users || !Array.isArray(data.users)) {
-                                throw new Error("Invalid file format. Make sure you downloaded the 'JSON' export from Firebase Authentication.");
-                            }
-
-                            let count = 0;
-                            importStatus.textContent = `Synchronizing ${data.users.length} accounts to database...`;
-
-                            // Write missing accounts to Firestore gracefully
-                            for (const u of data.users) {
-                                if (u.email && u.localId) {
-                                    // { merge: true } prevents overwriting someone's existing Premium plan with Free!
-                                    await setDoc(doc(db, "users", u.localId), {
-                                        email: u.email,
-                                        plan: "Free"
-                                    }, { merge: true });
-                                    count++;
-                                }
-                            }
-
-                            importStatus.style.color = '#10B981';
-                            importStatus.textContent = `Successfully injected ${count} users into Firestore! Reloading...`;
-                            
-                            setTimeout(() => {
-                                importStatus.style.display = 'none';
-                                refreshDashboard();
-                            }, 3000);
-
-                        } catch (err) {
-                            console.error(err);
-                            importStatus.style.color = '#ff4d4d';
-                            importStatus.textContent = 'Error parsing file: ' + err.message;
-                        }
-                    };
-                    reader.readAsText(file);
-                });
-            }
-            
-            // --- REFRESH DATABASE ---
-            const refreshBtn = document.getElementById('refreshBtn');
-            if (refreshBtn) {
-                refreshBtn.addEventListener('click', () => refreshDashboard());
-            }
-
-            // --- GLOBAL ADMIN PROMO GEN HANDLER (Event Delegation) ---
-            document.body.addEventListener('click', async (e) => {
-                if (e.target && e.target.id === 'genPromoBtn') {
-                    console.log("🎁 Giveaway Gen Triggered");
-                    const genBtn = e.target;
-                    const dInput = document.getElementById('promoDays');
-                    const hInput = document.getElementById('promoHours');
-                    const mInput = document.getElementById('promoMins');
-                    const pInput = document.getElementById('promoProduct');
-                    const lToggle = document.getElementById('promoLifetime');
-                    
-                    const days = parseInt(dInput?.value) || 0;
-                    const hours = parseInt(hInput?.value) || 0;
-                    const mins = parseInt(mInput?.value) || 0;
-                    const product = pInput?.value || "RL Bot Trainer";
-                    const isLifetime = lToggle?.checked || false;
-                    
-                    const totalMs = isLifetime ? 0 : ((days * 24 * 60 * 60 * 1000) + (hours * 60 * 60 * 1000) + (mins * 60 * 1000));
-                    if (!isLifetime && totalMs <= 0) {
-                        alert("Please enter a valid duration.");
-                        return;
-                    }
+            // Promotion Generator
+            const genPromoBtn = document.getElementById('genPromoBtn');
+            if (genPromoBtn) {
+                genPromoBtn.onclick = async () => {
+                    const days = parseInt(document.getElementById('promoDays')?.value) || 0;
+                    const product = document.getElementById('promoProduct')?.value || "RL Bot Trainer";
+                    const isLifetime = document.getElementById('promoLifetime')?.checked || false;
+                    const totalMs = isLifetime ? 0 : (days * 24 * 60 * 60 * 1000);
                     
                     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; 
                     const newCode = Array.from({length: 8}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
                     
-                    genBtn.textContent = 'Generating...';
-                    genBtn.disabled = true;
-
+                    genPromoBtn.disabled = true;
                     try {
-                        // Ensure we are logged in
-                        if (!auth.currentUser) throw new Error("Not authenticated");
-
                         await setDoc(doc(db, "promo_codes", newCode), {
-                            durationMs: totalMs,
-                            days: days,
-                            hours: hours,
-                            mins: mins,
-                            product: product,
-                            isLifetime: isLifetime,
-                            createdAt: Date.now(),
-                            createdBy: auth.currentUser.email
+                            durationMs: totalMs, product: product, isLifetime: isLifetime, createdAt: Date.now(), createdBy: auth.currentUser.email
                         });
-                        
-                        console.log("✅ Code Saved:", newCode);
-                        
-                        // --- SHOW PREMIUM MODAL ---
-                        const promoResModal = document.getElementById('promoResultModal');
-                        const codeDisplay = document.getElementById('generatedCodeDisplay');
-                        const durationDisplay = document.getElementById('generatedDurationDisplay');
-                        
-                        if (promoResModal && codeDisplay && durationDisplay) {
-                            codeDisplay.textContent = newCode;
-                            durationDisplay.textContent = isLifetime ? `${product} | Lifetime` : `${product} | ${days}d ${hours}h ${mins}m`;
-                            promoResModal.classList.add('active');
-                            document.body.style.overflow = 'hidden';
-                        } else {
-                            // Fallback if modal isn't injected for some reason
-                            alert(`🎁 Code Generated: ${newCode}\nProduct: ${product}\nDuration: ${isLifetime ? 'Lifetime' : days + ' Days'}`);
-                        }
+                        const modal = document.getElementById('promoResultModal');
+                        if (modal) {
+                            document.getElementById('generatedCodeDisplay').textContent = newCode;
+                            document.getElementById('generatedDurationDisplay').textContent = isLifetime ? `${product} | Lifetime` : `${product} | ${days} Days`;
+                            modal.classList.add('active');
+                        } else { alert("Code: " + newCode); }
+                    } catch (err) { alert(err.message); }
+                    finally { genPromoBtn.disabled = false; }
+                };
+            }
 
-                        genBtn.textContent = 'Generate One-Time Code';
-                        genBtn.disabled = false;
-                    } catch (err) {
-                        console.error("❌ Giveaway Gen Error:", err);
-                        alert("Error generating code: " + err.message);
-                        genBtn.textContent = 'Generate One-Time Code';
-                        genBtn.disabled = false;
-                    }
-                }
-
-                // --- COPY PROMO CODE HANDLER ---
-                if (e.target && e.target.id === 'copyPromoBtn') {
-                    const codeDisplay = document.getElementById('generatedCodeDisplay');
-                    if (codeDisplay) {
-                        const code = codeDisplay.textContent;
-                        navigator.clipboard.writeText(code).then(() => {
-                            const originalBtnContent = e.target.innerHTML;
-                            e.target.innerHTML = '<i class="fas fa-check"></i> Copied!';
-                            e.target.style.background = '#10B981';
-                            setTimeout(() => {
-                                e.target.innerHTML = originalBtnContent;
-                                e.target.style.background = '#5865F2';
-                            }, 2000);
-                        });
-                    }
-                }
-
-                // --- DIRECT PROVISIONER HANDLER ---
-                if (e.target && e.target.id === 'provisionDirectBtn') {
-                    const btn = e.target;
-                    const product = document.getElementById('directProduct')?.value || "RL Bot Trainer";
-                    
-                    btn.textContent = 'Generating...';
-                    btn.disabled = true;
-                    
-                    try {
-                        const newKey = generateLicenseKey();
-                        await setDoc(doc(db, "licenses", newKey), {
-                            product: product,
-                            isLifetime: true,
-                            status: "active",
-                            userId: null,
-                            createdAt: Date.now(),
-                            provisionedBy: auth.currentUser?.email || 'Admin'
-                        });
-
-                        const promoResModal = document.getElementById('promoResultModal');
-                        const codeDisplay = document.getElementById('generatedCodeDisplay');
-                        const durationDisplay = document.getElementById('generatedDurationDisplay');
-                        if (promoResModal && codeDisplay && durationDisplay) {
-                            codeDisplay.textContent = newKey;
-                            durationDisplay.textContent = `${product} | Direct Permanent License`;
-                            promoResModal.classList.add('active');
-                            document.body.style.overflow = 'hidden';
-                            const modalTitle = promoResModal.querySelector('h2');
-                            if (modalTitle) modalTitle.textContent = "Permanent Key Generated";
-                        } else {
-                            alert(`✅ Permanent Key Generated: ${newKey}\nProduct: ${product}`);
-                        }
-                    } catch (err) {
-                        alert("Error: " + err.message);
-                    } finally {
-                        btn.textContent = 'Generate Permanent Key';
-                        btn.disabled = false;
-                    }
-                }
-            });
-
-            // --- LIFETIME TOGGLE HANDLER ---
-            document.body.addEventListener('change', (e) => {
-                if (e.target && e.target.id === 'promoLifetime') {
-                    const wrapper = document.getElementById('durationInputsWrapper');
-                    if (wrapper) wrapper.style.display = e.target.checked ? 'none' : 'block';
-                }
-            });
+            refreshDashboard();
         }
+
+        // --- LIFETIME TOGGLE HANDLER ---
+        document.body.addEventListener('change', (e) => {
+            if (e.target && e.target.id === 'promoLifetime') {
+                const wrapper = document.getElementById('durationInputsWrapper');
+                if (wrapper) wrapper.style.display = e.target.checked ? 'none' : 'block';
+            }
+        });
     });
 
     // --- DISCORD OAUTH LOGIC ---
