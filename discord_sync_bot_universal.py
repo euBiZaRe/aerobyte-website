@@ -127,6 +127,7 @@ class FirestoreClient:
         headers = {
             "Authorization": f"Bearer {self._get_access_token()}",
             "Content-Type": "application/json",
+            "User-Agent": "AeroByteSyncBot/1.0 (Render; +https://aerobyte.shop)",
         }
         response = self._session.request(
             method,
@@ -136,10 +137,23 @@ class FirestoreClient:
             json=json_body,
             timeout=FIRESTORE_TIMEOUT,
         )
-        response.raise_for_status()
+        
+        try:
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            # Log the body snippet to see if it's HTML/Cloudflare
+            logger.error("Firestore HTTP error: %s | Body: %r", e, response.text[:500])
+            raise
+
         if not response.content:
             return {}
-        return response.json()
+            
+        try:
+            return response.json()
+        except (json.JSONDecodeError, ValueError) as e:
+            logger.error("Failed to parse Firestore JSON. Status: %s | Body: %r", 
+                         response.status_code, response.text[:500])
+            raise
 
     def list_users(self, page_size: int = 300) -> list[dict[str, Any]]:
         documents: list[dict[str, Any]] = []
@@ -317,14 +331,31 @@ async def on_ready() -> None:
     for guild in bot.guilds:
         logger.info("Connected to server: %s (%s)", guild.name, guild.id)
 
-    # Start heartbeat server
-    asyncio.create_task(start_web_server())
-
     if sync_task is None or sync_task.done():
         sync_task = asyncio.create_task(sync_loop(), name="firestore-sync-loop")
     if expiry_task is None or expiry_task.done():
         expiry_task = asyncio.create_task(expiry_loop(), name="trial-expiry-loop")
 
 
+async def main():
+    # Start heartbeat server IMMEDIATELY so Render health checks pass
+    # regardless of how long Discord login takes.
+    try:
+        await start_web_server()
+    except Exception as e:
+        logger.error("Failed to start web server: %s", e)
+        # We continue anyway, but Render might kill us
+
+    # Start the bot
+    logger.info("Starting Discord bot...")
+    async with bot:
+        await bot.start(DISCORD_BOT_TOKEN)
+
+
 if __name__ == "__main__":
-    bot.run(DISCORD_BOT_TOKEN)
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        logger.info("Bot stopped by user.")
+    except Exception:
+        logger.exception("Bot crashed during startup.")
