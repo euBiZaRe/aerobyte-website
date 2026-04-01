@@ -1631,7 +1631,16 @@ const initAeroByte = () => {
 
                 if (target.classList.contains('action-reset-hwid')) {
                     if (!confirm("Reset HWID for this license?")) return;
-                    try { await updateDoc(doc(db, "licenses", key), { hwid: null }); alert("HWID Reset Success!"); }
+                    try { 
+                        // Use setDoc with merge:true to handle legacy keys that might not have a document yet
+                        await setDoc(doc(db, "licenses", key), { 
+                            hwid: null,
+                            status: "active",
+                            userId: uid,
+                            product: product || "Unknown"
+                        }, { merge: true }); 
+                        alert("HWID Reset Success!"); 
+                    }
                     catch (err) { alert(err.message); }
                 }
 
