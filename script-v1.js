@@ -1434,16 +1434,21 @@ const initAeroByte = () => {
                     container.innerHTML = '';
                     usersList.sort((a,b) => (a.discordUsername || a.email || "").localeCompare(b.discordUsername || b.email || ""));
 
-                    usersList.forEach(user => {
+                    for (const user of usersList) {
                         const products = ["RL Bot Trainer", "Among Us Mod Menu"];
                         const productIcons = { "RL Bot Trainer": "fas fa-car-side", "Among Us Mod Menu": "fas fa-user-secret" };
-                        let hasLicenses = false;
                         let licensesHtml = '';
 
-                        products.forEach(p => {
-                            const pKey = (user.licenseKeys && user.licenseKeys[p]) || (p === "RL Bot Trainer" ? user.licenseKey : null);
+                        for (const p of products) {
+                            // Extract key with legacy fallback
+                            let pKey = null;
+                            if (user.licenseKeys && user.licenseKeys[p]) {
+                                pKey = user.licenseKeys[p];
+                            } else if (p === "RL Bot Trainer" && user.licenseKey) {
+                                pKey = user.licenseKey;
+                            }
+
                             if (pKey) {
-                                hasLicenses = true;
                                 licensesHtml += `
                                     <div class="saas-mini-card">
                                         <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -1453,37 +1458,39 @@ const initAeroByte = () => {
                                         <code class="admin-license-mask" data-key="${pKey}" style="font-family:monospace; font-size:0.75rem; color:var(--primary); margin: 5px 0; cursor:pointer;">••••-••••-••••-••••</code>
                                         <div style="display:flex; gap:6px;">
                                             <button class="saas-manage-btn action-reset-hwid" data-uid="${user.id}" data-key="${pKey}" data-product="${p}">HWID</button>
-                                            <button class="saas-manage-btn action-regen-key" data-uid="${user.id}" data-key="${pKey}" data-plan="${user.plan}" data-product="${p}">Regen</button>
+                                            <button class="saas-manage-btn action-regen-key" data-uid="${user.id}" data-key="${pKey}" data-plan="${user.plan || 'Trial'}" data-product="${p}">Regen</button>
                                         </div>
                                     </div>`;
                             } else {
-                                // Add button for missing key
                                 licensesHtml += `
                                     <div class="saas-mini-card" style="border-style: dashed; opacity: 0.8; display: flex; align-items: center; justify-content: center; min-height: 80px;">
-                                        <button class="saas-manage-btn action-gen-key" data-uid="${user.id}" data-product="${p}" data-plan="${user.plan}" style="width:100%; height:100%; background:transparent; border:none; color:var(--primary); font-size:0.65rem; font-weight:bold; cursor:pointer; flex-direction:column; gap:5px;">
+                                        <button class="saas-manage-btn action-gen-key" data-uid="${user.id}" data-product="${p}" data-plan="${user.plan || 'Trial'}" style="width:100%; height:100%; background:transparent; border:none; color:var(--primary); font-size:0.65rem; font-weight:bold; cursor:pointer; flex-direction:column; gap:5px;">
                                             <i class="fas fa-plus-circle" style="font-size: 1rem;"></i>
                                             <span>ADD ${p.toUpperCase()}</span>
                                         </button>
                                     </div>`;
                             }
-                        });
+                        }
 
                         const row = document.createElement('div');
                         row.className = 'saas-user-row';
+                        // Override grid for inventory view to ensure space
+                        row.style.gridTemplateColumns = '300px 1fr'; 
+                        
                         row.innerHTML = `
-                            <div class="saas-user-info">
+                            <div class="saas-user-info" style="min-width: 0;">
                                 <div class="saas-avatar">${(user.discordUsername || user.email || "A").charAt(0).toUpperCase()}</div>
-                                <div style="min-width: 0;">
+                                <div style="min-width: 0; overflow: hidden;">
                                     <p style="font-weight: 700; color: #fff; margin:0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${user.discordUsername || 'Unlinked User'}</p>
                                     <p style="font-size: 0.7rem; color: var(--text-muted); margin:0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${user.email}</p>
                                 </div>
                             </div>
-                            <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap:10px; grid-column: span 3;">
+                            <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap:15px;">
                                 ${licensesHtml}
                             </div>
                         `;
                         container.appendChild(row);
-                    });
+                    }
                 } catch (err) { console.error("License Error:", err); }
             };
 
