@@ -60,8 +60,33 @@
                 </div>
             </header>
 
-            <!-- Dashboard Content -->
-            <div id="saasDashboard">
+            <!-- Tab 1: Dashboard (Overview) -->
+            <div id="tabDashboard" class="saas-tab-content">
+                <div class="saas-content-header">
+                    <div>
+                        <h1 style="font-size: 1.8rem; margin: 0;">Admin <span class="gradient-text" style="background: var(--gradient-saas); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Overview</span></h1>
+                        <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 5px;">Live platform statistics and performance metrics.</p>
+                    </div>
+                </div>
+
+                <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-top: 20px;">
+                    <div class="saas-card" style="padding: 20px; text-align: center;">
+                        <p style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Total Members</p>
+                        <h2 id="statTotalUsers" style="font-size: 2.5rem; margin: 10px 0; color: var(--secondary);">...</h2>
+                    </div>
+                    <div class="saas-card" style="padding: 20px; text-align: center;">
+                        <p style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Active Licenses</p>
+                        <h2 id="statActiveLicenses" style="font-size: 2.5rem; margin: 10px 0; color: #10B981;">...</h2>
+                    </div>
+                    <div class="saas-card" style="padding: 20px; text-align: center;">
+                        <p style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Owner Accounts</p>
+                        <h2 id="statOwners" style="font-size: 2.5rem; margin: 10px 0; color: #A855F7;">...</h2>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 2: User Database (Existing Content) -->
+            <div id="tabUserDatabase" class="saas-tab-content active">
                 <div class="saas-content-header">
                     <div>
                         <h1 style="font-size: 1.8rem; margin: 0;">Member <span class="gradient-text" style="background: var(--gradient-saas); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Database</span></h1>
@@ -74,20 +99,84 @@
                     </div>
                 </div>
 
-                <!-- User Grid Container (Will be populated by JS) -->
                 <div id="adminUsersTbody" class="saas-card-container">
-                    <!-- Skeleton states will show here during load -->
-                    <div class="saas-user-row saas-skeleton" style="height: 80px;"></div>
-                    <div class="saas-user-row saas-skeleton" style="height: 80px;"></div>
+                    <!-- Skeleton states populated by JS -->
                     <div class="saas-user-row saas-skeleton" style="height: 80px;"></div>
                     <div class="saas-user-row saas-skeleton" style="height: 80px;"></div>
                 </div>
             </div>
 
-            <!-- Promotion Generator (Floating or Tabbed Section) -->
-            <section id="promoTools" style="margin-top: 40px; border-top: 1px solid var(--border-color); padding-top: 40px; display:none;">
-                <!-- Existing Promo logic will be integrated here or in a separate tab -->
-            </section>
+            <!-- Tab 3: License Keys (Promo Tools) -->
+            <div id="tabLicenseKeys" class="saas-tab-content">
+                <div class="saas-content-header">
+                    <div>
+                        <h1 style="font-size: 1.8rem; margin: 0;">License <span class="gradient-text" style="background: var(--gradient-saas); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Factory</span></h1>
+                        <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 5px;">Generate promotion codes and direct-access licenses.</p>
+                    </div>
+                </div>
+
+                <div class="saas-card" style="margin-top: 30px; padding: 30px; max-width: 600px;">
+                    <h3 style="margin-bottom: 20px; font-size: 1.1rem; color: #fff;">Promotion Code Generator</h3>
+                    <div style="display: flex; flex-direction: column; gap: 20px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div>
+                                <p style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 5px;">Select Product</p>
+                                <select id="promoProduct" style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; padding: 10px; border-radius: 8px;">
+                                    <option value="RL Bot Trainer">RL Bot Trainer</option>
+                                    <option value="Among Us Mod Menu">Among Us Mod Menu</option>
+                                </select>
+                            </div>
+                            <div>
+                                <p style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 5px;">Lifetime Access</p>
+                                <div style="display: flex; align-items: center; height: 42px;">
+                                    <input type="checkbox" id="promoLifetime" style="margin-right: 10px;">
+                                    <span style="font-size: 0.85rem;">Toggle Lifetime</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="durationInputsWrapper">
+                            <p style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 5px;">Duration (Days)</p>
+                            <input type="number" id="promoDays" value="30" style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; padding: 10px; border-radius: 8px;">
+                        </div>
+
+                        <button id="genPromoBtn" class="btn-primary" style="margin-top: 10px; width: 100%;">
+                            <i class="fas fa-magic"></i> Forge New Promo Code
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 4: Activity Logs -->
+            <div id="tabActivityLogs" class="saas-tab-content">
+                <div class="saas-content-header">
+                    <div>
+                        <h1 style="font-size: 1.8rem; margin: 0;">Incursion <span class="gradient-text" style="background: var(--gradient-saas); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Logs</span></h1>
+                        <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 5px;">Real-time audit of system actions and user logins.</p>
+                    </div>
+                </div>
+                
+                <div id="adminActivityBody" class="saas-card-container" style="margin-top: 30px;">
+                    <div style="padding: 40px; text-align: center; color: var(--text-muted);">
+                        <i class="fas fa-microchip fa-2x" style="margin-bottom: 15px; opacity: 0.5;"></i>
+                        <p>Awaiting system telemetry...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 5: Platform Settings -->
+            <div id="tabPlatformSettings" class="saas-tab-content">
+                <div class="saas-content-header">
+                    <div>
+                        <h1 style="font-size: 1.8rem; margin: 0;">Platform <span class="gradient-text" style="background: var(--gradient-saas); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Settings</span></h1>
+                        <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 5px;">Global configuration and environment overrides.</p>
+                    </div>
+                </div>
+                
+                <div class="saas-card" style="margin-top: 30px; padding: 30px; opacity: 0.6;">
+                    <p><i class="fas fa-tools"></i> Advanced configuration panel is locked for current build.</p>
+                </div>
+            </div>
         </main>
     </div>
 

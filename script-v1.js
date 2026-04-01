@@ -1363,15 +1363,66 @@ const initAeroByte = () => {
 
             const tbody = document.getElementById('adminUsersTbody');
             
+            const refreshStats = async () => {
+                const statTotal = document.getElementById('statTotalUsers');
+                const statLicenses = document.getElementById('statActiveLicenses');
+                const statOwners = document.getElementById('statOwners');
+                if (!statTotal) return;
+
+                try {
+                    const [userSnap, licSnap] = await Promise.all([
+                        getDocs(collection(db, "users")),
+                        getDocs(collection(db, "licenses"))
+                    ]);
+                    
+                    statTotal.textContent = userSnap.size;
+                    statLicenses.textContent = licSnap.size;
+                    
+                    let ownerCount = 0;
+                    userSnap.forEach(d => {
+                        const p = d.data().plan;
+                        if (p === 'Owner' || p === 'Premium') ownerCount++;
+                    });
+                    statOwners.textContent = ownerCount;
+                } catch (err) { console.error("Stats Error:", err); }
+            };
+
+            const refreshActivity = async () => {
+                const container = document.getElementById('adminActivityBody');
+                if (!container) return;
+
+                try {
+                    const q = query(collection(db, "licenses"), orderBy("createdAt", "desc"), limit(10));
+                    const snap = await getDocs(q);
+                    
+                    if (snap.empty) {
+                        container.innerHTML = '<div style="padding:20px; color:var(--text-muted);">No recent system telemetry.</div>';
+                        return;
+                    }
+
+                    let html = '';
+                    snap.forEach(docSnap => {
+                        const data = docSnap.data();
+                        const date = new Date(data.createdAt).toLocaleString();
+                        html += `
+                            <div class="saas-user-row" style="grid-template-columns: 1fr 1fr 1.5fr;">
+                                <div style="color: var(--primary); font-family: monospace; font-size: 0.8rem;">[${data.product}]</div>
+                                <div style="font-size: 0.8rem; color: #fff;">New License provisioned</div>
+                                <div style="font-size: 0.75rem; color: var(--text-muted); text-align: right;">${date}</div>
+                            </div>`;
+                    });
+                    container.innerHTML = html;
+                } catch (err) { console.error("Logs Error:", err); }
+            };
+
             const refreshDashboard = async () => {
                 if (!tbody) return;
-                console.log("🔄 SaaS Dashboard Syncing...");
+                console.log("🔄 User Database Syncing...");
                 
                 try {
-                    const [userSnap, licSnap, promoSnap] = await Promise.all([
+                    const [userSnap, licSnap] = await Promise.all([
                         getDocs(collection(db, "users")),
-                        getDocs(collection(db, "licenses")),
-                        getDocs(collection(db, "promo_codes"))
+                        getDocs(collection(db, "licenses"))
                     ]);
                     
                     const usersList = [];
@@ -1528,14 +1579,30 @@ const initAeroByte = () => {
 
             // Tabs / Sidebar Logic
             const navItems = document.querySelectorAll('.saas-nav-item');
+            const tabSections = document.querySelectorAll('.saas-tab-content');
+
             navItems.forEach(item => {
-                const navItemClick = () => {
+                item.addEventListener('click', () => {
+                    // Update Sidebar
                     navItems.forEach(i => i.classList.remove('active'));
                     item.classList.add('active');
-                    const tabName = item.textContent.trim();
-                    if (tabName === 'User Database') refreshDashboard();
-                };
-                item.addEventListener('click', navItemClick);
+
+                    // Update Content
+                    const rawName = item.textContent.trim();
+                    const tabId = 'tab' + rawName.replace(/\s+/g, '');
+                    
+                    tabSections.forEach(section => {
+                        section.classList.remove('active');
+                        if (section.id === tabId) section.classList.add('active');
+                    });
+
+                    console.log(`🚀 Navigating to: ${tabId}`);
+
+                    // Lazy Load data for specific tabs
+                    if (tabId === 'tabDashboard') refreshStats();
+                    if (tabId === 'tabUserDatabase') refreshDashboard();
+                    if (tabId === 'tabActivityLogs') refreshActivity();
+                });
             });
 
             // Promotion Generator
@@ -1566,6 +1633,7 @@ const initAeroByte = () => {
                 };
             }
 
+            refreshStats(); // Initial load
             refreshDashboard();
         }
 
