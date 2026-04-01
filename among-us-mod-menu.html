@@ -21,6 +21,7 @@
                         <li><a href="among-us-mod-menu.html">Among Us Mod Menu</a></li>
                     </ul>
                 </li>
+                <li><a href="features.html">Features</a></li>
                 <li><a href="faq.html">FAQ</a></li>
                 <li><a href="credits.html">Credits</a></li>
                 <li><a href="https://discord.com/invite/tDp5hTQrzM" target="_blank" title="Join Our Server" style="font-size: 1.2rem; color: #5865F2;"><i class="fab fa-discord"></i></a></li>
@@ -163,9 +164,9 @@
             <h2 class="section-title" style="margin-bottom: 20px;">Download <span class="gradient-text">AeroByte v1.0.0</span></h2>
             <p class="subtitle" style="margin-bottom: 40px;">Get the complete mod pack including BepInEx 6 for a seamless one-click installation experience.</p>
             <div style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;">
-                <a href="#" class="btn-primary glow-btn" style="padding: 15px 40px; font-size: 1.2rem;">
+                <button onclick="downloadAmongUs()" class="btn-primary glow-btn" style="padding: 15px 40px; font-size: 1.2rem; cursor: pointer; border: none; font-weight: bold;">
                     ⬇️ Download Full Mod Pack (.ZIP)
-                </a>
+                </button>
                 <a href="https://discord.com/invite/tDp5hTQrzM" target="_blank" class="btn-secondary" style="padding: 15px 40px; font-size: 1.2rem;">
                     Join Discord for Updates
                 </a>
@@ -181,6 +182,7 @@
         <div class="footer-content">
             <a href="index.html" class="logo">AeroByte<span class="accent">.shop</span></a>
             <div style="margin: 10px 0; display: flex; gap: 20px; justify-content: center; font-size: 0.9rem; opacity: 0.7;">
+                <a href="features.html" style="color: #fff; text-decoration: none;">Features</a>
                 <a href="faq.html" style="color: #fff; text-decoration: none;">FAQ</a>
                 <a href="credits.html" style="color: #fff; text-decoration: none;">Credits</a>
             </div>
@@ -188,6 +190,16 @@
         </div>
     </footer>
 
+    <script>
+        function downloadAmongUs() {
+            const link = document.createElement('a');
+            link.href = 'https://github.com/euBiZaRe/AeroByte-Among-Us/releases/download/v1.0.0/Steam.V1.0.zip';
+            link.target = '_blank';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
     <script type="module" src="script-v1.js?v=4.2"></script>
 </body>
 </html>

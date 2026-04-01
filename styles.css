@@ -1096,8 +1096,8 @@ body.among-us-page {
 }
 
 .among-us-page .status-dot {
-    background: #FF4D4D;
-    box-shadow: 0 0 10px #FF4D4D;
+    background: #00ff88;
+    box-shadow: 0 0 10px #00ff88;
 }
 
 .feature-category-title {
@@ -1126,4 +1126,42 @@ body.among-us-page {
     font-size: 0.85rem;
     color: #00ff88;
     border: 1px solid rgba(0, 255, 136, 0.2);
+}
+
+/* Feature Tabs */
+.feature-tabs {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-bottom: 60px;
+}
+
+.feature-tab {
+    padding: 12px 35px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 30px;
+    color: var(--text-muted);
+    font-weight: 700;
+    font-family: var(--font-heading);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.feature-tab.active {
+    background: var(--gradient-glow);
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 4px 20px rgba(138, 43, 226, 0.4);
+}
+
+.feature-tab:hover:not(.active) {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.feature-content.hidden {
+    display: none !important;
 }

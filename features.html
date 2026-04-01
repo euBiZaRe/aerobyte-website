@@ -74,91 +74,204 @@
 
     <section class="profile-section" style="max-width: 1100px; margin: 0 auto; padding: 40px 20px 100px;">
         
-        <div class="feature-category">
-            <h2 class="section-title" style="text-align:left;">Core <span style="color:#fff;">Features</span></h2>
-            <p style="color:var(--text-muted); margin-bottom: 20px;">The foundational tools available structurally on the basic tier.</p>
-            <div class="features-page-grid">
-                <div class="feature-card">
-                    <span class="core-badge">Standard</span>
-                    <div class="feature-icon">⚙️</div>
-                    <h3>Standard Training Presets</h3>
-                    <p>Access our community-driven starter presets for standard bot training loops and hyperparameter tuning.</p>
+        <!-- Tab Navigation -->
+        <div class="feature-tabs">
+            <button class="feature-tab active" onclick="switchFeatureTab('rl-bot', this)">RL Bot Trainer</button>
+            <button class="feature-tab" onclick="switchFeatureTab('among-us', this)">Among Us Mod Menu</button>
+        </div>
+
+        <!-- RL Bot Trainer Content -->
+        <div id="rl-bot-features" class="feature-content">
+            <div class="feature-category">
+                <h2 class="section-title" style="text-align:left;">Core <span style="color:#fff;">Features</span></h2>
+                <p style="color:var(--text-muted); margin-bottom: 20px;">The foundational tools available structurally on the basic tier.</p>
+                <div class="features-page-grid">
+                    <div class="feature-card">
+                        <span class="core-badge">Standard</span>
+                        <div class="feature-icon">⚙️</div>
+                        <h3>Standard Training Presets</h3>
+                        <p>Access our community-driven starter presets for standard bot training loops and hyperparameter tuning.</p>
+                    </div>
+                    <div class="feature-card">
+                        <span class="core-badge">Standard</span>
+                        <div class="feature-icon">📊</div>
+                        <h3>Basic Visualizer Telemetry</h3>
+                        <p>Hook into simple logging and data exporting without hardware-accelerated 3D playback.</p>
+                    </div>
+                    <div class="feature-card">
+                        <span class="core-badge">Standard</span>
+                        <div class="feature-icon">🤝</div>
+                        <h3>Community Support</h3>
+                        <p>Join the growing developer ecosystem sharing open-source models and best practices.</p>
+                    </div>
+                    <div class="feature-card">
+                        <span class="core-badge">System</span>
+                        <div class="feature-icon">🛰️</div>
+                        <h3>Neural Cluster Heartbeat</h3>
+                        <p>Real-time stability monitoring via the Watchdog system, ensuring 99.9% uptime for training loops.</p>
+                    </div>
                 </div>
-                <div class="feature-card">
-                    <span class="core-badge">Standard</span>
-                    <div class="feature-icon">📊</div>
-                    <h3>Basic Visualizer Telemetry</h3>
-                    <p>Hook into simple logging and data exporting without hardware-accelerated 3D playback.</p>
-                </div>
-                <div class="feature-card">
-                    <span class="core-badge">Standard</span>
-                    <div class="feature-icon">🤝</div>
-                    <h3>Community Support</h3>
-                    <p>Join the growing developer ecosystem sharing open-source models and best practices.</p>
-                </div>
-                <div class="feature-card">
-                    <span class="core-badge">System</span>
-                    <div class="feature-icon">🛰️</div>
-                    <h3>Neural Cluster Heartbeat</h3>
-                    <p>Real-time stability monitoring via the Watchdog system, ensuring 99.9% uptime for training loops.</p>
+            </div>
+
+            <div class="feature-category">
+                <h2 class="section-title" style="text-align:left;">Premium <span class="gradient-text">Capabilities</span></h2>
+                <p style="color:var(--text-muted); margin-bottom: 20px;">Exclusive tools and infrastructure available only to AeroByte Pro subscribers.</p>
+                <div class="features-page-grid">
+                    <div class="feature-card glass-featured">
+                        <span class="premium-badge">Exclusive</span>
+                        <div class="feature-icon">🚀</div>
+                        <h3>GigaLearn Infrastructure</h3>
+                        <p>Native integration with backend GigaLearn supercomputing servers for unparalleled reinforcement learning convergence rates.</p>
+                    </div>
+                    <div class="feature-card glass-featured">
+                        <span class="premium-badge">Exclusive</span>
+                        <div class="feature-icon">🧠</div>
+                        <h3>Unlimited VRAM Scaling</h3>
+                        <p>Bypass local consumer hardware limitations by offloading complex operations, completely avoiding OOM (Out of Memory) errors.</p>
+                    </div>
+                    <div class="feature-card glass-featured">
+                        <span class="premium-badge">Exclusive</span>
+                        <div class="feature-icon">👁️</div>
+                        <h3>Advanced Visualizer Pro</h3>
+                        <p>Experience zero-crash OpenGL and DirectX rendering in a dedicated window, offering pinpoint debug telemetry for stadium playback.</p>
+                    </div>
+                    <div class="feature-card glass-featured">
+                        <span class="premium-badge">Exclusive</span>
+                        <div class="feature-icon">⚖️</div>
+                        <h3>AeroByte Bot Comparator</h3>
+                        <p>Directly pit two neural network models head-to-head in a visually simulated environment to perfectly gauge their improvement rates.</p>
+                    </div>
+                    <div class="feature-card glass-featured">
+                        <span class="premium-badge">Exclusive</span>
+                        <div class="feature-icon">🛡️</div>
+                        <h3>Pro Security Tokens</h3>
+                        <p>Securely lock down robust algorithms and restricted presets using our native authorization key systems.</p>
+                    </div>
+                    <div class="feature-card glass-featured">
+                        <span class="premium-badge">v1.2 NEW</span>
+                        <div class="feature-icon">⚡</div>
+                        <h3>SSL Ultra 2048-Grid</h3>
+                        <p>Deploy models into a massive 2048-game parallelized training environment for hyper-speed convergence.</p>
+                    </div>
+                    <div class="feature-card glass-featured">
+                        <span class="premium-badge">v1.2 NEW</span>
+                        <div class="feature-icon">📦</div>
+                        <h3>AI Stack Provisioner</h3>
+                        <p>Zero-manual installation for LibTorch and CUDA dependencies. Our automated installer handles the heavy lifting.</p>
+                    </div>
+                    <div class="feature-card glass-featured">
+                        <span class="premium-badge">v1.2 NEW</span>
+                        <div class="feature-icon">📶</div>
+                        <h3>UDP Satellite Telemetry</h3>
+                        <p>Low-latency real-time monitoring via port 9273 with native RocketSim visualizer integration.</p>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="feature-category">
-            <h2 class="section-title" style="text-align:left;">Premium <span class="gradient-text">Capabilities</span></h2>
-            <p style="color:var(--text-muted); margin-bottom: 20px;">Exclusive tools and infrastructure available only to AeroByte Pro subscribers.</p>
-            <div class="features-page-grid">
-                <div class="feature-card glass-featured">
-                    <span class="premium-badge">Exclusive</span>
-                    <div class="feature-icon">🚀</div>
-                    <h3>GigaLearn Infrastructure</h3>
-                    <p>Native integration with backend GigaLearn supercomputing servers for unparalleled reinforcement learning convergence rates.</p>
+        <!-- Among Us Mod Menu Content -->
+        <div id="among-us-features" class="feature-content hidden">
+            <div class="feature-category">
+                <h2 class="section-title" style="text-align:left;">V1.0.0 <span style="color: #ff4757;">Features</span></h2>
+                <p style="color:var(--text-muted); margin-bottom: 20px;">Elite toolkit for game enhancement and host authority.</p>
+                
+                <div class="feature-category-title" style="color: #00d2d3; margin: 30px 0 15px; font-weight: 800; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 2px;">🚀 Movement & Locomotion</div>
+                <div class="features-page-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">⚡</div>
+                        <h3>AeroSpeed Hack</h3>
+                        <p>Precision movement speed control with 0.1x increments (1.0x to 10.0x).</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">👻</div>
+                        <h3>Quantum No-Clip</h3>
+                        <p>Walk through walls and obstacles with zero collision detection.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🚇</div>
+                        <h3>Surgical Venting</h3>
+                        <p>Spoof 'Impostor' status to interact with vents as a Crewmate.</p>
+                    </div>
                 </div>
-                <div class="feature-card glass-featured">
-                    <span class="premium-badge">Exclusive</span>
-                    <div class="feature-icon">🧠</div>
-                    <h3>Unlimited VRAM Scaling</h3>
-                    <p>Bypass local consumer hardware limitations by offloading complex operations, completely avoiding OOM (Out of Memory) errors.</p>
+
+                <div class="feature-category-title" style="color: #54a0ff; margin: 40px 0 15px; font-weight: 800; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 2px;">👁️ Advanced Visuals (ESP)</div>
+                <div class="features-page-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">🌌</div>
+                        <h3>AeroVision</h3>
+                        <p>100% map visibility that bypasses all lighting/fog-of-war mechanics.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🎯</div>
+                        <h3>Role Awareness</h3>
+                        <p>Real-time role labels and ESP boxes showing Impostors and Specials.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🎥</div>
+                        <h3>Satellite View</h3>
+                        <p>Dynamic camera expansion with scroll-wheel zoom (0.5x to 8.0x).</p>
+                    </div>
                 </div>
-                <div class="feature-card glass-featured">
-                    <span class="premium-badge">Exclusive</span>
-                    <div class="feature-icon">👁️</div>
-                    <h3>Advanced Visualizer Pro</h3>
-                    <p>Experience zero-crash OpenGL and DirectX rendering in a dedicated window, offering pinpoint debug telemetry for stadium playback.</p>
+
+                <div class="feature-category-title" style="color: #ff9f43; margin: 40px 0 15px; font-weight: 800; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 2px;">📡 Tactical & Logistics</div>
+                <div class="features-page-grid">
+                    <div class="feature-card glass-featured">
+                        <div class="feature-icon">🛰️</div>
+                        <h3>Tactical Radar</h3>
+                        <p>Movable, resizable on-screen minimap showing all player positions.</p>
+                    </div>
+                    <div class="feature-card glass-featured">
+                        <div class="feature-icon">🌀</div>
+                        <h3>Map-Aware Teleport</h3>
+                        <p>Instantly spawn at any task location or intercept players in real-time.</p>
+                    </div>
+                    <div class="feature-card glass-featured">
+                        <div class="feature-icon">🛡️</div>
+                        <h3>Data & Identity</h3>
+                        <p>Ban-Shield protection, Identity Spoofing, and 100% Cosmetic Unlocker.</p>
+                    </div>
                 </div>
-                <div class="feature-card glass-featured">
-                    <span class="premium-badge">Exclusive</span>
-                    <div class="feature-icon">⚖️</div>
-                    <h3>AeroByte Bot Comparator</h3>
-                    <p>Directly pit two neural network models head-to-head in a visually simulated environment to perfectly gauge their improvement rates.</p>
-                </div>
-                <div class="feature-card glass-featured">
-                    <span class="premium-badge">Exclusive</span>
-                    <div class="feature-icon">🛡️</div>
-                    <h3>Pro Security Tokens</h3>
-                    <p>Securely lock down robust algorithms and restricted presets using our native authorization key systems.</p>
-                </div>
-                <div class="feature-card glass-featured">
-                    <span class="premium-badge">v3.24 NEW</span>
-                    <div class="feature-icon">⚡</div>
-                    <h3>SSL Ultra 2048-Grid</h3>
-                    <p>Deploy models into a massive 2048-game parallelized training environment for hyper-speed convergence.</p>
-                </div>
-                <div class="feature-card glass-featured">
-                    <span class="premium-badge">v3.24 NEW</span>
-                    <div class="feature-icon">📦</div>
-                    <h3>AI Stack Provisioner</h3>
-                    <p>Zero-manual installation for LibTorch and CUDA dependencies. Our automated installer handles the heavy lifting.</p>
-                </div>
-                <div class="feature-card glass-featured">
-                    <span class="premium-badge">v3.24 NEW</span>
-                    <div class="feature-icon">📶</div>
-                    <h3>UDP Satellite Telemetry</h3>
-                    <p>Low-latency real-time monitoring via port 9273 with native RocketSim visualizer integration.</p>
+
+                <!-- Download Section for Among Us in Features Tab -->
+                <div class="glass-panel" style="margin-top: 60px; padding: 40px; border-radius: 24px; background: rgba(255, 77, 77, 0.05); border-color: rgba(255, 77, 77, 0.2); text-align: center;">
+                    <h2 class="section-title" style="margin-bottom: 20px; font-size: 1.5rem;">Ready to <span style="color: #ff4757;">Take Control?</span></h2>
+                    <p style="color: var(--text-muted); margin-bottom: 30px;">Download the v1.0.0 mod pack and start your engineering journey.</p>
+                    <button onclick="downloadAmongUs()" class="btn-primary" style="padding: 12px 30px; font-weight: 800; cursor: pointer; border: none;">
+                        ⬇️ Download Among Us Mod Menu (.ZIP)
+                    </button>
+                    <p style="margin-top: 20px; color: var(--text-muted); font-size: 0.8rem;">
+                        <strong>Quick Install:</strong> Extract ZIP into the main Among Us folder.
+                    </p>
                 </div>
             </div>
         </div>
+
+    </section>
+
+    <script>
+        function switchFeatureTab(tabId, element) {
+            // Update buttons
+            document.querySelectorAll('.feature-tab').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            element.classList.add('active');
+
+            // Update content
+            document.querySelectorAll('.feature-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+            document.getElementById(tabId + '-features').classList.remove('hidden');
+        }
+
+        function downloadAmongUs() {
+            const link = document.createElement('a');
+            link.href = 'https://github.com/euBiZaRe/AeroByte-Among-Us/releases/download/v1.0.0/Steam.V1.0.zip';
+            link.target = '_blank';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
 
     </section>
 
