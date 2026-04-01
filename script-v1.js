@@ -2,6 +2,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc, collection, query, where, getDocs, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
+console.log("🚀 AeroByte Script Loaded v5.1");
+
 const firebaseConfig = {
   apiKey: "AIzaSyCl-SEIc2IWYFvz5mdUJsE8WNsrHoI1tsc",
   authDomain: "aerobytebot.firebaseapp.com",
@@ -147,7 +149,8 @@ try {
     sessionStorage.removeItem('discordSSOInProgress');
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+const initAeroByte = () => {
+    console.log("🛠️ Initializing AeroByte Core...");
     let stripe = null;
 
     // PRE-WARM BACKEND (Wake up Render free instance immediately)
@@ -163,9 +166,6 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error("❌ Stripe Initialization Error:", e);
     }
     let elements;
-    
-    // Initialize Modals
-    setTimeout(injectModals, 0); 
 
     // --- DYNAMIC MODAL INJECTION ---
     const injectModals = () => {
@@ -320,6 +320,8 @@ document.addEventListener('DOMContentLoaded', () => {
             document.body.insertAdjacentHTML('beforeend', promoResultHTML);
         }
     };
+
+    // Initialize all modals and listeners
     injectModals();
 
     const modal = document.getElementById('checkoutModal');
@@ -1655,4 +1657,11 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
     }
-});
+};
+
+// --- ROBUST BOOTSTRAP ---
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAeroByte);
+} else {
+    initAeroByte();
+}
