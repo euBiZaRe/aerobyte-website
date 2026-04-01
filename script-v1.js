@@ -87,8 +87,15 @@ const handleDiscordHash = () => {
             const synthPass = `Aero!Discord!${discordUser.id}`;
             
             try {
-                await signInWithEmailAndPassword(auth, synthEmail, synthPass);
+                const creds = await signInWithEmailAndPassword(auth, synthEmail, synthPass);
                 updateStatus(`Welcome back, ${discordUser.username}!`, '#10B981');
+                
+                // Refresh Discord info on login to ensure sync
+                await updateDoc(doc(db, "users", creds.user.uid), {
+                    discordUsername: discordUser.username,
+                    discordAvatar: discordUser.avatar || null
+                });
+
                 sessionStorage.removeItem('discordSSOInProgress');
                 window.DISCORD_SSO_LOCK = false;
                 window.history.replaceState({}, document.title, window.location.pathname);
@@ -1020,6 +1027,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // Profile Page specific logic
         if (isProfilePage && user) {
             const profileEmail = document.getElementById('profileEmail');
+            const profileWelcomeHeading = document.querySelector('.profile-header h2');
+            
+            // Initial placeholder
             if (profileEmail) profileEmail.textContent = user.email;
 
             // Fetch user plan from Firestore
@@ -1033,6 +1043,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (userDoc.exists()) {
                         userData = userDoc.data();
                         plan = userData.plan || "Free";
+
+                        // --- IDENTITY BRANDING: PRIORITIZE DISCORD NAME ---
+                        if (userData.discordUsername) {
+                            if (profileWelcomeHeading) profileWelcomeHeading.textContent = `Welcome, ${userData.discordUsername}`;
+                            if (profileEmail) profileEmail.innerHTML = `<span style="opacity: 0.5;">${user.email}</span>`;
+                        } else {
+                            if (profileWelcomeHeading) profileWelcomeHeading.textContent = `Welcome Back`;
+                            if (profileEmail) profileEmail.textContent = user.email;
+                        }
 
                         // Self-enforcing Expiration Downgrader!
                         if (plan === "Premium" && userData.expiresAt) {
@@ -1295,7 +1314,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                         : `<div style="width: 36px; height: 36px; border-radius: 50%; background: #5865F2; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #fff; font-size: 1.1rem; border: 2px solid rgba(255,255,255,0.1);">${initials}</div>`
                                     }
                                     <div style="text-align: left;">
-                                        <div style="font-weight: 700; color: #fff; font-size: 0.95rem;">${userData.discordUsername || "Verified Account"}</div>
+                                        <div style="font-weight: 700; color: #fff; font-size: 0.95rem;">${userData.discordUsername || user.email}</div>
                                         <div style="font-size: 0.75rem; color: #10B981;">● Account Connected</div>
                                     </div>
                                 </div>
@@ -1376,7 +1395,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     const usersList = [];
                     userSnap.forEach(docSnap => {
                         const data = docSnap.data();
-                        userMap[docSnap.id] = data.email;
+                        
+                        // Professional Identity Resolver
+                        let bestName = data.discordUsername || data.email;
+                        if (bestName.startsWith('discord_') && !data.discordUsername) {
+                            const discId = bestName.split('@')[0].split('_')[1];
+                            bestName = `Discord User (${discId.substring(0,6)}...)`;
+                        }
+                        
+                        userMap[docSnap.id] = bestName;
                         usersList.push({ id: docSnap.id, ...data });
                     });
                     
@@ -1429,7 +1456,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     // 3. Render Master Database Table
                     tbody.innerHTML = '';
-                    usersList.sort((a,b) => (a.email || "").localeCompare(b.email || ""));
+                    usersList.sort((a,b) => {
+                        const nameA = (a.discordUsername || a.email || "").toLowerCase();
+                        const nameB = (b.discordUsername || b.email || "").toLowerCase();
+                        return nameA.localeCompare(nameB);
+                    });
                     usersList.forEach(user => {
                         const tr = document.createElement('tr');
                         
@@ -1471,67 +1502,105 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
 
                         const products = ["RL Bot Trainer", "Among Us Mod Menu"];
-                        let keyDisplay = `<div style="display:flex; flex-direction:column; gap:12px; width:100%;">`;
+                        const productIcons = {
+                            "RL Bot Trainer": "fas fa-car-side",
+                            "Among Us Mod Menu": "fas fa-user-secret"
+                        };
+
+                        let keyDisplay = `<div class="product-key-container">`;
                         
                         products.forEach(p => {
                             const pKey = (user.licenseKeys && user.licenseKeys[p]) || (p === "RL Bot Trainer" ? user.licenseKey : null);
                             
-                            keyDisplay += `<div style="border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom:8px; last-child { border-bottom: none; }">
-                                <div style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase; font-weight:800; margin-bottom:4px; display:flex; align-items:center; gap:5px;">
-                                    ${p} ${pKey ? '<i class="fas fa-check-circle" style="color:#10B981; font-size:0.6rem;"></i>' : ''}
-                                </div>`;
-                                
                             if (pKey) {
                                 keyDisplay += `
-                                    <div style="display:flex; flex-direction:column; gap:5px;">
-                                        <code class="admin-license-mask" data-key="${pKey}" style="font-family:monospace; background:rgba(255,255,255,0.05); padding:4px 8px; border-radius:6px; cursor:pointer; font-size:0.8rem; border:1px solid rgba(255,255,255,0.1); width:fit-content;" title="Click to Peek/Hide">••••-••••-••••-••••</code>
-                                        <div style="display:flex; gap:6px;">
-                                            <button class="action-reset-hwid" data-uid="${user.id}" data-key="${pKey}" data-product="${p}" style="padding:4px 8px; font-size:0.65rem; background:rgba(88, 101, 242, 0.1); border:1px solid #5865F2; color:#5865F2; cursor:pointer; border-radius:4px; font-weight:700; text-transform:uppercase;">HWID Reset</button>
-                                            <button class="action-regen-key" data-uid="${user.id}" data-key="${pKey}" data-plan="${user.plan}" data-product="${p}" style="padding:4px 8px; font-size:0.65rem; background:rgba(16, 185, 129, 0.1); border:1px solid #10B981; color:#10B981; cursor:pointer; border-radius:4px; font-weight:700; text-transform:uppercase;">Regen</button>
+                                    <div class="product-key-card">
+                                        <div class="product-label">
+                                            <i class="${productIcons[p] || 'fas fa-shield-alt'}"></i> ${p}
+                                        </div>
+                                        <code class="admin-license-mask" data-key="${pKey}" title="Click to Peek/Hide">••••-••••-••••-••••</code>
+                                        <div class="key-actions">
+                                            <button class="key-action-btn btn-hwid action-reset-hwid" data-uid="${user.id}" data-key="${pKey}" data-product="${p}">
+                                                <i class="fas fa-undo"></i> HWID
+                                            </button>
+                                            <button class="key-action-btn btn-regen action-regen-key" data-uid="${user.id}" data-key="${pKey}" data-plan="${user.plan}" data-product="${p}">
+                                                <i class="fas fa-sync"></i> Regen
+                                            </button>
                                         </div>
                                     </div>`;
                             } else {
-                                keyDisplay += `<button class="btn-primary action-gen-key" data-uid="${user.id}" data-plan="${user.plan}" data-product="${p}" style="padding:6px 10px; font-size:0.65rem; background:rgba(88, 101, 242, 0.2); color:#5865F2; border:1px solid #5865F2; border-radius:6px; font-weight:700; text-transform:uppercase; cursor:pointer;">Generate ${p.split(' ')[0]} License</button>`;
+                                keyDisplay += `
+                                    <div class="product-key-card" style="opacity: 0.6; border-style: dashed;">
+                                        <div class="product-label"><i class="${productIcons[p] || 'fas fa-shield-alt'}"></i> ${p}</div>
+                                        <button class="btn-primary action-gen-key" data-uid="${user.id}" data-plan="${user.plan}" data-product="${p}" style="width:100%; padding:8px; font-size:0.65rem; background:rgba(88, 101, 242, 0.2); color:#5865F2; border:1px solid #5865F2; border-radius:6px; font-weight:800; text-transform:uppercase;">
+                                            <i class="fas fa-plus"></i> Generate License
+                                        </button>
+                                    </div>`;
                             }
-                            keyDisplay += `</div>`;
                         });
                         keyDisplay += `</div>`;
 
                         const userActivity = globalActivity.filter(a => a.user === user.id).sort((a,b) => b.time - a.time);
-                        let statusText = `<span style="color:var(--text-muted); font-size:0.75rem;">No activity</span>`;
+                        let statusText = `<div class="status-indicator idle"><div class="dot"></div> Idle</div>`;
+                        
                         if (userActivity.length > 0) {
                             const last = userActivity[0];
                             const timeAgo = Math.floor((Date.now() - last.time) / 60000);
                             const timeStr = timeAgo < 60 ? `${timeAgo}m ago` : `${Math.floor(timeAgo/60)}h ago`;
-                            statusText = `<div style="line-height:1.2;"><span style="color:#10B981; font-weight:bold; font-size:0.8rem;">${last.status}</span><br><span style="font-size:0.7rem; color:var(--text-muted);">${timeStr}</span></div>`;
+                            const isActive = (Date.now() - last.time) < (15 * 60 * 1000); // Active if within 15 mins
+                            
+                            statusText = `
+                                <div class="status-indicator ${isActive ? 'active' : 'idle'}">
+                                    <div class="dot"></div>
+                                    <div style="line-height:1.2;">
+                                        <div>${isActive ? 'Active' : 'Last Seen'}</div>
+                                        <div style="font-size:0.65rem; color:var(--text-muted); font-weight:400;">${timeStr}</div>
+                                    </div>
+                                </div>`;
                         }
 
-                        const inputStyle = `width:52px; padding:4px; border-radius:4px; border:1px solid var(--border-color); background:rgba(0,0,0,0.5); color:#fff; font-size:0.75rem;`;
+                        const inputStyle = `width:52px; padding:6px; border-radius:6px; border:1px solid rgba(255,255,255,0.1); background:rgba(0,0,0,0.3); color:#fff; font-size:0.75rem; text-align:center;`;
                         const hasDuration = user.plan === 'Premium' || user.plan === 'Trial';
                         
+                        // Identity Resolver for the Row
+                        let rowDisplayName = user.discordUsername || user.email;
+                        let isTechnicalDiscordEmail = rowDisplayName.startsWith('discord_') && !user.discordUsername;
+                        
+                        if (isTechnicalDiscordEmail) {
+                            const discId = rowDisplayName.split('@')[0].split('_')[1];
+                            rowDisplayName = `Discord #${discId.substring(discId.length-4)}`;
+                        }
+
                         tr.innerHTML = `
-                            <td>${user.email}</td>
+                            <td style="font-weight:700; color:#fff;">
+                                ${rowDisplayName}
+                                ${user.discordUsername || isTechnicalDiscordEmail ? `<div style="font-size:0.7rem; color:var(--text-muted); font-weight:400; margin-top:2px; opacity:0.6; font-family:monospace;">${user.email}</div>` : ''}
+                            </td>
                             <td><span class="plan-badge">${user.plan}</span></td>
-                            <td style="overflow:visible;">${keyDisplay}</td>
-                            <td style="${expiresText==='Expired!'?'color:#ff4d4d':''}">${expiresText}</td>
+                            <td style="overflow:visible !important;">${keyDisplay}</td>
+                            <td style="${expiresText==='Expired!'?'color:#ff4d4d; font-weight:bold;':''}">${expiresText}</td>
                             <td style="${lastTrialStyle}">${lastTrialText}</td>
                             <td>${statusText}</td>
                             <td style="text-align:right;">
-                                <div style="display:flex; gap:8px; align-items:center; justify-content:flex-end; white-space:nowrap;">
-                                    <select class="action-plan" data-uid="${user.id}" style="padding:6px; border-radius:6px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); color:#fff; font-size:0.8rem;">
+                                <div style="display:flex; gap:10px; align-items:center; justify-content:flex-end;">
+                                    <select class="action-plan" data-uid="${user.id}" style="padding:8px; border-radius:8px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#fff; font-size:0.8rem; cursor:pointer;">
                                         <option value="Premium" ${user.plan==='Premium'?'selected':''}>Premium</option>
                                         <option value="Trial" ${user.plan==='Trial'?'selected':''}>Trial</option>
                                         <option value="Media" ${user.plan==='Media'?'selected':''}>Media</option>
                                         <option value="Owner" ${user.plan==='Owner'?'selected':''}>Owner</option>
                                         <option value="Free" ${user.plan==='Free'?'selected':''}>Free</option>
                                     </select>
-                                    <div class="duration-inputs" style="display:${hasDuration?'flex':'none'}; align-items:center; gap:2px;">
+                                    <div class="duration-inputs" style="display:${hasDuration?'flex':'none'}; align-items:center; gap:4px;">
                                         <input type="number" class="action-days" min="0" placeholder="d" style="${inputStyle}" title="Days">
                                         <input type="number" class="action-hours" min="0" max="23" placeholder="h" style="${inputStyle}" title="Hours">
                                         <input type="number" class="action-minutes" min="0" max="59" placeholder="m" style="${inputStyle}" title="Mins">
                                     </div>
-                                    <button class="btn-primary action-save" data-uid="${user.id}" style="padding:8px 12px; font-size:0.75rem; border-radius:6px; font-weight:800; text-transform:uppercase; letter-spacing:1px; background:#5865F2;">Save</button>
-                                    <button class="action-delete" data-uid="${user.id}" data-email="${user.email}" style="padding:8px 12px; font-size:0.75rem; border-radius:6px; background:rgba(255,77,77,0.1); border:1px solid #ff4d4d; color:#ff4d4d; cursor:pointer; font-weight:800; text-transform:uppercase; letter-spacing:1px;">Delete</button>
+                                    <button class="btn-primary action-save" data-uid="${user.id}" style="padding:10px 15px; border-radius:8px; background:var(--primary); color:#000; font-weight:900; display:flex; align-items:center; gap:8px;">
+                                        <i class="fas fa-save"></i> SAVE
+                                    </button>
+                                    <button class="action-delete" data-uid="${user.id}" data-email="${user.email}" style="padding:10px; border-radius:8px; background:rgba(255,77,77,0.1); border:1px solid #ff4d4d; color:#ff4d4d; cursor:pointer; transition:all 0.2s;">
+                                        <i class="fas fa-user-minus"></i>
+                                    </button>
                                 </div>
                             </td>
                         `;
