@@ -1,4 +1,4 @@
-﻿:root {
+:root {
     --bg-dark: #0B0F19;
     --bg-deep: #05070A;
     --bg-card: rgba(20, 25, 40, 0.4);
@@ -512,7 +512,7 @@ input:checked + .slider:before { transform: translateX(20px); }
 }
 
 .plan-features li::before {
-    content: 'âœ“';
+    content: '\2713';
     position: absolute;
     left: 0;
     color: var(--primary);
@@ -1807,7 +1807,3 @@ body.among-us-page {
     justify-content: space-between;
     align-items: center;
 }
-
-
-
-.solution-card:hover
