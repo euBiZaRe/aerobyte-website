@@ -35,5 +35,23 @@ service cloud.firestore {
          request.auth.token.email == 'adamfrawi@gmail.com' ||
          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.plan == 'Owner');
     }
+
+    // System Status (Manages Active/Down state)
+    match /system_status/{productId} {
+      allow read: if true; // Public read so site can show "Down"
+      allow write: if request.auth != null && 
+        (request.auth.token.email == 'aerobytebot@gmail.com' || 
+         request.auth.token.email == 'adamfrawi@gmail.com' ||
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.plan == 'Owner');
+    }
+
+    // Banned HWIDs
+    match /banned_hwids/{hwid} {
+      allow read: if true; // Software checks this to block access
+      allow write: if request.auth != null && 
+        (request.auth.token.email == 'aerobytebot@gmail.com' || 
+         request.auth.token.email == 'adamfrawi@gmail.com' ||
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.plan == 'Owner');
+    }
   }
 }
