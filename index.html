@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="AeroByte: Premium Software Solutions for Gaming and Model Training">
+    <meta name="description" content="AeroByte: Premium Software Solutions for Gaming, Media, and AI Training.">
     <title>AeroByte | Premium Software Hub</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="styles.css?v=3.6">
+    <link rel="stylesheet" href="styles.css?v=3.7">
     <style>
         .product-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 40px;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 30px;
             margin-top: 60px;
         }
         .product-card {
@@ -36,8 +36,32 @@
             text-transform: uppercase;
             letter-spacing: 2px;
             color: var(--primary);
-            margin-bottom: 10px;
+            margin-bottom: 20px;
             display: block;
+        }
+
+        .features-overview {
+            padding: 100px 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 40px;
+            text-align: center;
+        }
+        .overview-item i {
+            font-size: 2.5rem;
+            color: var(--primary);
+            margin-bottom: 20px;
+            display: block;
+        }
+        .overview-item h3 {
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+        }
+        .overview-item p {
+            color: var(--text-muted);
+            line-height: 1.6;
         }
     </style>
 </head>
@@ -72,32 +96,63 @@
         </div>
     </nav>
 
-    <header class="hero" style="text-align: center; justify-content: center; flex-direction: column; min-height: 80vh;">
-        <div class="hero-content" style="max-width: 800px; margin: 0 auto;">
-            <div class="badge">AERO-HUB v1.0.0 <span class="status-dot"></span> HUB ACTIVE</div>
-            <h1 class="main-title">Premium <span class="gradient-text">Software Hub</span></h1>
-            <p class="subtitle">Experience the next generation of gaming tools and model training infrastructure. High-performance, secure, and built for the elite.</p>
+    <header class="hero" style="text-align: center; justify-content: center; flex-direction: column; min-height: 80vh; padding: 120px 20px 60px;">
+        <div class="hero-content" style="max-width: 900px; margin: 0 auto;">
+            <div class="badge">AERO-HUB v2.0.0 <span class="status-dot"></span> SYSTEMS ONLINE</div>
+            <h1 class="main-title">Powering the Next Generation of <span class="gradient-text">Digital Tools</span></h1>
+            <p class="subtitle">AeroByte is a premium software hub dedicated to high-performance media, AI training infrastructure, and gaming tools. Experience the elite standard.</p>
         </div>
 
-        <div class="product-grid" style="max-width: 1100px; margin: 60px auto 0; text-align: left;">
+        <div class="product-grid" style="max-width: 1200px; margin: 60px auto 0; text-align: left;">
+            <!-- Cinema Card -->
+            <div class="product-card">
+                <div>
+                    <span class="product-tag">All-In-One Media Hub</span>
+                    <h3>AeroByte Cinema</h3>
+                    <p style="color: var(--text-muted); margin-bottom: 20px;">The ultimate destination for all your media needs. Stream movies, TV shows, music, manga, and live sports in a single unified interface.</p>
+                </div>
+                <a href="cinema.html" class="btn-secondary" style="text-align: center;">Explore Cinema</a>
+            </div>
+
+            <!-- AI Card -->
             <div class="product-card">
                 <div>
                     <span class="product-tag">AI & Machine Learning</span>
                     <h3>RL Bot Trainer</h3>
-                    <p style="color: var(--text-muted); margin-bottom: 20px;">Professional-grade reinforcement learning with integrated GigaLearn infrastructure and unlimited VRAM options.</p>
+                    <p style="color: var(--text-muted); margin-bottom: 20px;">Professional-grade reinforcement learning training for Rocket League. Powered by our proprietary GigaLearn infrastructure.</p>
                 </div>
-                <a href="rl-bot-trainer.html" class="btn-secondary" style="text-align: center;">View Details</a>
+                <a href="rl-bot-trainer.html" class="btn-secondary" style="text-align: center;">View Trainer</a>
             </div>
+
+            <!-- Gaming Card -->
             <div class="product-card">
                 <div>
-                    <span class="product-tag">Gaming Tools</span>
+                    <span class="product-tag">Gaming Enhancements</span>
                     <h3>Among Us Mod Menu</h3>
-                    <p style="color: var(--text-muted); margin-bottom: 20px;">The ultimate companion for Among Us. Glassmorphic UI, feature-rich, and built on the BepInEx framework.</p>
+                    <p style="color: var(--text-muted); margin-bottom: 20px;">The definitive companion for Among Us. Glassmorphic UI, runtime discovery patching, and complete cosmetic access.</p>
                 </div>
-                <a href="among-us-mod-menu.html" class="btn-secondary" style="text-align: center;">View Details</a>
+                <a href="among-us-mod-menu.html" class="btn-secondary" style="text-align: center;">Get Access</a>
             </div>
         </div>
     </header>
+
+    <section class="features-overview">
+        <div class="overview-item">
+            <i class="fas fa-bolt"></i>
+            <h3>High Performance</h3>
+            <p>Our tools are built with efficiency in mind, leveraging multi-threading and low-level optimizations to deliver zero-latency experiences.</p>
+        </div>
+        <div class="overview-item">
+            <i class="fas fa-shield-alt"></i>
+            <h3>Secure & Isolated</h3>
+            <p>We prioritize your privacy. All software runs in secure, isolated environments with end-to-end encryption for all data streams.</p>
+        </div>
+        <div class="overview-item">
+            <i class="fas fa-users"></i>
+            <h3>Elite Community</h3>
+            <p>Join thousands of users in our Discord community. Get instant support, feature updates, and exclusive access to early releases.</p>
+        </div>
+    </section>
 
     <footer>
         <div class="footer-content">
@@ -112,5 +167,13 @@
     </footer>
 
     <script type="module" src="script-v1.js?v=5.3"></script>
+    <script>
+        if(localStorage.getItem('isLoggedIn')==='true'){
+            const b=document.querySelector('.login-btn');
+            b.textContent='Profile';
+            b.href='profile.html';
+            b.setAttribute('data-auth','logged-in');
+        }
+    </script>
 </body>
 </html>
