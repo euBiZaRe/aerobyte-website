@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, collection, query, where, getDocs, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { getFirestore, doc, setDoc, getDoc, collection, query, where, getDocs, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 console.log("🚀 AeroByte Script Loaded v5.1");
 
@@ -1732,8 +1732,75 @@ const initAeroByte = () => {
                     if (tabId === 'tabLicenseKeys') refreshLicenses();
                     if (tabId === 'tabActivityLogs') refreshActivity();
                     if (tabId === 'tabSecurityBans') refreshBans();
+                    if (tabId === 'tabProductStatus') refreshProductStatus();
                 });
             });
+
+            const refreshProductStatus = async () => {
+                const container = document.getElementById('adminProductStatusBody');
+                if (!container) return;
+                
+                const products = [
+                    { id: 'rl-bot-trainer', name: 'RL Bot Trainer', icon: 'fas fa-car-side' },
+                    { id: 'among-us-mod-menu', name: 'Among Us Mod Menu', icon: 'fas fa-user-secret' },
+                    { id: 'torrent-streaming', name: 'Torrent Streaming', icon: 'fas fa-download' }
+                ];
+
+                container.innerHTML = '';
+                
+                for (const p of products) {
+                    const snap = await getDoc(doc(db, "system_status", p.id));
+                    const isDown = snap.exists() ? snap.data().isDown : false;
+                    
+                    const card = document.createElement('div');
+                    card.className = 'saas-card';
+                    card.style.padding = '25px';
+                    card.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+                            <div style="display: flex; align-items: center; gap: 15px;">
+                                <div class="saas-avatar" style="background: var(--gradient-saas);"><i class="${p.icon}"></i></div>
+                                <div>
+                                    <h3 style="margin: 0; color: #fff; font-size: 1rem;">${p.name}</h3>
+                                    <p style="font-size: 0.7rem; color: var(--text-muted); margin-top: 4px;">Service ID: ${p.id}</p>
+                                </div>
+                            </div>
+                            <div class="saas-status-dot" style="background: ${isDown ? '#EF4444' : '#10B981'}; box-shadow: 0 0 10px ${isDown ? '#EF444466' : '#10B98166'};"></div>
+                        </div>
+                        
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 15px; border-top: 1px solid var(--border-color);">
+                            <span style="font-size: 0.85rem; color: ${isDown ? '#EF4444' : '#10B981'}; font-weight: 700;">
+                                ${isDown ? 'OFFLINE / DOWN' : 'OPERATIONAL'}
+                            </span>
+                            <button class="saas-manage-btn toggle-status-btn" 
+                                    data-pid="${p.id}" 
+                                    data-down="${isDown}"
+                                    style="background: ${isDown ? '#10B98122' : '#EF444422'}; color: ${isDown ? '#10B981' : '#EF4444'}; border: 1px solid ${isDown ? '#10B98144' : '#EF444444'};">
+                                ${isDown ? '<i class="fas fa-play"></i> Restore' : '<i class="fas fa-pause"></i> Mark Down'}
+                            </button>
+                        </div>
+                    `;
+                    container.appendChild(card);
+                }
+
+                // Attach toggle listeners
+                container.querySelectorAll('.toggle-status-btn').forEach(btn => {
+                    btn.onclick = async () => {
+                        const pid = btn.getAttribute('data-pid');
+                        const currentlyDown = btn.getAttribute('data-down') === 'true';
+                        btn.disabled = true;
+                        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                        
+                        try {
+                            await setDoc(doc(db, "system_status", pid), {
+                                isDown: !currentlyDown,
+                                lastUpdated: Date.now(),
+                                updatedBy: auth.currentUser.email
+                            }, { merge: true });
+                            refreshProductStatus();
+                        } catch (err) { alert(err.message); refreshProductStatus(); }
+                    };
+                });
+            };
 
             // Promotion Generator
             const genPromoBtn = document.getElementById('genPromoBtn');
@@ -1861,6 +1928,72 @@ const initAeroByte = () => {
             refreshDashboard();
         }
 
+        // --- GLOBAL PRODUCT STATUS MONITOR ---
+        const monitorProductStatus = () => {
+            const statusIndicator = document.querySelector('.status-dot');
+            const downloadBtn = document.querySelector('.download-section .btn-primary, .hero-actions .btn-primary:not(.checkout-trigger)');
+            const pricingIndicator = document.querySelectorAll('.plan-features li'); // Might need more specific target
+
+            // Identify current product by URL or page title
+            const path = window.location.pathname;
+            let pid = null;
+            if (path.includes('rl-bot-trainer')) pid = 'rl-bot-trainer';
+            if (path.includes('among-us-mod-menu')) pid = 'among-us-mod-menu';
+            if (path.includes('torrent-streaming')) pid = 'torrent-streaming';
+
+            if (!pid) return;
+
+            onSnapshot(doc(db, "system_status", pid), (snapshot) => {
+                if (snapshot.exists()) {
+                    const data = snapshot.data();
+                    const isDown = data.isDown;
+
+                    // 1. Update Status Indicator (Dot)
+                    if (statusIndicator) {
+                        statusIndicator.style.background = isDown ? '#EF4444' : '#10B981';
+                        statusIndicator.style.boxShadow = `0 0 10px ${isDown ? '#EF444466' : '#10B98166'}`;
+                    }
+
+                    // 2. Disable Downloads
+                    const downloadButtons = document.querySelectorAll('button.btn-primary:not(.checkout-trigger), a.btn-primary:not(.checkout-trigger)');
+                    downloadButtons.forEach(btn => {
+                        // Check if it looks like a download button (contains "Download" or "Get")
+                        if (btn.textContent.toLowerCase().includes('download') || btn.textContent.toLowerCase().includes('get')) {
+                            if (isDown) {
+                                btn.classList.add('disabled-btn');
+                                btn.style.pointerEvents = 'none';
+                                btn.style.opacity = '0.5';
+                                btn.style.filter = 'grayscale(1)';
+                                btn.setAttribute('data-orig-text', btn.textContent);
+                                btn.textContent = 'Service Down';
+                            } else {
+                                btn.classList.remove('disabled-btn');
+                                btn.style.pointerEvents = 'auto';
+                                btn.style.opacity = '1';
+                                btn.style.filter = 'none';
+                                if (btn.getAttribute('data-orig-text')) {
+                                    btn.textContent = btn.getAttribute('data-orig-text');
+                                }
+                            }
+                        }
+                    });
+                    
+                    // 3. Update Hero Badges if any
+                    const badge = document.querySelector('.badge');
+                    if (badge && isDown) {
+                        badge.style.border = '1px solid rgba(239, 68, 68, 0.3)';
+                        badge.style.background = 'rgba(239, 68, 68, 0.1)';
+                        badge.style.color = '#EF4444';
+                    } else if (badge) {
+                        badge.style.border = '';
+                        badge.style.background = '';
+                        badge.style.color = '';
+                    }
+                }
+            });
+        };
+
+        monitorProductStatus();
     });
 
     // --- DISCORD OAUTH LOGIC ---
