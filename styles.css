@@ -1693,3 +1693,117 @@ body.among-us-page {
 #durationInputsWrapper {
     transition: all 0.3s ease;
 }
+
+/* Navigation & Solutions Enhancements */
+.dropdown-divider {
+    height: 1px;
+    background: var(--border-color);
+    margin: 8px 0;
+    opacity: 0.5;
+}
+
+/* Solutions Page Tabs */
+.solutions-container {
+    max-width: 1200px;
+    margin: 120px auto 60px;
+    padding: 0 20px;
+    min-height: 70vh;
+}
+
+.solutions-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 50px;
+}
+
+.solutions-tab-btn {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    padding: 15px 40px;
+    border-radius: 12px;
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: var(--font-heading);
+    backdrop-filter: blur(10px);
+}
+
+.solutions-tab-btn.active {
+    background: var(--gradient-saas);
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 0 25px var(--glow-purple);
+    transform: scale(1.05);
+}
+
+.solutions-tab-btn:hover:not(.active) {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-main);
+    border-color: var(--primary);
+}
+
+.solutions-grid {
+    display: none;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 30px;
+    animation: tabFadeIn 0.5s ease forwards;
+}
+
+.solutions-grid.active {
+    display: grid;
+}
+
+@keyframes tabFadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Solutions Card (Enhanced Feature Card) */
+.solution-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    padding: 40px;
+    border-radius: 20px;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.solution-card:hover {
+    transform: translateY(-12px);
+    background: rgba(30, 36, 56, 0.9);
+    border-color: var(--primary);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+}
+
+.solution-icon {
+    font-size: 3.5rem;
+    margin-bottom: 25px;
+    background: var(--gradient-glow);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.solution-card h3 {
+    font-size: 1.8rem;
+    margin-bottom: 15px;
+}
+
+.solution-card p {
+    color: var(--text-muted);
+    margin-bottom: 25px;
+    flex-grow: 1;
+}
+
+.solution-footer {
+    padding-top: 25px;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
