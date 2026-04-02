@@ -1737,8 +1737,12 @@ const initAeroByte = () => {
             });
 
             const refreshProductStatus = async () => {
+                console.log("📡 Product Status Syncing...");
                 const container = document.getElementById('adminProductStatusBody');
-                if (!container) return;
+                if (!container) {
+                    console.error("❌ Admin Product Status Container NOT FOUND!");
+                    return;
+                }
                 
                 const products = [
                     { id: 'rl-bot-trainer', name: 'RL Bot Trainer', icon: 'fas fa-car-side' },
@@ -1746,7 +1750,7 @@ const initAeroByte = () => {
                     { id: 'torrent-streaming', name: 'Torrent Streaming', icon: 'fas fa-download' }
                 ];
 
-                container.innerHTML = '<div style="padding:20px;"><i class="fas fa-spinner fa-spin"></i> Loading system telemetry...</div>';
+                container.innerHTML = '<div style="padding:40px; text-align:center;"><i class="fas fa-spinner fa-spin fa-2x" style="color:var(--primary); margin-bottom:15px;"></i><p style="color:var(--text-muted);">Syncing with Service Matrix...</p></div>';
                 
                 try {
                     let html = '';
