@@ -1746,60 +1746,98 @@ const initAeroByte = () => {
                     { id: 'torrent-streaming', name: 'Torrent Streaming', icon: 'fas fa-download' }
                 ];
 
-                container.innerHTML = '';
+                container.innerHTML = '<div style="padding:20px;"><i class="fas fa-spinner fa-spin"></i> Loading system telemetry...</div>';
                 
-                for (const p of products) {
-                    const snap = await getDoc(doc(db, "system_status", p.id));
-                    const isDown = snap.exists() ? snap.data().isDown : false;
-                    
-                    const card = document.createElement('div');
-                    card.className = 'saas-card';
-                    card.style.padding = '25px';
-                    card.innerHTML = `
-                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
-                            <div style="display: flex; align-items: center; gap: 15px;">
-                                <div class="saas-avatar" style="background: var(--gradient-saas);"><i class="${p.icon}"></i></div>
-                                <div>
-                                    <h3 style="margin: 0; color: #fff; font-size: 1rem;">${p.name}</h3>
-                                    <p style="font-size: 0.7rem; color: var(--text-muted); margin-top: 4px;">Service ID: ${p.id}</p>
+                try {
+                    let html = '';
+                    for (const p of products) {
+                        const snap = await getDoc(doc(db, "system_status", p.id));
+                        const data = snap.exists() ? snap.data() : { isDown: false, version: 'v1.0', downloadLink: '#' };
+                        const isDown = data.isDown;
+                        
+                        html += `
+                            <div class="saas-card" style="padding: 25px;">
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+                                    <div style="display: flex; align-items: center; gap: 15px;">
+                                        <div class="saas-avatar" style="background: var(--gradient-saas);"><i class="${p.icon}"></i></div>
+                                        <div>
+                                            <h3 style="margin: 0; color: #fff; font-size: 1rem;">${p.name}</h3>
+                                            <p style="font-size: 0.7rem; color: var(--text-muted); margin-top: 4px;">Service ID: ${p.id}</p>
+                                        </div>
+                                    </div>
+                                    <div class="saas-status-dot" style="background: ${isDown ? '#EF4444' : '#10B981'}; box-shadow: 0 0 10px ${isDown ? '#EF444466' : '#10B98166'};"></div>
                                 </div>
-                            </div>
-                            <div class="saas-status-dot" style="background: ${isDown ? '#EF4444' : '#10B981'}; box-shadow: 0 0 10px ${isDown ? '#EF444466' : '#10B98166'};"></div>
-                        </div>
-                        
-                        <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 15px; border-top: 1px solid var(--border-color);">
-                            <span style="font-size: 0.85rem; color: ${isDown ? '#EF4444' : '#10B981'}; font-weight: 700;">
-                                ${isDown ? 'OFFLINE / DOWN' : 'OPERATIONAL'}
-                            </span>
-                            <button class="saas-manage-btn toggle-status-btn" 
-                                    data-pid="${p.id}" 
-                                    data-down="${isDown}"
-                                    style="background: ${isDown ? '#10B98122' : '#EF444422'}; color: ${isDown ? '#10B981' : '#EF4444'}; border: 1px solid ${isDown ? '#10B98144' : '#EF444444'};">
-                                ${isDown ? '<i class="fas fa-play"></i> Restore' : '<i class="fas fa-pause"></i> Mark Down'}
-                            </button>
-                        </div>
-                    `;
-                    container.appendChild(card);
-                }
+                                
+                                <div style="display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px;">
+                                    <div>
+                                        <label style="font-size: 0.65rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Version Number</label>
+                                        <input type="text" class="status-version-input" data-pid="${p.id}" value="${data.version || ''}" placeholder="e.g. v1.0" style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; padding: 8px; border-radius: 6px; font-size: 0.85rem;">
+                                    </div>
+                                    <div>
+                                        <label style="font-size: 0.65rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Download URL</label>
+                                        <input type="text" class="status-link-input" data-pid="${p.id}" value="${data.downloadLink || ''}" placeholder="https://github.com/..." style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; padding: 8px; border-radius: 6px; font-size: 0.85rem;">
+                                    </div>
+                                </div>
 
-                // Attach toggle listeners
-                container.querySelectorAll('.toggle-status-btn').forEach(btn => {
-                    btn.onclick = async () => {
-                        const pid = btn.getAttribute('data-pid');
-                        const currentlyDown = btn.getAttribute('data-down') === 'true';
-                        btn.disabled = true;
-                        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-                        
-                        try {
-                            await setDoc(doc(db, "system_status", pid), {
-                                isDown: !currentlyDown,
-                                lastUpdated: Date.now(),
-                                updatedBy: auth.currentUser.email
-                            }, { merge: true });
-                            refreshProductStatus();
-                        } catch (err) { alert(err.message); refreshProductStatus(); }
-                    };
-                });
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 15px; border-top: 1px solid var(--border-color);">
+                                    <button class="saas-manage-btn save-status-btn" data-pid="${p.id}" style="font-size: 0.75rem;"><i class="fas fa-save"></i> Save Changes</button>
+                                    <button class="saas-manage-btn toggle-status-btn" 
+                                            data-pid="${p.id}" 
+                                            data-down="${isDown}"
+                                            style="background: ${isDown ? '#10B98122' : '#EF444422'}; color: ${isDown ? '#10B981' : '#EF4444'}; border: 1px solid ${isDown ? '#10B98144' : '#EF444444'}; font-size: 0.75rem;">
+                                        ${isDown ? '<i class="fas fa-play"></i> Restore' : '<i class="fas fa-pause"></i> Mark Down'}
+                                    </button>
+                                </div>
+                            </div>`;
+                    }
+                    container.innerHTML = html;
+
+                    // Attach Toggle listeners
+                    container.querySelectorAll('.toggle-status-btn').forEach(btn => {
+                        btn.onclick = async () => {
+                            const pid = btn.getAttribute('data-pid');
+                            const currentlyDown = btn.getAttribute('data-down') === 'true';
+                            btn.disabled = true;
+                            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                            try {
+                                await updateDoc(doc(db, "system_status", pid), { isDown: !currentlyDown, lastUpdated: Date.now() });
+                                refreshProductStatus();
+                            } catch (e) { 
+                                // Fallback if doc doesn't exist
+                                await setDoc(doc(db, "system_status", pid), { isDown: !currentlyDown, lastUpdated: Date.now() });
+                                refreshProductStatus();
+                             }
+                        };
+                    });
+
+                    // Attach Save listeners
+                    container.querySelectorAll('.save-status-btn').forEach(btn => {
+                        btn.onclick = async () => {
+                            const pid = btn.getAttribute('data-pid');
+                            const card = btn.closest('.saas-card');
+                            const version = card.querySelector('.status-version-input').value;
+                            const downloadLink = card.querySelector('.status-link-input').value;
+                            
+                            btn.disabled = true;
+                            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                            
+                            try {
+                                await setDoc(doc(db, "system_status", pid), {
+                                    version: version,
+                                    downloadLink: downloadLink,
+                                    lastUpdated: Date.now(),
+                                    updatedBy: auth.currentUser?.email || 'Admin'
+                                }, { merge: true });
+                                alert(`Changes saved for ${pid}!`);
+                                refreshProductStatus();
+                            } catch (err) { alert(err.message); refreshProductStatus(); }
+                        };
+                    });
+
+                } catch (err) {
+                    console.error("Status Error:", err);
+                    container.innerHTML = `<div style="padding:20px; color:var(--danger);">Error synchronizing status: ${err.message}</div>`;
+                }
             };
 
             // Promotion Generator
@@ -1954,17 +1992,32 @@ const initAeroByte = () => {
                         statusIndicator.style.boxShadow = `0 0 10px ${isDown ? '#EF444466' : '#10B98166'}`;
                     }
 
-                    // 2. Disable Downloads
+                    // 2. Update Version Badges and Hero Titles
+                    if (data.version) {
+                        const badges = document.querySelectorAll('.badge');
+                        badges.forEach(b => {
+                            // Only update if it contains "Version" or "vX.X"
+                            if (b.textContent.match(/v\d+\.\d+/i) || b.textContent.toLowerCase().includes('version')) {
+                                // Keep the inner dot if it exists
+                                const dot = b.querySelector('.status-dot');
+                                b.innerHTML = `${pid === 'torrent-streaming' ? 'AeroByte ' : ''}${data.version} `;
+                                if (dot) b.appendChild(dot);
+                                b.innerHTML += ` ${pid === 'rl-bot-trainer' ? 'PROFESSIONAL' : pid === 'among-us-mod-menu' ? 'STABLE RELEASE' : 'STREAMING'}`;
+                            }
+                        });
+                    }
+
+                    // 3. Disable/Enable Downloads and Update Links
                     const downloadButtons = document.querySelectorAll('button.btn-primary:not(.checkout-trigger), a.btn-primary:not(.checkout-trigger)');
                     downloadButtons.forEach(btn => {
-                        // Check if it looks like a download button (contains "Download" or "Get")
-                        if (btn.textContent.toLowerCase().includes('download') || btn.textContent.toLowerCase().includes('get')) {
+                        const isDownload = btn.textContent.toLowerCase().includes('download') || btn.textContent.toLowerCase().includes('get');
+                        if (isDownload) {
                             if (isDown) {
                                 btn.classList.add('disabled-btn');
                                 btn.style.pointerEvents = 'none';
                                 btn.style.opacity = '0.5';
                                 btn.style.filter = 'grayscale(1)';
-                                btn.setAttribute('data-orig-text', btn.textContent);
+                                if (!btn.getAttribute('data-orig-text')) btn.setAttribute('data-orig-text', btn.textContent);
                                 btn.textContent = 'Service Down';
                             } else {
                                 btn.classList.remove('disabled-btn');
@@ -1974,11 +2027,20 @@ const initAeroByte = () => {
                                 if (btn.getAttribute('data-orig-text')) {
                                     btn.textContent = btn.getAttribute('data-orig-text');
                                 }
+                                
+                                // Dynamic Link Update
+                                if (data.downloadLink && data.downloadLink !== '#') {
+                                    if (btn.tagName === 'A') {
+                                        btn.href = data.downloadLink;
+                                    } else {
+                                        btn.setAttribute('onclick', `window.location.href='${data.downloadLink}'`);
+                                    }
+                                }
                             }
                         }
                     });
                     
-                    // 3. Update Hero Badges if any
+                    // 4. Update Hero Style
                     const badge = document.querySelector('.badge');
                     if (badge && isDown) {
                         badge.style.border = '1px solid rgba(239, 68, 68, 0.3)';
