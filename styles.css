@@ -1808,14 +1808,6 @@ body.among-us-page {
     align-items: center;
 }
 
-.solution-img {
-    width: 100px;
-    height: 100px;
-    object-fit: contain;
-    filter: drop-shadow(0 0 15px var(--glow-purple));
-    transition: transform 0.3s ease;
-}
 
-.solution-card:hover .solution-img {
-    transform: scale(1.1) rotate(5deg);
-}
+
+.solution-card:hover
