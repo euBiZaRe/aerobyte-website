@@ -1442,7 +1442,7 @@ const initAeroByte = () => {
                     usersList.sort((a,b) => (a.discordUsername || a.email || "").localeCompare(b.discordUsername || b.email || ""));
 
                     for (const user of usersList) {
-                        const products = ["RL Bot Trainer", "Among Us Mod Menu"];
+                        const products = ["RL Bot Trainer", "Among Us Mod Menu", "AeroByte Cinema"];
                         const productIcons = { "RL Bot Trainer": "fas fa-car-side", "Among Us Mod Menu": "fas fa-user-secret" };
                         let licensesHtml = '';
 
@@ -1747,7 +1747,7 @@ const initAeroByte = () => {
                 const products = [
                     { id: 'rl-bot-trainer', name: 'RL Bot Trainer', icon: 'fas fa-car-side' },
                     { id: 'among-us-mod-menu', name: 'Among Us Mod Menu', icon: 'fas fa-user-secret' },
-                    { id: 'torrent-streaming', name: 'Torrent Streaming', icon: 'fas fa-download' }
+                    { id: 'cinema', name: 'AeroByte Cinema', icon: 'fas fa-download' }
                 ];
 
                 container.innerHTML = '<div style="padding:40px; text-align:center;"><i class="fas fa-spinner fa-spin fa-2x" style="color:var(--primary); margin-bottom:15px;"></i><p style="color:var(--text-muted);">Syncing with Service Matrix...</p></div>';
@@ -1775,12 +1775,27 @@ const initAeroByte = () => {
                                 <div style="display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px;">
                                     <div>
                                         <label style="font-size: 0.65rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Version Number</label>
-                                        <input type="text" class="status-version-input" data-pid="${p.id}" value="${data.version || ''}" placeholder="e.g. v1.0" style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; padding: 8px; border-radius: 6px; font-size: 0.85rem;">
+                                        <input type="text" class="status-version-input" data-pid="${p.id}" value="${data.version || ''}" placeholder="e.g. v2.0" style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; padding: 8px; border-radius: 6px; font-size: 0.85rem;">
+                                    </div>
+                                    ${p.id === 'cinema' ? `
+                                    <div>
+                                        <label style="font-size: 0.65rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Windows Download URL</label>
+                                        <input type="text" class="status-link-windows" data-pid="${p.id}" value="${data.downloadLinkWindows || ''}" placeholder="https://..." style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; padding: 8px; border-radius: 6px; font-size: 0.85rem;">
                                     </div>
                                     <div>
-                                        <label style="font-size: 0.65rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Download URL</label>
-                                        <input type="text" class="status-link-input" data-pid="${p.id}" value="${data.downloadLink || ''}" placeholder="https://github.com/..." style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; padding: 8px; border-radius: 6px; font-size: 0.85rem;">
+                                        <label style="font-size: 0.65rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Android Download URL</label>
+                                        <input type="text" class="status-link-android" data-pid="${p.id}" value="${data.downloadLinkAndroid || ''}" placeholder="https://..." style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; padding: 8px; border-radius: 6px; font-size: 0.85rem;">
                                     </div>
+                                    <div>
+                                        <label style="font-size: 0.65rem; color: var(--text-muted); display: block; margin-bottom: 5px;">iOS Download URL</label>
+                                        <input type="text" class="status-link-ios" data-pid="${p.id}" value="${data.downloadLinkIOS || ''}" placeholder="https://..." style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; padding: 8px; border-radius: 6px; font-size: 0.85rem;">
+                                    </div>
+                                    ` : `
+                                    <div>
+                                        <label style="font-size: 0.65rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Download URL</label>
+                                        <input type="text" class="status-link-input" data-pid="${p.id}" value="${data.downloadLink || ''}" placeholder="https://..." style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; padding: 8px; border-radius: 6px; font-size: 0.85rem;">
+                                    </div>
+                                    `}
                                 </div>
 
                                 <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 15px; border-top: 1px solid var(--border-color);">
@@ -1826,12 +1841,21 @@ const initAeroByte = () => {
                             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
                             
                             try {
-                                await setDoc(doc(db, "system_status", pid), {
+                                const updateData = {
                                     version: version,
-                                    downloadLink: downloadLink,
                                     lastUpdated: Date.now(),
                                     updatedBy: auth.currentUser?.email || 'Admin'
-                                }, { merge: true });
+                                };
+                                
+                                if (pid === 'cinema') {
+                                    updateData.downloadLinkWindows = card.querySelector('.status-link-windows').value;
+                                    updateData.downloadLinkAndroid = card.querySelector('.status-link-android').value;
+                                    updateData.downloadLinkIOS = card.querySelector('.status-link-ios').value;
+                                } else {
+                                    updateData.downloadLink = downloadLink;
+                                }
+
+                                await setDoc(doc(db, "system_status", pid), updateData, { merge: true });
                                 alert(`Changes saved for ${pid}!`);
                                 refreshProductStatus();
                             } catch (err) { alert(err.message); refreshProductStatus(); }
@@ -1981,7 +2005,7 @@ const initAeroByte = () => {
             let pid = null;
             if (path.includes('rl-bot-trainer')) pid = 'rl-bot-trainer';
             if (path.includes('among-us-mod-menu')) pid = 'among-us-mod-menu';
-            if (path.includes('torrent-streaming')) pid = 'torrent-streaming';
+            if (path.includes('cinema')) pid = 'cinema';
 
             if (!pid) return;
 
@@ -2004,7 +2028,7 @@ const initAeroByte = () => {
                             if (b.textContent.match(/v\d+\.\d+/i) || b.textContent.toLowerCase().includes('version')) {
                                 // Keep the inner dot if it exists
                                 const dot = b.querySelector('.status-dot');
-                                b.innerHTML = `${pid === 'torrent-streaming' ? 'AeroByte ' : ''}${data.version} `;
+                                b.innerHTML = `${pid === 'cinema' ? 'AeroByte Cinema ' : 'AeroByte '}${data.version} `;
                                 if (dot) b.appendChild(dot);
                                 b.innerHTML += ` ${pid === 'rl-bot-trainer' ? 'PROFESSIONAL' : pid === 'among-us-mod-menu' ? 'STABLE RELEASE' : 'STREAMING'}`;
                             }
@@ -2033,7 +2057,14 @@ const initAeroByte = () => {
                                 }
                                 
                                 // Dynamic Link Update
-                                if (data.downloadLink && data.downloadLink !== '#') {
+                                if (pid === 'cinema') {
+                                    const winBtn = document.getElementById('download-windows');
+                                    const andBtn = document.getElementById('download-android');
+                                    const iosBtn = document.getElementById('download-ios');
+                                    if (winBtn && data.downloadLinkWindows) winBtn.href = data.downloadLinkWindows;
+                                    if (andBtn && data.downloadLinkAndroid) andBtn.href = data.downloadLinkAndroid;
+                                    if (iosBtn && data.downloadLinkIOS) iosBtn.href = data.downloadLinkIOS;
+                                } else if (data.downloadLink && data.downloadLink !== '#') {
                                     if (btn.tagName === 'A') {
                                         btn.href = data.downloadLink;
                                     } else {
