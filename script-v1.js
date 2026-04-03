@@ -1818,6 +1818,26 @@ const initAeroByte = () => {
                                     `}
                                 </div>
 
+                                ${p.id === 'cinema' ? `
+                                <div style="margin-top: 20px; padding-top: 20px; border-top: 1px dashed var(--border-color); margin-bottom: 20px;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                                        <div>
+                                            <h4 style="margin: 0; color: #fff; font-size: 0.85rem;"><i class="fas fa-hammer" style="color: var(--accent); margin-right: 8px;"></i> Global Kill Switch</h4>
+                                            <p style="font-size: 0.6rem; color: var(--text-muted); margin-top: 2px;">Immediately block all desktop/mobile app access.</p>
+                                        </div>
+                                        <button class="saas-manage-btn toggle-maintenance-btn" id="maint-toggle-btn" 
+                                                style="font-size: 0.7rem; padding: 6px 12px; border-radius: 20px; min-width: 120px;">
+                                            Checking...
+                                        </button>
+                                    </div>
+                                    <div>
+                                        <label style="font-size: 0.65rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Maintenance Message (Displayed to users)</label>
+                                        <textarea id="maint-message-input" style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; padding: 8px; border-radius: 6px; font-size: 0.8rem; height: 60px; resize: none;" placeholder="AeroByte Cinema is currently undergoing maintenance..."></textarea>
+                                        <button class="saas-manage-btn" id="maint-save-msg-btn" style="margin-top: 10px; width: 100%; font-size: 0.7rem; justify-content: center;"><i class="fas fa-comment-dots"></i> Update System Message</button>
+                                    </div>
+                                </div>
+                                ` : ''}
+
                                 <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 15px; border-top: 1px solid var(--border-color);">
                                     <button class="saas-manage-btn save-status-btn" data-pid="${p.id}" style="font-size: 0.75rem;"><i class="fas fa-save"></i> Save Changes</button>
                                     <button class="saas-manage-btn toggle-status-btn" 
@@ -1830,6 +1850,52 @@ const initAeroByte = () => {
                             </div>`;
                     }
                     container.innerHTML = html;
+
+                    // --- GLOBAL MAINTENANCE MODE SETUP (CINEMA ONLY) ---
+                    const maintToggleBtn = document.getElementById('maint-toggle-btn');
+                    const maintMsgInput = document.getElementById('maint-message-input');
+                    const maintSaveMsgBtn = document.getElementById('maint-save-msg-btn');
+
+                    if (maintToggleBtn && maintMsgInput) {
+                        try {
+                            const configSnap = await getDoc(doc(db, "config", "global"));
+                            const configData = configSnap.exists() ? configSnap.data() : { maintenance_mode: false, maintenance_message: "" };
+                            
+                            const isMaintActive = configData.maintenance_mode === true;
+                            maintToggleBtn.textContent = isMaintActive ? 'DEACTIVATE' : 'ACTIVATE';
+                            maintToggleBtn.style.background = isMaintActive ? '#EF444422' : '#10B98122';
+                            maintToggleBtn.style.color = isMaintActive ? '#EF4444' : '#10B981';
+                            maintToggleBtn.style.border = `1px solid ${isMaintActive ? '#EF444444' : '#10B98144'}`;
+                            
+                            maintMsgInput.value = configData.maintenance_message || "AeroByte Cinema is currently undergoing maintenance. Please check back later.";
+
+                            maintToggleBtn.onclick = async () => {
+                                maintToggleBtn.disabled = true;
+                                maintToggleBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                                try {
+                                    await setDoc(doc(db, "config", "global"), { 
+                                        maintenance_mode: !isMaintActive 
+                                    }, { merge: true });
+                                    refreshProductStatus();
+                                } catch (e) { alert(e.message); maintToggleBtn.disabled = false; }
+                            };
+
+                            maintSaveMsgBtn.onclick = async () => {
+                                maintSaveMsgBtn.disabled = true;
+                                maintSaveMsgBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+                                try {
+                                    await setDoc(doc(db, "config", "global"), { 
+                                        maintenance_message: maintMsgInput.value 
+                                    }, { merge: true });
+                                    alert("System message updated!");
+                                    refreshProductStatus();
+                                } catch (e) { alert(e.message); maintSaveMsgBtn.disabled = false; }
+                            };
+                        } catch (err) {
+                            console.error("❌ Maintenance Config Fetch Error:", err);
+                            maintToggleBtn.textContent = "Error";
+                        }
+                    }
 
                     // Attach Toggle listeners
                     container.querySelectorAll('.toggle-status-btn').forEach(btn => {

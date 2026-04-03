@@ -43,5 +43,12 @@ service cloud.firestore {
       allow write: if request.auth != null && 
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.plan == 'Owner';
     }
+
+    // Global Configuration (Kill Switch)
+    match /config/{configId} {
+      allow read: if true; 
+      allow write: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.plan == 'Owner';
+    }
   }
 }
