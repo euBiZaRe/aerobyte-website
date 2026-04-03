@@ -159,12 +159,15 @@ a:hover {
         visibility: visible;
         display: none;
         width: 100%;
-        background: transparent;
+        background: rgba(255,255,255,0.03);
         border: none;
         box-shadow: none;
+        text-align: center;
+        padding: 10px 0;
     }
     .dropdown.active .dropdown-menu {
         display: block;
+        margin-top: 5px;
     }
 }
 
@@ -723,18 +726,40 @@ footer {
         position: fixed;
         top: 0;
         right: -100%;
-        width: 80%;
+        width: 85%;
+        max-width: 400px;
         height: 100vh;
-        background: #0B0F19;
+        background: #080B13;
         flex-direction: column;
-        justify-content: center;
-        gap: 20px;
-        transition: 0.3s ease;
-        padding: 40px;
+        justify-content: flex-start;
+        align-items: stretch;
+        gap: 0;
+        transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        padding: 100px 0 40px;
         border-left: 1px solid var(--border-color);
         z-index: 1000;
-        backdrop-filter: blur(20px);
-        box-shadow: -10px 0 30px rgba(0,0,0,0.5);
+        backdrop-filter: blur(25px);
+        box-shadow: -20px 0 50px rgba(0,0,0,0.8);
+        overflow-y: auto;
+    }
+    .nav-links li {
+        width: 100%;
+        text-align: center;
+    }
+    .nav-links li a {
+        display: block;
+        padding: 18px 20px;
+        width: 100%;
+        font-size: 1.1rem;
+    }
+    .nav-links .dropdown-trigger {
+        justify-content: center;
+        padding: 18px 20px;
+    }
+    .nav-links .login-btn {
+        margin: 30px auto 0;
+        width: calc(100% - 60px);
+        max-width: 280px;
     }
     .nav-links.active { right: 0; }
     .hero { flex-direction: column; text-align: center; padding-top: 150px; min-height: auto; }
