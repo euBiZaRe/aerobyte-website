@@ -2293,42 +2293,48 @@ const initAeroByte = () => {
                                     btn.textContent = btn.getAttribute('data-orig-text');
                                 }
                                 
-                                // Dynamic Link Update
+                                // UNIVERSAL LINK HIDING (Clean & Robust)
+                                btn.href = "javascript:void(0)";
+
                                 if (pid === 'cinema') {
                                     const winBtn = document.getElementById('download-windows');
                                     const andBtn = document.getElementById('download-android');
                                     const iosBtn = document.getElementById('download-ios');
                                     
-                                    // Visibility Control (Hide if down)
-                                    // Platform-Specific Granular Control
-                                    const updatePlatformBtn = (btn, isDown, link) => {
-                                        if (!btn) return;
-                                        if (isDown) {
-                                            btn.classList.add('disabled-btn');
-                                            btn.style.pointerEvents = 'none';
-                                            btn.style.opacity = '0.5';
-                                            btn.style.filter = 'grayscale(1)';
-                                            if (!btn.getAttribute('data-orig-text')) btn.setAttribute('data-orig-text', btn.textContent);
-                                            btn.textContent = 'Service Down';
+                                    const updatePlatformBtn = (pBtn, pIsDown, pLink) => {
+                                        if (!pBtn) return;
+                                        if (pIsDown) {
+                                            pBtn.classList.add('disabled-btn');
+                                            pBtn.style.pointerEvents = 'none';
+                                            pBtn.style.opacity = '0.5';
+                                            pBtn.style.filter = 'grayscale(1)';
+                                            if (!pBtn.getAttribute('data-orig-text')) pBtn.setAttribute('data-orig-text', pBtn.textContent);
+                                            pBtn.textContent = 'Service Down';
                                         } else {
-                                            btn.classList.remove('disabled-btn');
-                                            btn.style.pointerEvents = 'auto';
-                                            btn.style.opacity = '1';
-                                            btn.style.filter = 'none';
-                                            if (btn.getAttribute('data-orig-text')) btn.textContent = btn.getAttribute('data-orig-text');
-                                            if (link) btn.href = link;
+                                            pBtn.classList.remove('disabled-btn');
+                                            pBtn.style.pointerEvents = 'auto';
+                                            pBtn.style.opacity = '1';
+                                            pBtn.style.filter = 'none';
+                                            if (pBtn.getAttribute('data-orig-text')) pBtn.textContent = pBtn.getAttribute('data-orig-text');
+                                            
+                                            // Assign hidden click handler only once
+                                            pBtn.onclick = (e) => {
+                                                e.preventDefault();
+                                                if (pLink && pLink !== "#") window.location.assign(pLink);
+                                            };
                                         }
                                     };
 
-                                    updatePlatformBtn(winBtn, data.isDownWindows, data.downloadLinkWindows);
-                                    updatePlatformBtn(andBtn, data.isDownAndroid, data.downloadLinkAndroid);
-                                    updatePlatformBtn(iosBtn, data.isDownIOS, data.downloadLinkIOS);
+                                    // Only update the specific button if it matches a platform
+                                    if (btn === winBtn) updatePlatformBtn(btn, data.isDownWindows, data.downloadLinkWindows);
+                                    if (btn === andBtn) updatePlatformBtn(btn, data.isDownAndroid, data.downloadLinkAndroid);
+                                    if (btn === iosBtn) updatePlatformBtn(btn, data.isDownIOS, data.downloadLinkIOS);
+                                    
                                 } else if (data.downloadLink && data.downloadLink !== '#') {
-                                    if (btn.tagName === 'A') {
-                                        btn.href = data.downloadLink;
-                                    } else {
-                                        btn.setAttribute('onclick', `window.location.href='${data.downloadLink}'`);
-                                    }
+                                    btn.onclick = (e) => {
+                                        e.preventDefault();
+                                        window.location.assign(data.downloadLink);
+                                    };
                                 }
                             }
                         }
