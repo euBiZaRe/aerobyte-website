@@ -219,22 +219,30 @@
                 </div>
 
                 <div class="saas-card" style="margin-top: 30px; padding: 30px;">
-                    <h3 style="margin-bottom: 20px; font-size: 1.1rem; color: #fff;">Maintenance Mode</h3>
-                    <div class="status-toggle-row" style="display: flex; align-items: center; justify-content: space-between; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 25px;">
-                        <div>
-                            <p style="font-weight: 600; color: #fff; margin: 0;">Global Kill Switch</p>
-                            <p style="font-size: 0.75rem; color: var(--text-muted); margin: 5px 0 0 0;">Immediately block all app access with a custom message.</p>
+                    <h3 style="margin-bottom: 25px; font-size: 1.1rem; color: #fff;">System Governance</h3>
+                    <div class="saas-card" style="padding: 25px; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); margin-bottom: 30px;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 25px;">
+                            <div style="display: flex; align-items: center; gap: 15px;">
+                                <div style="width: 40px; height: 40px; background: rgba(0, 240, 255, 0.1); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--primary);">
+                                    <i class="fas fa-hammer"></i>
+                                </div>
+                                <div>
+                                    <h4 style="margin: 0; color: #fff; font-size: 1rem;">Global Kill Switch</h4>
+                                    <p style="font-size: 0.7rem; color: var(--text-muted); margin-top: 4px;">Immediately block all desktop/mobile app access.</p>
+                                </div>
+                            </div>
+                            <button id="maint-toggle-btn" class="saas-manage-btn" style="min-width: 140px; border-radius: 20px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; font-size: 0.75rem;">
+                                Syncing...
+                            </button>
                         </div>
-                        <label class="saas-switch">
-                            <input type="checkbox" id="appMaintenanceToggle">
-                            <span class="saas-slider"></span>
-                        </label>
-                    </div>
-                    
-                    <div id="maintenanceMsgWrap" style="display: none; margin-bottom: 30px;">
-                        <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 8px;">Maintenance Message</p>
-                        <textarea id="appMaintenanceMsg" style="width: 100%; height: 80px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #fff; padding: 12px; border-radius: 8px; font-size: 0.85rem; resize: none;"></textarea>
-                        <button id="saveMaintenanceBtn" class="saas-manage-btn" style="margin-top: 10px; width: 100%; justify-content: center;">Update Message</button>
+                        
+                        <div style="margin-top: 20px;">
+                            <label style="font-size: 0.65rem; color: var(--text-muted); display: block; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;">Maintenance Message (Displayed to users)</label>
+                            <textarea id="maint-message-input" style="width: 100%; height: 70px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #fff; padding: 12px; border-radius: 8px; font-size: 0.85rem; resize: none; margin-bottom: 15px;"></textarea>
+                            <button id="maint-save-msg-btn" class="saas-manage-btn" style="width: 100%; justify-content: center; padding: 12px; font-size: 0.75rem;">
+                                <i class="fas fa-comment-dots"></i> Update System Message
+                            </button>
+                        </div>
                     </div>
 
                     <h3 style="margin-bottom: 20px; font-size: 1.1rem; color: #fff; border-top: 1px solid var(--border-color); padding-top: 25px;">Feature Toggles</h3>
