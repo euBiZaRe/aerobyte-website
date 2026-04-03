@@ -1778,17 +1778,37 @@ const initAeroByte = () => {
                                         <input type="text" class="status-version-input" data-pid="${p.id}" value="${data.version || ''}" placeholder="e.g. v2.0" style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; padding: 8px; border-radius: 6px; font-size: 0.85rem;">
                                     </div>
                                     ${p.id === 'cinema' ? `
-                                    <div>
-                                        <label style="font-size: 0.65rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Windows Download URL</label>
-                                        <input type="text" class="status-link-windows" data-pid="${p.id}" value="${data.downloadLinkWindows || ''}" placeholder="https://..." style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; padding: 8px; border-radius: 6px; font-size: 0.85rem;">
-                                    </div>
-                                    <div>
-                                        <label style="font-size: 0.65rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Android Download URL</label>
-                                        <input type="text" class="status-link-android" data-pid="${p.id}" value="${data.downloadLinkAndroid || ''}" placeholder="https://..." style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; padding: 8px; border-radius: 6px; font-size: 0.85rem;">
-                                    </div>
-                                    <div>
-                                        <label style="font-size: 0.65rem; color: var(--text-muted); display: block; margin-bottom: 5px;">iOS Download URL</label>
-                                        <input type="text" class="status-link-ios" data-pid="${p.id}" value="${data.downloadLinkIOS || ''}" placeholder="https://..." style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; padding: 8px; border-radius: 6px; font-size: 0.85rem;">
+                                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                                        <div>
+                                            <label style="font-size: 0.65rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Windows Version & Status</label>
+                                            <div style="display: flex; gap: 8px;">
+                                                <input type="text" class="status-link-windows" data-pid="${p.id}" value="${data.downloadLinkWindows || ''}" placeholder="Windows URL..." style="flex: 1; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; padding: 8px; border-radius: 6px; font-size: 0.85rem;">
+                                                <button class="saas-manage-btn toggle-platform-btn ${data.isDownWindows ? 'is-down' : ''}" data-pid="${p.id}" data-platform="Windows" data-down="${data.isDownWindows || false}" 
+                                                        style="width: 100px; font-size: 0.7rem; background: ${data.isDownWindows ? '#EF444422' : '#10B98122'}; color: ${data.isDownWindows ? '#EF4444' : '#10B981'}; border: 1px solid ${data.isDownWindows ? '#EF444444' : '#10B98144'};">
+                                                    ${data.isDownWindows ? 'Restore' : 'Mark Down'}
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label style="font-size: 0.65rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Android Version & Status</label>
+                                            <div style="display: flex; gap: 8px;">
+                                                <input type="text" class="status-link-android" data-pid="${p.id}" value="${data.downloadLinkAndroid || ''}" placeholder="Android URL..." style="flex: 1; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; padding: 8px; border-radius: 6px; font-size: 0.85rem;">
+                                                <button class="saas-manage-btn toggle-platform-btn ${data.isDownAndroid ? 'is-down' : ''}" data-pid="${p.id}" data-platform="Android" data-down="${data.isDownAndroid || false}" 
+                                                        style="width: 100px; font-size: 0.7rem; background: ${data.isDownAndroid ? '#EF444422' : '#10B98122'}; color: ${data.isDownAndroid ? '#EF4444' : '#10B981'}; border: 1px solid ${data.isDownAndroid ? '#EF444444' : '#10B98144'};">
+                                                    ${data.isDownAndroid ? 'Restore' : 'Mark Down'}
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label style="font-size: 0.65rem; color: var(--text-muted); display: block; margin-bottom: 5px;">iOS Version & Status</label>
+                                            <div style="display: flex; gap: 8px;">
+                                                <input type="text" class="status-link-ios" data-pid="${p.id}" value="${data.downloadLinkIOS || ''}" placeholder="iOS URL..." style="flex: 1; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; padding: 8px; border-radius: 6px; font-size: 0.85rem;">
+                                                <button class="saas-manage-btn toggle-platform-btn ${data.isDownIOS ? 'is-down' : ''}" data-pid="${p.id}" data-platform="IOS" data-down="${data.isDownIOS || false}" 
+                                                        style="width: 100px; font-size: 0.7rem; background: ${data.isDownIOS ? '#EF444422' : '#10B98122'}; color: ${data.isDownIOS ? '#EF4444' : '#10B981'}; border: 1px solid ${data.isDownIOS ? '#EF444444' : '#10B98144'};">
+                                                    ${data.isDownIOS ? 'Restore' : 'Mark Down'}
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
                                     ` : `
                                     <div>
@@ -1800,33 +1820,13 @@ const initAeroByte = () => {
 
                                 <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 15px; border-top: 1px solid var(--border-color);">
                                     <button class="saas-manage-btn save-status-btn" data-pid="${p.id}" style="font-size: 0.75rem;"><i class="fas fa-save"></i> Save Changes</button>
-                                    <div style="display: flex; gap: 10px;">
-                                        <button class="saas-manage-btn toggle-status-btn" 
-                                                data-pid="${p.id}" 
-                                                data-down="${isDown}"
-                                                style="background: ${isDown ? '#10B98122' : '#EF444422'}; color: ${isDown ? '#10B981' : '#EF4444'}; border: 1px solid ${isDown ? '#10B98144' : '#EF444444'}; font-size: 0.75rem;"
-                                                title="Global Master Toggle">
-                                            ${isDown ? 'Restore All' : 'Mark All Down'}
-                                        </button>
-                                    </div>
+                                    <button class="saas-manage-btn toggle-status-btn" 
+                                            data-pid="${p.id}" 
+                                            data-down="${isDown}"
+                                            style="background: ${isDown ? '#10B98122' : '#EF444422'}; color: ${isDown ? '#10B981' : '#EF4444'}; border: 1px solid ${isDown ? '#10B98144' : '#EF444444'}; font-size: 0.75rem;">
+                                        ${isDown ? 'Restore All' : 'Mark All Down'}
+                                    </button>
                                 </div>
-                                
-                                ${p.id === 'cinema' ? `
-                                <div style="margin-top: 20px; padding-top: 15px; border-top: 1px dashed var(--border-color); display: flex; flex-direction: column; gap: 10px;">
-                                    <p style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin: 0;">Platform Specific Status</p>
-                                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
-                                        <button class="saas-manage-btn toggle-platform-btn ${data.isDownWindows ? 'is-down' : ''}" data-pid="${p.id}" data-platform="Windows" data-down="${data.isDownWindows || false}" style="font-size: 0.6rem; padding: 8px 4px; background: ${data.isDownWindows ? '#EF444422' : 'rgba(255,255,255,0.05)'}; color: ${data.isDownWindows ? '#EF4444' : 'var(--text-muted)'};">
-                                            Win: ${data.isDownWindows ? 'DOWN' : 'UP'}
-                                        </button>
-                                        <button class="saas-manage-btn toggle-platform-btn ${data.isDownAndroid ? 'is-down' : ''}" data-pid="${p.id}" data-platform="Android" data-down="${data.isDownAndroid || false}" style="font-size: 0.6rem; padding: 8px 4px; background: ${data.isDownAndroid ? '#EF444422' : 'rgba(255,255,255,0.05)'}; color: ${data.isDownAndroid ? '#EF4444' : 'var(--text-muted)'};">
-                                            And: ${data.isDownAndroid ? 'DOWN' : 'UP'}
-                                        </button>
-                                        <button class="saas-manage-btn toggle-platform-btn ${data.isDownIOS ? 'is-down' : ''}" data-pid="${p.id}" data-platform="IOS" data-down="${data.isDownIOS || false}" style="font-size: 0.6rem; padding: 8px 4px; background: ${data.isDownIOS ? '#EF444422' : 'rgba(255,255,255,0.05)'}; color: ${data.isDownIOS ? '#EF4444' : 'var(--text-muted)'};">
-                                            iOS: ${data.isDownIOS ? 'DOWN' : 'UP'}
-                                        </button>
-                                    </div>
-                                </div>
-                                ` : ''}
                             </div>`;
                     }
                     container.innerHTML = html;
@@ -2103,18 +2103,29 @@ const initAeroByte = () => {
                                     const iosBtn = document.getElementById('download-ios');
                                     
                                     // Visibility Control (Hide if down)
-                                    if (winBtn) {
-                                        winBtn.style.display = data.isDownWindows ? 'none' : 'flex';
-                                        if (data.downloadLinkWindows) winBtn.href = data.downloadLinkWindows;
-                                    }
-                                    if (andBtn) {
-                                        andBtn.style.display = data.isDownAndroid ? 'none' : 'flex';
-                                        if (data.downloadLinkAndroid) andBtn.href = data.downloadLinkAndroid;
-                                    }
-                                    if (iosBtn) {
-                                        iosBtn.style.display = data.isDownIOS ? 'none' : 'flex';
-                                        if (data.downloadLinkIOS) iosBtn.href = data.downloadLinkIOS;
-                                    }
+                                    // Platform-Specific Granular Control
+                                    const updatePlatformBtn = (btn, isDown, link) => {
+                                        if (!btn) return;
+                                        if (isDown) {
+                                            btn.classList.add('disabled-btn');
+                                            btn.style.pointerEvents = 'none';
+                                            btn.style.opacity = '0.5';
+                                            btn.style.filter = 'grayscale(1)';
+                                            if (!btn.getAttribute('data-orig-text')) btn.setAttribute('data-orig-text', btn.textContent);
+                                            btn.textContent = 'Service Down';
+                                        } else {
+                                            btn.classList.remove('disabled-btn');
+                                            btn.style.pointerEvents = 'auto';
+                                            btn.style.opacity = '1';
+                                            btn.style.filter = 'none';
+                                            if (btn.getAttribute('data-orig-text')) btn.textContent = btn.getAttribute('data-orig-text');
+                                            if (link) btn.href = link;
+                                        }
+                                    };
+
+                                    updatePlatformBtn(winBtn, data.isDownWindows, data.downloadLinkWindows);
+                                    updatePlatformBtn(andBtn, data.isDownAndroid, data.downloadLinkAndroid);
+                                    updatePlatformBtn(iosBtn, data.isDownIOS, data.downloadLinkIOS);
                                 } else if (data.downloadLink && data.downloadLink !== '#') {
                                     if (btn.tagName === 'A') {
                                         btn.href = data.downloadLink;
