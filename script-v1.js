@@ -1905,6 +1905,7 @@ const initAeroByte = () => {
                                             <label style="font-size: 0.65rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Windows Version & Status</label>
                                             <div style="display: flex; gap: 8px;">
                                                 <input type="text" class="status-link-windows" data-pid="${p.id}" value="${data.downloadLinkWindows || ''}" placeholder="Windows URL..." style="flex: 1; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; padding: 8px; border-radius: 6px; font-size: 0.85rem;">
+                                                <button class="saas-manage-btn save-platform-url-btn" data-pid="${p.id}" data-platform="Windows" title="Save Windows URL" style="width: 40px; justify-content: center; background: rgba(255,255,255,0.05);"><i class="fas fa-save"></i></button>
                                                 <button class="saas-manage-btn toggle-platform-btn ${data.isDownWindows ? 'is-down' : ''}" data-pid="${p.id}" data-platform="Windows" data-down="${data.isDownWindows || false}" 
                                                         style="width: 100px; font-size: 0.7rem; background: ${data.isDownWindows ? '#EF444422' : '#10B98122'}; color: ${data.isDownWindows ? '#EF4444' : '#10B981'}; border: 1px solid ${data.isDownWindows ? '#EF444444' : '#10B98144'};">
                                                     ${data.isDownWindows ? 'Restore' : 'Mark Down'}
@@ -1915,6 +1916,7 @@ const initAeroByte = () => {
                                             <label style="font-size: 0.65rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Android Version & Status</label>
                                             <div style="display: flex; gap: 8px;">
                                                 <input type="text" class="status-link-android" data-pid="${p.id}" value="${data.downloadLinkAndroid || ''}" placeholder="Android URL..." style="flex: 1; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; padding: 8px; border-radius: 6px; font-size: 0.85rem;">
+                                                <button class="saas-manage-btn save-platform-url-btn" data-pid="${p.id}" data-platform="Android" title="Save Android URL" style="width: 40px; justify-content: center; background: rgba(255,255,255,0.05);"><i class="fas fa-save"></i></button>
                                                 <button class="saas-manage-btn toggle-platform-btn ${data.isDownAndroid ? 'is-down' : ''}" data-pid="${p.id}" data-platform="Android" data-down="${data.isDownAndroid || false}" 
                                                         style="width: 100px; font-size: 0.7rem; background: ${data.isDownAndroid ? '#EF444422' : '#10B98122'}; color: ${data.isDownAndroid ? '#EF4444' : '#10B981'}; border: 1px solid ${data.isDownAndroid ? '#EF444444' : '#10B98144'};">
                                                     ${data.isDownAndroid ? 'Restore' : 'Mark Down'}
@@ -1925,6 +1927,7 @@ const initAeroByte = () => {
                                             <label style="font-size: 0.65rem; color: var(--text-muted); display: block; margin-bottom: 5px;">iOS Version & Status</label>
                                             <div style="display: flex; gap: 8px;">
                                                 <input type="text" class="status-link-ios" data-pid="${p.id}" value="${data.downloadLinkIOS || ''}" placeholder="iOS URL..." style="flex: 1; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; padding: 8px; border-radius: 6px; font-size: 0.85rem;">
+                                                <button class="saas-manage-btn save-platform-url-btn" data-pid="${p.id}" data-platform="IOS" title="Save iOS URL" style="width: 40px; justify-content: center; background: rgba(255,255,255,0.05);"><i class="fas fa-save"></i></button>
                                                 <button class="saas-manage-btn toggle-platform-btn ${data.isDownIOS ? 'is-down' : ''}" data-pid="${p.id}" data-platform="IOS" data-down="${data.isDownIOS || false}" 
                                                         style="width: 100px; font-size: 0.7rem; background: ${data.isDownIOS ? '#EF444422' : '#10B98122'}; color: ${data.isDownIOS ? '#EF4444' : '#10B981'}; border: 1px solid ${data.isDownIOS ? '#EF444444' : '#10B98144'};">
                                                     ${data.isDownIOS ? 'Restore' : 'Mark Down'}
@@ -1935,7 +1938,10 @@ const initAeroByte = () => {
                                     ` : `
                                     <div>
                                         <label style="font-size: 0.65rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Download URL</label>
-                                        <input type="text" class="status-link-input" data-pid="${p.id}" value="${data.downloadLink || ''}" placeholder="https://..." style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; padding: 8px; border-radius: 6px; font-size: 0.85rem;">
+                                        <div style="display: flex; gap: 8px;">
+                                            <input type="text" class="status-link-input" data-pid="${p.id}" value="${data.downloadLink || ''}" placeholder="https://..." style="flex: 1; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; padding: 8px; border-radius: 6px; font-size: 0.85rem;">
+                                            <button class="saas-manage-btn save-individual-url-btn" data-pid="${p.id}" title="Save URL" style="width: 40px; justify-content: center; background: rgba(255,255,255,0.05);"><i class="fas fa-save"></i></button>
+                                        </div>
                                     </div>
                                     `}
                                 </div>
@@ -1990,6 +1996,72 @@ const initAeroByte = () => {
                             } catch (e) { 
                                 await setDoc(doc(db, "system_status", pid), { [field]: !currentlyDown, lastUpdated: Date.now() }, { merge: true });
                                 refreshProductStatus();
+                             }
+                        };
+                    });
+
+                    // Attach Platform URL Save listeners (AeroByte Cinema specific)
+                    container.querySelectorAll('.save-platform-url-btn').forEach(btn => {
+                        btn.onclick = async () => {
+                            const pid = btn.getAttribute('data-pid');
+                            const platform = btn.getAttribute('data-platform');
+                            const row = btn.parentElement;
+                            const input = row.querySelector(`.status-link-${platform.toLowerCase()}`);
+                            const url = input.value;
+                            
+                            btn.disabled = true;
+                            const origHTML = btn.innerHTML;
+                            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                            
+                            try {
+                                const field = `downloadLink${platform}`;
+                                await updateDoc(doc(db, "system_status", pid), { 
+                                    [field]: url, 
+                                    lastUpdated: Date.now(),
+                                    updatedBy: auth.currentUser?.email || 'Admin'
+                                }, { merge: true });
+                                // Visual feedback
+                                btn.innerHTML = '<i class="fas fa-check" style="color: #10B981;"></i>';
+                                setTimeout(() => {
+                                    btn.disabled = false;
+                                    btn.innerHTML = origHTML;
+                                }, 2000);
+                            } catch (e) { 
+                                alert(e.message);
+                                btn.disabled = false;
+                                btn.innerHTML = origHTML;
+                             }
+                        };
+                    });
+
+                    // Attach Individual URL Save listeners (Other products)
+                    container.querySelectorAll('.save-individual-url-btn').forEach(btn => {
+                        btn.onclick = async () => {
+                            const pid = btn.getAttribute('data-pid');
+                            const row = btn.parentElement;
+                            const input = row.querySelector('.status-link-input');
+                            const url = input.value;
+                            
+                            btn.disabled = true;
+                            const origHTML = btn.innerHTML;
+                            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                            
+                            try {
+                                await updateDoc(doc(db, "system_status", pid), { 
+                                    downloadLink: url, 
+                                    lastUpdated: Date.now(),
+                                    updatedBy: auth.currentUser?.email || 'Admin'
+                                }, { merge: true });
+                                // Visual feedback
+                                btn.innerHTML = '<i class="fas fa-check" style="color: #10B981;"></i>';
+                                setTimeout(() => {
+                                    btn.disabled = false;
+                                    btn.innerHTML = origHTML;
+                                }, 2000);
+                            } catch (e) { 
+                                alert(e.message);
+                                btn.disabled = false;
+                                btn.innerHTML = origHTML;
                              }
                         };
                     });
