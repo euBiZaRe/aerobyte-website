@@ -2076,7 +2076,7 @@ const initAeroByte = () => {
                     }
 
                     // 3. Disable/Enable Downloads and Update Links
-                    const downloadButtons = document.querySelectorAll('button.btn-primary:not(.checkout-trigger), a.btn-primary:not(.checkout-trigger)');
+                    const downloadButtons = document.querySelectorAll('button.btn-primary:not(.checkout-trigger), a.btn-primary:not(.checkout-trigger), button.btn-secondary, a.btn-secondary');
                     downloadButtons.forEach(btn => {
                         const isDownload = btn.textContent.toLowerCase().includes('download') || btn.textContent.toLowerCase().includes('get');
                         if (isDownload) {
