@@ -1733,7 +1733,111 @@ const initAeroByte = () => {
                     if (tabId === 'tabActivityLogs') refreshActivity();
                     if (tabId === 'tabSecurityBans') refreshBans();
                     if (tabId === 'tabProductStatus') refreshProductStatus();
+                    if (tabId === 'tabAppManagement') refreshAppManagement();
                 });
+            });
+
+            const refreshAppManagement = async () => {
+                console.log("📡 App Management Syncing...");
+                const grid = document.getElementById('appTabsGrid');
+                const maintToggle = document.getElementById('appMaintenanceToggle');
+                const maintMsg = document.getElementById('appMaintenanceMsg');
+                const maintWrap = document.getElementById('maintenanceMsgWrap');
+                if (!grid) return;
+
+                try {
+                    // 1. Fetch Maintenance Mode
+                    const configSnap = await getDoc(doc(db, "config", "global"));
+                    if (configSnap.exists()) {
+                        const c = configSnap.data();
+                        maintToggle.checked = c.maintenance_mode === true;
+                        maintMsg.value = c.maintenance_message || "";
+                        maintWrap.style.display = maintToggle.checked ? 'block' : 'none';
+                    }
+
+                    // 2. Fetch App Tabs
+                    const tabsSnap = await getDoc(doc(db, "config", "app_tabs"));
+                    const activeTabs = tabsSnap.exists() ? tabsSnap.data().visible_ids : [
+                        'home', 'categories', 'discover', 'search', 'live_matches', 
+                        'audiobooks', 'music', 'comics', 'manga', 'anime', 'arabic'
+                    ];
+
+                    const allTabs = [
+                        { id: 'home', label: 'Home', icon: 'fas fa-home' },
+                        { id: 'categories', label: 'Categories', icon: 'fas fa-th' },
+                        { id: 'discover', label: 'Discover', icon: 'fas fa-compass' },
+                        { id: 'search', label: 'Search', icon: 'fas fa-search' },
+                        { id: 'mylist', label: 'My List', icon: 'fas fa-bookmark' },
+                        { id: 'live_matches', label: 'Live Matches', icon: 'fas fa-sports-soccer' },
+                        { id: 'audiobooks', label: 'Audiobooks', icon: 'fas fa-book-open' },
+                        { id: 'music', label: 'Music', icon: 'fas fa-music' },
+                        { id: 'comics', label: 'Comics', icon: 'fas fa-book' },
+                        { id: 'manga', label: 'Manga', icon: 'fas fa-book-reader' },
+                        { id: 'anime', label: 'Anime', icon: 'fas fa-play-circle' },
+                        { id: 'arabic', label: 'Arabic', icon: 'fas fa-film' }
+                    ];
+
+                    grid.innerHTML = allTabs.map(t => {
+                        const isEnabled = activeTabs.includes(t.id);
+                        return `
+                            <div class="saas-card" style="padding: 15px; display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.02);">
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <div style="width: 32px; height: 32px; background: ${isEnabled ? 'var(--gradient-saas)' : 'rgba(255,255,255,0.05)'}; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem;">
+                                        <i class="${t.icon}"></i>
+                                    </div>
+                                    <span style="font-size: 0.85rem; font-weight: 500; color: #fff;">${t.label}</span>
+                                </div>
+                                <label class="saas-switch">
+                                    <input type="checkbox" class="app-tab-toggle" data-tid="${t.id}" ${isEnabled ? 'checked' : ''}>
+                                    <span class="saas-slider"></span>
+                                </label>
+                            </div>
+                        `;
+                    }).join('');
+
+                    // 3. Attach Toggle Listeners
+                    document.querySelectorAll('.app-tab-toggle').forEach(chk => {
+                        chk.addEventListener('change', async () => {
+                            const tid = chk.getAttribute('data-tid');
+                            const currentSnap = await getDoc(doc(db, "config", "app_tabs"));
+                            let list = currentSnap.exists() ? currentSnap.data().visible_ids : [...activeTabs];
+                            
+                            if (chk.checked) {
+                                if (!list.includes(tid)) list.push(tid);
+                            } else {
+                                list = list.filter(id => id !== tid);
+                            }
+                            
+                            await setDoc(doc(db, "config", "app_tabs"), { visible_ids: list }, { merge: true });
+                            console.log(`✅ Tab ${tid} toggled: ${chk.checked}`);
+                            refreshAppManagement(); // Refresh UI icons
+                        });
+                    });
+
+                } catch (err) {
+                    console.error("App Management Error:", err);
+                }
+            };
+
+            // Maintenance Listeners
+            document.body.addEventListener('change', async (e) => {
+                if (e.target && e.target.id === 'appMaintenanceToggle') {
+                    const isMaint = e.target.checked;
+                    document.getElementById('maintenanceMsgWrap').style.display = isMaint ? 'block' : 'none';
+                    await setDoc(doc(db, "config", "global"), { maintenance_mode: isMaint }, { merge: true });
+                    console.log(`✅ Maintenance Mode: ${isMaint}`);
+                }
+            });
+
+            document.body.addEventListener('click', async (e) => {
+                if (e.target && e.target.id === 'saveMaintenanceBtn') {
+                    const msg = document.getElementById('appMaintenanceMsg').value;
+                    const btn = e.target;
+                    btn.disabled = true; btn.textContent = "Saving...";
+                    await setDoc(doc(db, "config", "global"), { maintenance_message: msg }, { merge: true });
+                    btn.disabled = false; btn.textContent = "Update Message";
+                    alert("Maintenance message updated!");
+                }
             });
 
             const refreshProductStatus = async () => {
@@ -1874,7 +1978,7 @@ const initAeroByte = () => {
                                 maintToggleBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
                                 try {
                                     await setDoc(doc(db, "config", "global"), { 
-                                        maintenance_mode: !isMaintActive 
+                                        maintenance_mode: Boolean(!isMaintActive) 
                                     }, { merge: true });
                                     refreshProductStatus();
                                 } catch (e) { alert(e.message); maintToggleBtn.disabled = false; }

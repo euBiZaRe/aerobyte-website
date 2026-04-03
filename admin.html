@@ -26,6 +26,7 @@
                 <div class="saas-nav-item"><i class="fas fa-history"></i> Activity Logs</div>
                 <div class="saas-nav-item"><i class="fas fa-cog"></i> Platform Settings</div>
                 <div class="saas-nav-item"><i class="fas fa-signal"></i> Product Status</div>
+                <div class="saas-nav-item"><i class="fas fa-mobile-alt"></i> App Management</div>
                 <div class="saas-nav-item"><i class="fas fa-shield-alt"></i> Security Bans</div>
             </nav>
 
@@ -205,6 +206,43 @@
                     <div style="padding: 40px; text-align: center; color: var(--text-muted);">
                         <i class="fas fa-shield-virus fa-2x" style="margin-bottom: 15px; opacity: 0.5;"></i>
                         <p>No active hardware bans detected.</p>
+                    </div>
+                </div>
+            </div>
+            <!-- Tab 9: App Management (New) -->
+            <div id="tabAppManagement" class="saas-tab-content">
+                <div class="saas-content-header">
+                    <div>
+                        <h1 style="font-size: 1.8rem; margin: 0;">App <span class="gradient-text" style="background: var(--gradient-saas); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">Management</span></h1>
+                        <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 5px;">Remote control for AeroByte Cinema app features and maintenance.</p>
+                    </div>
+                </div>
+
+                <div class="saas-card" style="margin-top: 30px; padding: 30px;">
+                    <h3 style="margin-bottom: 20px; font-size: 1.1rem; color: #fff;">Maintenance Mode</h3>
+                    <div class="status-toggle-row" style="display: flex; align-items: center; justify-content: space-between; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 25px;">
+                        <div>
+                            <p style="font-weight: 600; color: #fff; margin: 0;">Global Kill Switch</p>
+                            <p style="font-size: 0.75rem; color: var(--text-muted); margin: 5px 0 0 0;">Immediately block all app access with a custom message.</p>
+                        </div>
+                        <label class="saas-switch">
+                            <input type="checkbox" id="appMaintenanceToggle">
+                            <span class="saas-slider"></span>
+                        </label>
+                    </div>
+                    
+                    <div id="maintenanceMsgWrap" style="display: none; margin-bottom: 30px;">
+                        <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 8px;">Maintenance Message</p>
+                        <textarea id="appMaintenanceMsg" style="width: 100%; height: 80px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #fff; padding: 12px; border-radius: 8px; font-size: 0.85rem; resize: none;"></textarea>
+                        <button id="saveMaintenanceBtn" class="saas-manage-btn" style="margin-top: 10px; width: 100%; justify-content: center;">Update Message</button>
+                    </div>
+
+                    <h3 style="margin-bottom: 20px; font-size: 1.1rem; color: #fff; border-top: 1px solid var(--border-color); padding-top: 25px;">Feature Toggles</h3>
+                    <div id="appTabsGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 15px;">
+                        <!-- Feature toggles populated by JS (Movies, TV, Anime, Arabic, Live, etc.) -->
+                        <div class="saas-card" style="padding: 20px; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </div>
                     </div>
                 </div>
             </div>
