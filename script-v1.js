@@ -1748,6 +1748,7 @@ const initAeroByte = () => {
                 if (currentEmail !== 'aerobytebot@gmail.com') return;
 
                 console.log("📡 App Management Syncing...");
+                const grid = document.getElementById('appTabsGrid');
                 if (!grid) return;
 
                 try {
