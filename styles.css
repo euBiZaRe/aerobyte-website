@@ -154,20 +154,20 @@ a:hover {
 @media (max-width: 768px) {
     .dropdown-menu {
         position: static;
-        transform: none;
-        opacity: 1;
-        visibility: visible;
+        width: 100% !important;
+        background: rgba(255,255,255,0.02) !important;
+        border: none !important;
+        box-shadow: none !important;
+        text-align: center !important;
+        padding: 10px 0 !important;
+        margin: 0 !important;
+        transform: none !important;
+        opacity: 1 !important;
+        visibility: visible !important;
         display: none;
-        width: 100%;
-        background: rgba(255,255,255,0.03);
-        border: none;
-        box-shadow: none;
-        text-align: center;
-        padding: 10px 0;
     }
     .dropdown.active .dropdown-menu {
-        display: block;
-        margin-top: 5px;
+        display: block !important;
     }
 }
 
@@ -722,6 +722,11 @@ footer {
 @media (max-width: 768px) {
     .nav-container { padding: 0 15px; }
     .mobile-menu-btn { display: block; }
+    .nav-links, .nav-links ul {
+        list-style: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
     .nav-links {
         position: fixed;
         top: 0;
@@ -732,10 +737,10 @@ footer {
         background: #080B13;
         flex-direction: column;
         justify-content: flex-start;
-        align-items: stretch;
+        align-items: center;
         gap: 0;
         transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        padding: 100px 0 40px;
+        padding-top: 100px;
         border-left: 1px solid var(--border-color);
         z-index: 1000;
         backdrop-filter: blur(25px);
