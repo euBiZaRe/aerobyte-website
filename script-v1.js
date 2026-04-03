@@ -1800,13 +1800,33 @@ const initAeroByte = () => {
 
                                 <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 15px; border-top: 1px solid var(--border-color);">
                                     <button class="saas-manage-btn save-status-btn" data-pid="${p.id}" style="font-size: 0.75rem;"><i class="fas fa-save"></i> Save Changes</button>
-                                    <button class="saas-manage-btn toggle-status-btn" 
-                                            data-pid="${p.id}" 
-                                            data-down="${isDown}"
-                                            style="background: ${isDown ? '#10B98122' : '#EF444422'}; color: ${isDown ? '#10B981' : '#EF4444'}; border: 1px solid ${isDown ? '#10B98144' : '#EF444444'}; font-size: 0.75rem;">
-                                        ${isDown ? '<i class="fas fa-play"></i> Restore' : '<i class="fas fa-pause"></i> Mark Down'}
-                                    </button>
+                                    <div style="display: flex; gap: 10px;">
+                                        <button class="saas-manage-btn toggle-status-btn" 
+                                                data-pid="${p.id}" 
+                                                data-down="${isDown}"
+                                                style="background: ${isDown ? '#10B98122' : '#EF444422'}; color: ${isDown ? '#10B981' : '#EF4444'}; border: 1px solid ${isDown ? '#10B98144' : '#EF444444'}; font-size: 0.75rem;"
+                                                title="Global Master Toggle">
+                                            ${isDown ? 'Restore All' : 'Mark All Down'}
+                                        </button>
+                                    </div>
                                 </div>
+                                
+                                ${p.id === 'cinema' ? `
+                                <div style="margin-top: 20px; padding-top: 15px; border-top: 1px dashed var(--border-color); display: flex; flex-direction: column; gap: 10px;">
+                                    <p style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin: 0;">Platform Specific Status</p>
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+                                        <button class="saas-manage-btn toggle-platform-btn ${data.isDownWindows ? 'is-down' : ''}" data-pid="${p.id}" data-platform="Windows" data-down="${data.isDownWindows || false}" style="font-size: 0.6rem; padding: 8px 4px; background: ${data.isDownWindows ? '#EF444422' : 'rgba(255,255,255,0.05)'}; color: ${data.isDownWindows ? '#EF4444' : 'var(--text-muted)'};">
+                                            Win: ${data.isDownWindows ? 'DOWN' : 'UP'}
+                                        </button>
+                                        <button class="saas-manage-btn toggle-platform-btn ${data.isDownAndroid ? 'is-down' : ''}" data-pid="${p.id}" data-platform="Android" data-down="${data.isDownAndroid || false}" style="font-size: 0.6rem; padding: 8px 4px; background: ${data.isDownAndroid ? '#EF444422' : 'rgba(255,255,255,0.05)'}; color: ${data.isDownAndroid ? '#EF4444' : 'var(--text-muted)'};">
+                                            And: ${data.isDownAndroid ? 'DOWN' : 'UP'}
+                                        </button>
+                                        <button class="saas-manage-btn toggle-platform-btn ${data.isDownIOS ? 'is-down' : ''}" data-pid="${p.id}" data-platform="IOS" data-down="${data.isDownIOS || false}" style="font-size: 0.6rem; padding: 8px 4px; background: ${data.isDownIOS ? '#EF444422' : 'rgba(255,255,255,0.05)'}; color: ${data.isDownIOS ? '#EF4444' : 'var(--text-muted)'};">
+                                            iOS: ${data.isDownIOS ? 'DOWN' : 'UP'}
+                                        </button>
+                                    </div>
+                                </div>
+                                ` : ''}
                             </div>`;
                     }
                     container.innerHTML = html;
@@ -1824,6 +1844,26 @@ const initAeroByte = () => {
                             } catch (e) { 
                                 // Fallback if doc doesn't exist
                                 await setDoc(doc(db, "system_status", pid), { isDown: !currentlyDown, lastUpdated: Date.now() });
+                                refreshProductStatus();
+                             }
+                        };
+                    });
+
+                    // Attach Platform Toggle listeners (AeroByte Cinema specific)
+                    container.querySelectorAll('.toggle-platform-btn').forEach(btn => {
+                        btn.onclick = async () => {
+                            const pid = btn.getAttribute('data-pid');
+                            const platform = btn.getAttribute('data-platform');
+                            const currentlyDown = btn.getAttribute('data-down') === 'true';
+                            const field = `isDown${platform}`;
+                            
+                            btn.disabled = true;
+                            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                            try {
+                                await updateDoc(doc(db, "system_status", pid), { [field]: !currentlyDown, lastUpdated: Date.now() });
+                                refreshProductStatus();
+                            } catch (e) { 
+                                await setDoc(doc(db, "system_status", pid), { [field]: !currentlyDown, lastUpdated: Date.now() }, { merge: true });
                                 refreshProductStatus();
                              }
                         };
@@ -2061,9 +2101,20 @@ const initAeroByte = () => {
                                     const winBtn = document.getElementById('download-windows');
                                     const andBtn = document.getElementById('download-android');
                                     const iosBtn = document.getElementById('download-ios');
-                                    if (winBtn && data.downloadLinkWindows) winBtn.href = data.downloadLinkWindows;
-                                    if (andBtn && data.downloadLinkAndroid) andBtn.href = data.downloadLinkAndroid;
-                                    if (iosBtn && data.downloadLinkIOS) iosBtn.href = data.downloadLinkIOS;
+                                    
+                                    // Visibility Control (Hide if down)
+                                    if (winBtn) {
+                                        winBtn.style.display = data.isDownWindows ? 'none' : 'flex';
+                                        if (data.downloadLinkWindows) winBtn.href = data.downloadLinkWindows;
+                                    }
+                                    if (andBtn) {
+                                        andBtn.style.display = data.isDownAndroid ? 'none' : 'flex';
+                                        if (data.downloadLinkAndroid) andBtn.href = data.downloadLinkAndroid;
+                                    }
+                                    if (iosBtn) {
+                                        iosBtn.style.display = data.isDownIOS ? 'none' : 'flex';
+                                        if (data.downloadLinkIOS) iosBtn.href = data.downloadLinkIOS;
+                                    }
                                 } else if (data.downloadLink && data.downloadLink !== '#') {
                                     if (btn.tagName === 'A') {
                                         btn.href = data.downloadLink;
@@ -2119,25 +2170,24 @@ const initAeroByte = () => {
 
     // (Discord OAuth handle moved inside Auth Listener for reliability)
 
-
     // Smooth Scrolling for anchor links
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function (e) {
-            const currentHref = this.getAttribute('href');
-            
-            // If the href was dynamically changed away from an anchor, don't intercept!
-            if(!currentHref || !currentHref.startsWith('#') || currentHref === '#') return;
-            
-            // Otherwise, perfectly safely handle the smooth scroll
-            const targetElement = document.querySelector(currentHref);
-            if(targetElement) {
-                e.preventDefault();
-                targetElement.scrollIntoView({
-                    behavior: 'smooth'
-                });
-            }
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                const currentHref = this.getAttribute('href');
+                
+                // If the href was dynamically changed away from an anchor, don't intercept!
+                if(!currentHref || !currentHref.startsWith('#') || currentHref === '#') return;
+                
+                // Otherwise, perfectly safely handle the smooth scroll
+                const targetElement = document.querySelector(currentHref);
+                if(targetElement) {
+                    e.preventDefault();
+                    targetElement.scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                }
+            });
         });
-    });
 
     // Manual Retry Listener
     document.body.addEventListener('click', (e) => {

@@ -98,6 +98,16 @@ a:hover {
     align-items: center;
 }
 
+.mobile-menu-btn {
+    display: none;
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 1.5rem;
+    cursor: pointer;
+    z-index: 1001;
+}
+
 /* Dropdown */
 .dropdown {
     position: relative;
@@ -139,6 +149,23 @@ a:hover {
     opacity: 1;
     visibility: visible;
     transform: translateX(-50%) translateY(0);
+}
+
+@media (max-width: 768px) {
+    .dropdown-menu {
+        position: static;
+        transform: none;
+        opacity: 1;
+        visibility: visible;
+        display: none;
+        width: 100%;
+        background: transparent;
+        border: none;
+        box-shadow: none;
+    }
+    .dropdown.active .dropdown-menu {
+        display: block;
+    }
 }
 
 .dropdown-menu li a {
@@ -690,13 +717,44 @@ footer {
 
 /* Responsive */
 @media (max-width: 768px) {
-    .hero { flex-direction: column; text-align: center; padding-top: 150px; }
-    .hero-actions { justify-content: center; }
+    .nav-container { padding: 0 15px; }
+    .mobile-menu-btn { display: block; }
+    .nav-links {
+        position: fixed;
+        top: 0;
+        right: -100%;
+        width: 80%;
+        height: 100vh;
+        background: #0B0F19;
+        flex-direction: column;
+        justify-content: center;
+        gap: 20px;
+        transition: 0.3s ease;
+        padding: 40px;
+        border-left: 1px solid var(--border-color);
+        z-index: 1000;
+        backdrop-filter: blur(20px);
+        box-shadow: -10px 0 30px rgba(0,0,0,0.5);
+    }
+    .nav-links.active { right: 0; }
+    .hero { flex-direction: column; text-align: center; padding-top: 150px; min-height: auto; }
+    .hero-actions { justify-content: center; flex-direction: column; width: 100%; }
+    .hero-actions .btn-primary, .hero-actions .btn-secondary { width: 100%; }
     .pricing-grid { grid-template-columns: 1fr; }
-    .pro-card { transform: scale(1); }
-    .footer-content { flex-direction: column; gap: 20px; }
-    .main-title { font-size: 3rem; }
-    .nav-links { display: none; }
+    .pro-card { transform: scale(1); margin: 20px 0; }
+    .footer-content { flex-direction: column; gap: 20px; text-align: center; }
+    .main-title { font-size: 2.5rem; }
+    .subtitle { font-size: 1rem; }
+    .hero-graphic { height: 350px; width: 100%; margin-top: 40px; }
+    .glass-panel { padding: 25px; gap: 20px; }
+    .metric-val { font-size: 1.8rem; }
+    .product-grid { grid-template-columns: 1fr !important; }
+    .features-grid { grid-template-columns: 1fr !important; }
+}
+
+@media (max-width: 480px) {
+    .main-title { font-size: 2rem; }
+    .badge { font-size: 0.75rem; }
 }
 
 /* Auth Tabs */
