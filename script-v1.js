@@ -1893,7 +1893,9 @@ const initAeroByte = () => {
                             };
                         } catch (err) {
                             console.error("❌ Maintenance Config Fetch Error:", err);
-                            maintToggleBtn.textContent = "Error";
+                            maintToggleBtn.textContent = "Error: " + (err.code || "Perms");
+                            maintToggleBtn.title = err.message;
+                            maintToggleBtn.style.color = "#EF4444";
                         }
                     }
 
