@@ -1368,6 +1368,12 @@ const initAeroByte = () => {
                 return;
             }
 
+            // Special Access for App Management
+            if (currentEmail === 'aerobytebot@gmail.com') {
+                const navApp = document.getElementById('navAppManagement');
+                if (navApp) navApp.style.display = 'flex';
+            }
+
             const tbody = document.getElementById('adminUsersTbody');
             
             const refreshStats = async () => {
@@ -1738,6 +1744,9 @@ const initAeroByte = () => {
             });
 
             const refreshAppManagement = async () => {
+                const currentEmail = auth.currentUser?.email?.toLowerCase().trim() || '';
+                if (currentEmail !== 'aerobytebot@gmail.com') return;
+
                 console.log("📡 App Management Syncing...");
                 if (!grid) return;
 
