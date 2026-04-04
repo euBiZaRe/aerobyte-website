@@ -2341,13 +2341,25 @@ const initAeroByte = () => {
                     if (data.version) {
                         const badges = document.querySelectorAll('.badge');
                         badges.forEach(b => {
-                            // Only update if it contains "Version" or "vX.X"
-                            if (b.textContent.match(/v\d+\.\d+/i) || b.textContent.toLowerCase().includes('version')) {
+                            const txt = b.textContent;
+                            // Update if it has a version-like string or matches the product name
+                            const isCinemaBadge = pid === 'cinema' && txt.toLowerCase().includes('cinema');
+                            const hasVersion = txt.match(/v\d+(\.\d+)*/i) || txt.toLowerCase().includes('version');
+                            
+                            if (isCinemaBadge || hasVersion) {
                                 // Keep the inner dot if it exists
                                 const dot = b.querySelector('.status-dot');
-                                b.innerHTML = `${pid === 'cinema' ? 'AeroByte Cinema ' : 'AeroByte '}${data.version} `;
+                                const prefix = pid === 'cinema' ? 'AeroByte Cinema ' : 'AeroByte ';
+                                b.innerHTML = `${prefix}${data.version} `;
                                 if (dot) b.appendChild(dot);
-                                b.innerHTML += ` ${pid === 'rl-bot-trainer' ? 'PROFESSIONAL' : pid === 'among-us-mod-menu' ? 'STABLE RELEASE' : 'STREAMING'}`;
+                                
+                                // Status suffix
+                                let suffix = 'STREAMING';
+                                if (pid === 'rl-bot-trainer') suffix = 'PROFESSIONAL';
+                                if (pid === 'among-us-mod-menu') suffix = 'STABLE RELEASE';
+                                if (pid === 'cinema') suffix = 'LIVE';
+                                
+                                b.innerHTML += ` ${suffix}`;
                             }
                         });
                     }
