@@ -1756,8 +1756,9 @@ const initAeroByte = () => {
                     // 2. Fetch App Tabs
                     const tabsSnap = await getDoc(doc(db, "config", "app_tabs"));
                     const activeTabs = tabsSnap.exists() ? tabsSnap.data().visible_ids : [
-                        'home', 'categories', 'discover', 'search', 'live_matches', 
-                        'audiobooks', 'music', 'comics', 'manga', 'anime', 'arabic'
+                        'home', 'categories', 'discover', 'search', 'mylist',
+                        'magnet', 'live_matches', 'iptv', 'audiobooks', 'books',
+                        'music', 'comics', 'manga', 'jellyfin', 'anime', 'arabic'
                     ];
 
                     const allTabs = [
@@ -1766,11 +1767,15 @@ const initAeroByte = () => {
                         { id: 'discover', label: 'Discover', icon: 'fas fa-compass' },
                         { id: 'search', label: 'Search', icon: 'fas fa-search' },
                         { id: 'mylist', label: 'My List', icon: 'fas fa-bookmark' },
+                        { id: 'magnet', label: 'Magnet', icon: 'fas fa-link' },
                         { id: 'live_matches', label: 'Live Matches', icon: 'fas fa-sports-soccer' },
+                        { id: 'iptv', label: 'IPTV', icon: 'fas fa-tv' },
                         { id: 'audiobooks', label: 'Audiobooks', icon: 'fas fa-book-open' },
+                        { id: 'books', label: 'Books', icon: 'fas fa-book' },
                         { id: 'music', label: 'Music', icon: 'fas fa-music' },
-                        { id: 'comics', label: 'Comics', icon: 'fas fa-book' },
-                        { id: 'manga', label: 'Manga', icon: 'fas fa-book-reader' },
+                        { id: 'comics', label: 'Comics', icon: 'fas fa-book-reader' },
+                        { id: 'manga', label: 'Manga', icon: 'fas fa-journal-whills' },
+                        { id: 'jellyfin', label: 'Jellyfin', icon: 'fas fa-server' },
                         { id: 'anime', label: 'Anime', icon: 'fas fa-play-circle' },
                         { id: 'arabic', label: 'Arabic', icon: 'fas fa-film' }
                     ];
@@ -1881,18 +1886,48 @@ const initAeroByte = () => {
                     document.querySelectorAll('.app-tab-toggle').forEach(chk => {
                         chk.addEventListener('change', async () => {
                             const tid = chk.getAttribute('data-tid');
-                            const currentSnap = await getDoc(doc(db, "config", "app_tabs"));
-                            let list = currentSnap.exists() ? currentSnap.data().visible_ids : [...activeTabs];
+                            console.log(`⏳ Toggling tab: ${tid}...`);
                             
-                            if (chk.checked) {
-                                if (!list.includes(tid)) list.push(tid);
-                            } else {
-                                list = list.filter(id => id !== tid);
+                            // Disable to prevent rapid multi-clicks
+                            chk.disabled = true;
+                            const slider = chk.nextElementSibling;
+                            if (slider) slider.style.opacity = "0.5";
+
+                            try {
+                                const currentSnap = await getDoc(doc(db, "config", "app_tabs"));
+                                let list = [];
+                                
+                                if (currentSnap.exists() && Array.isArray(currentSnap.data().visible_ids)) {
+                                    list = [...currentSnap.data().visible_ids];
+                                } else {
+                                    // Fallback to default active tabs if doc doesn't exist or visible_ids isn't an array
+                                    list = [...activeTabs];
+                                }
+                                
+                                if (chk.checked) {
+                                    if (!list.includes(tid)) list.push(tid);
+                                } else {
+                                    list = list.filter(id => id !== tid);
+                                }
+                                
+                                await setDoc(doc(db, "config", "app_tabs"), { 
+                                    visible_ids: list,
+                                    lastUpdated: Date.now(),
+                                    updatedBy: auth.currentUser?.email || 'Admin'
+                                }, { merge: true });
+                                
+                                console.log(`✅ Tab ${tid} toggled successfully: ${chk.checked}`);
+                                
+                                // Optional: Small delay for visual feedback of persistence
+                                setTimeout(() => refreshAppManagement(), 300);
+                            } catch (err) {
+                                console.error(`❌ Failed to toggle tab ${tid}:`, err);
+                                alert("Failed to save toggle state: " + err.message);
+                                // Revert UI state on failure
+                                chk.checked = !chk.checked;
+                                chk.disabled = false;
+                                if (slider) slider.style.opacity = "1";
                             }
-                            
-                            await setDoc(doc(db, "config", "app_tabs"), { visible_ids: list }, { merge: true });
-                            console.log(`✅ Tab ${tid} toggled: ${chk.checked}`);
-                            refreshAppManagement(); // Refresh UI icons
                         });
                     });
 
@@ -2339,7 +2374,8 @@ const initAeroByte = () => {
                                 }
                                 
                                 // UNIVERSAL LINK HIDING (Clean & Robust)
-                                btn.href = "javascript:void(0)";
+                                btn.removeAttribute('href');
+                                btn.style.cursor = 'pointer';
 
                                 if (pid === 'cinema') {
                                     const winBtn = document.getElementById('download-windows');
