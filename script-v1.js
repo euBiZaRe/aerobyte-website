@@ -2152,7 +2152,6 @@ const initAeroByte = () => {
                             const pid = btn.getAttribute('data-pid');
                             const card = btn.closest('.saas-card');
                             const version = card.querySelector('.status-version-input').value;
-                            const downloadLink = card.querySelector('.status-link-input').value;
                             
                             btn.disabled = true;
                             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
@@ -2169,7 +2168,8 @@ const initAeroByte = () => {
                                     updateData.downloadLinkAndroid = card.querySelector('.status-link-android').value;
                                     updateData.downloadLinkIOS = card.querySelector('.status-link-ios').value;
                                 } else {
-                                    updateData.downloadLink = downloadLink;
+                                    const downloadLinkInput = card.querySelector('.status-link-input');
+                                    updateData.downloadLink = downloadLinkInput ? downloadLinkInput.value : '';
                                 }
 
                                 await setDoc(doc(db, "system_status", pid), updateData, { merge: true });
