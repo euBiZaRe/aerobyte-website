@@ -244,6 +244,31 @@
                             </button>
                         </div>
                     </div>
+                    
+                    <div class="saas-card" style="padding: 25px; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); margin-bottom: 30px;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 25px;">
+                            <div style="display: flex; align-items: center; gap: 15px;">
+                                <div style="width: 40px; height: 40px; background: rgba(168, 85, 247, 0.1); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #A855F7;">
+                                    <i class="fas fa-bullhorn"></i>
+                                </div>
+                                <div>
+                                    <h4 style="margin: 0; color: #fff; font-size: 1rem;">Global Broadcast</h4>
+                                    <p style="font-size: 0.7rem; color: var(--text-muted); margin-top: 4px;">Alert all live users with a floating notification banner.</p>
+                                </div>
+                            </div>
+                            <button id="broadcast-toggle-btn" class="saas-manage-btn" style="min-width: 140px; border-radius: 20px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; font-size: 0.75rem;">
+                                Syncing...
+                            </button>
+                        </div>
+                        
+                        <div style="margin-top: 20px;">
+                            <label style="font-size: 0.65rem; color: var(--text-muted); display: block; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;">Broadcast Message</label>
+                            <input type="text" id="broadcast-message-input" placeholder="e.g. New 4K movies added! Enjoy streaming." style="width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #fff; padding: 12px; border-radius: 8px; font-size: 0.85rem; margin-bottom: 15px;">
+                            <button id="broadcast-save-btn" class="saas-manage-btn" style="width: 100%; justify-content: center; padding: 12px; font-size: 0.75rem;">
+                                <i class="fas fa-save"></i> Save & Push Broadcast
+                            </button>
+                        </div>
+                    </div>
 
                     <h3 style="margin-bottom: 20px; font-size: 1.1rem; color: #fff; border-top: 1px solid var(--border-color); padding-top: 25px;">Feature Toggles</h3>
                     <div id="appTabsGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 15px;">

@@ -1798,14 +1798,22 @@ const initAeroByte = () => {
                     const maintMsgInput = document.getElementById('maint-message-input');
                     const maintSaveMsgBtn = document.getElementById('maint-save-msg-btn');
 
+                    // 3b. Broadcast Control Logic
+                    const broadcastToggleBtn = document.getElementById('broadcast-toggle-btn');
+                    const broadcastMsgInput = document.getElementById('broadcast-message-input');
+                    const broadcastSaveBtn = document.getElementById('broadcast-save-btn');
+
                     if (maintToggleBtn && maintMsgInput) {
                         const isMaintActive = configSnap.exists() && configSnap.data().maintenance_mode === true;
                         
+                        maintToggleBtn.disabled = false;
                         maintToggleBtn.textContent = isMaintActive ? 'DEACTIVATE' : 'ACTIVATE';
                         maintToggleBtn.style.background = isMaintActive ? '#EF444422' : '#10B98122';
                         maintToggleBtn.style.color = isMaintActive ? '#EF4444' : '#10B981';
                         maintToggleBtn.style.border = `1px solid ${isMaintActive ? '#EF444444' : '#10B98144'}`;
                         
+                        maintSaveMsgBtn.disabled = false;
+                        maintSaveMsgBtn.innerHTML = '<i class="fas fa-comment-dots"></i> Update System Message';
                         maintMsgInput.value = (configSnap.exists() ? configSnap.data().maintenance_message : "") || "AeroByte Cinema is currently undergoing maintenance. Please check back later.";
 
                         maintToggleBtn.onclick = async () => {
@@ -1829,6 +1837,43 @@ const initAeroByte = () => {
                                 alert("System message updated!");
                                 refreshAppManagement();
                             } catch (e) { alert(e.message); maintSaveMsgBtn.disabled = false; }
+                        };
+                    }
+
+                    if (broadcastToggleBtn && broadcastMsgInput) {
+                        const isBroadcastActive = configSnap.exists() && configSnap.data().broadcast_active === true;
+                        
+                        broadcastToggleBtn.disabled = false;
+                        broadcastToggleBtn.textContent = isBroadcastActive ? 'STOP BROADCAST' : 'START BROADCAST';
+                        broadcastToggleBtn.style.background = isBroadcastActive ? '#EF444422' : '#A855F722';
+                        broadcastToggleBtn.style.color = isBroadcastActive ? '#EF4444' : '#A855F7';
+                        broadcastToggleBtn.style.border = `1px solid ${isBroadcastActive ? '#EF444444' : '#A855F744'}`;
+                        
+                        broadcastSaveBtn.disabled = false;
+                        broadcastSaveBtn.innerHTML = '<i class="fas fa-rss"></i> Update Broadcast';
+                        broadcastMsgInput.value = (configSnap.exists() ? configSnap.data().broadcast_message : "") || "";
+
+                        broadcastToggleBtn.onclick = async () => {
+                            broadcastToggleBtn.disabled = true;
+                            broadcastToggleBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                            try {
+                                await setDoc(doc(db, "config", "global"), { 
+                                    broadcast_active: !isBroadcastActive 
+                                }, { merge: true });
+                                refreshAppManagement();
+                            } catch (e) { alert(e.message); broadcastToggleBtn.disabled = false; }
+                        };
+
+                        broadcastSaveBtn.onclick = async () => {
+                            broadcastSaveBtn.disabled = true;
+                            broadcastSaveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Pushing...';
+                            try {
+                                await setDoc(doc(db, "config", "global"), { 
+                                    broadcast_message: broadcastMsgInput.value 
+                                }, { merge: true });
+                                alert("Broadcast message updated!");
+                                refreshAppManagement();
+                            } catch (e) { alert(e.message); broadcastSaveBtn.disabled = false; }
                         };
                     }
 
