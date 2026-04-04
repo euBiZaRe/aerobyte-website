@@ -2,7 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc, collection, query, where, getDocs, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-console.log("🚀 AeroByte Script Loaded v5.1");
+console.log("🚀 AeroByte Script Loaded v5.5");
 
 const firebaseConfig = {
   apiKey: "AIzaSyCl-SEIc2IWYFvz5mdUJsE8WNsrHoI1tsc",
@@ -151,6 +151,12 @@ try {
 
 const initAeroByte = () => {
     console.log("🛠️ Initializing AeroByte Core...");
+
+    // Update Admin Platform Version Footer (v5.5)
+    const versionFooter = document.getElementById('admin-platform-version');
+    if (versionFooter) {
+        versionFooter.textContent = 'v5.5 Stable Release';
+    }
     let stripe = null;
     const ADMIN_EMAILS = [
         'aerobytebot@gmail.com', 
