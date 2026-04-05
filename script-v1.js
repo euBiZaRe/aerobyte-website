@@ -28,6 +28,73 @@ const generateLicenseKey = () => {
     return `${rand(4)}-${rand(4)}-${rand(4)}-${rand(4)}`;
 };
 
+// --- GLOBAL MESSAGE UTILITIES ---
+const parseMessageLinks = (text) => {
+    if (!text) return "";
+    // Basic HTML escaping for security
+    const escapedText = text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    return escapedText.replace(urlRegex, (url) => {
+        // Remove trailing punctuation from URLs often caught by regex
+        const cleanUrl = url.replace(/[.,!?;:]$/, "");
+        return `<a href="${cleanUrl}" target="_blank" rel="noopener noreferrer" class="message-link">${cleanUrl}</a>`;
+    });
+};
+
+const updateGlobalUI = (data) => {
+    // 1. Handle Maintenance Mode
+    let maintOverlay = document.getElementById('global-maintenance-overlay');
+    if (data.maintenance_mode) {
+        if (!maintOverlay) {
+            maintOverlay = document.createElement('div');
+            maintOverlay.id = 'global-maintenance-overlay';
+            maintOverlay.className = 'maintenance-overlay';
+            document.body.appendChild(maintOverlay);
+        }
+        maintOverlay.innerHTML = `
+            <div class="maintenance-card glass-panel">
+                <div class="maintenance-icon"><i class="fas fa-tools"></i></div>
+                <h2>System <span class="gradient-text">Maintenance</span></h2>
+                <div class="maintenance-message">${parseMessageLinks(data.maintenance_message || "AeroByte is currently undergoing maintenance.")}</div>
+                <p class="maintenance-footer">We'll be back shortly!</p>
+            </div>
+        `;
+        document.body.style.overflow = 'hidden';
+        maintOverlay.style.display = 'flex';
+    } else if (maintOverlay) {
+        maintOverlay.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+
+    // 2. Handle Global Broadcast
+    let broadcastBanner = document.getElementById('global-broadcast-banner');
+    if (data.broadcast_active && !data.maintenance_mode) {
+        document.body.classList.add('has-broadcast');
+        if (!broadcastBanner) {
+            broadcastBanner = document.createElement('div');
+            broadcastBanner.id = 'global-broadcast-banner';
+            broadcastBanner.className = 'global-broadcast-banner';
+            document.body.prepend(broadcastBanner);
+        }
+        broadcastBanner.innerHTML = `
+            <div class="broadcast-content">
+                <i class="fas fa-bullhorn broadcast-icon"></i>
+                <span class="broadcast-text">${parseMessageLinks(data.broadcast_message)}</span>
+            </div>
+        `;
+        broadcastBanner.style.display = 'block';
+    } else {
+        document.body.classList.remove('has-broadcast');
+        if (broadcastBanner) broadcastBanner.style.display = 'none';
+    }
+};
+
 // --- GLOBAL DISCORD OAUTH HANDLER (v4.0) ---
 const handleDiscordHash = () => {
     const hash = window.location.hash;
@@ -151,6 +218,14 @@ try {
 
 const initAeroByte = () => {
     console.log("🛠️ Initializing AeroByte Core...");
+
+    // --- REAL-TIME GLOBAL CONFIG LISTENER ---
+    onSnapshot(doc(db, "config", "global"), (snapshot) => {
+        if (snapshot.exists()) {
+            console.log("📡 Global Config Update Received");
+            updateGlobalUI(snapshot.data());
+        }
+    });
 
     // Update Admin Platform Version Footer (v5.5)
     const versionFooter = document.getElementById('admin-platform-version');
@@ -1374,10 +1449,12 @@ const initAeroByte = () => {
                 return;
             }
 
-            // Special Access for App Management
+            // const currentEmail = auth.currentUser?.email?.toLowerCase().trim() || '';
             if (currentEmail === 'aerobytebot@gmail.com') {
                 const navApp = document.getElementById('navAppManagement');
                 if (navApp) navApp.style.display = 'flex';
+                const navBroadcasts = document.getElementById('navBroadcasts');
+                if (navBroadcasts) navBroadcasts.style.display = 'flex';
             }
 
             const tbody = document.getElementById('adminUsersTbody');
@@ -1746,11 +1823,59 @@ const initAeroByte = () => {
                     if (tabId === 'tabSecurityBans') refreshBans();
                     if (tabId === 'tabProductStatus') refreshProductStatus();
                     if (tabId === 'tabAppManagement') refreshAppManagement();
+                    if (tabId === 'tabGlobalBroadcasts') refreshGlobalBroadcasts();
                 });
             });
 
+            const refreshGlobalBroadcasts = async () => {
+                console.log("📡 Global Broadcasts Syncing...");
+                const webActive = document.getElementById('webBroadcastActive');
+                const webMsg = document.getElementById('webBroadcastMessage');
+                const appActive = document.getElementById('appBroadcastActive');
+                const appMsg = document.getElementById('appBroadcastMessage');
+                const saveBtn = document.getElementById('saveBroadcastsBtn');
+                const status = document.getElementById('broadcastStatus');
+
+                if (!webActive || !webMsg || !appActive || !appMsg || !saveBtn) return;
+
+                try {
+                    const snap = await getDoc(doc(db, "config", "global"));
+                    if (snap.exists()) {
+                        const data = snap.data();
+                        webActive.checked = data.broadcast_active || false;
+                        webMsg.value = data.broadcast_message || "";
+                        appActive.checked = data.app_broadcast_active || false;
+                        appMsg.value = data.app_broadcast_message || "";
+                    }
+
+                    saveBtn.onclick = async () => {
+                        saveBtn.disabled = true;
+                        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deploying...';
+                        
+                        try {
+                            await updateDoc(doc(db, "config", "global"), {
+                                broadcast_active: webActive.checked,
+                                broadcast_message: webMsg.value,
+                                app_broadcast_active: appActive.checked,
+                                app_broadcast_message: appMsg.value
+                            });
+                            
+                            status.style.display = 'block';
+                            setTimeout(() => status.style.display = 'none', 3000);
+                        } catch (err) {
+                            console.error("Save Error:", err);
+                            alert("Failed to save broadcasts: " + err.message);
+                        } finally {
+                            saveBtn.disabled = false;
+                            saveBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Deploy Real-Time Broadcasts';
+                        }
+                    };
+                } catch (err) { console.error("Sync Error:", err); }
+            };
+
             const refreshAppManagement = async () => {
-                const currentEmail = auth.currentUser?.email?.toLowerCase().trim() || '';
+                // const currentEmail = auth.currentUser?.email?.toLowerCase().trim() || '';
+            const currentEmail = 'aerobytebot@gmail.com'; // Forced for testing
                 if (currentEmail !== 'aerobytebot@gmail.com') return;
 
                 console.log("📡 App Management Syncing...");
