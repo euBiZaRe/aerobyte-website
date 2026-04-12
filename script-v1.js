@@ -203,6 +203,85 @@ const refreshLicenses = async () => {
     } catch (err) { console.error("License Error:", err); }
 };
 
+// --- PRODUCT MANAGEMENT HELPERS (Global Scope) ---
+const openProductModal = (product = null) => {
+    const modal = document.getElementById('productModal');
+    const form = document.getElementById('productForm');
+    const title = document.getElementById('productModalTitle');
+    
+    if (!modal || !form) return;
+    
+    form.reset();
+    if (product) {
+        title.innerHTML = `Edit <span class="gradient-text">${product.name}</span>`;
+        document.getElementById('prodID').value = product.id;
+        document.getElementById('prodID').readOnly = true;
+        document.getElementById('prodName').value = product.name;
+        document.getElementById('prodDesc').value = product.description || '';
+        document.getElementById('prodIcon').value = product.icon || 'fas fa-cube';
+        document.getElementById('prodType').value = product.type || 'product';
+        document.getElementById('prodVersion').value = product.version || 'v1.0';
+        document.getElementById('prodStatus').value = product.status || 'active';
+        document.getElementById('dlWindows').value = product.downloadLinks?.windows || '';
+        document.getElementById('dlAndroid').value = product.downloadLinks?.android || '';
+        document.getElementById('dlIOS').value = product.downloadLinks?.ios || '';
+    } else {
+        title.innerHTML = `Add New <span class="gradient-text">Product</span>`;
+        document.getElementById('prodID').readOnly = false;
+    }
+    
+    modal.classList.add('active');
+};
+
+// Global Submit Handler
+const setupProductForm = () => {
+    const productForm = document.getElementById('productForm');
+    if (productForm) {
+        productForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const saveBtn = productForm.querySelector('button[type="submit"]');
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            
+            const prodID = document.getElementById('prodID').value;
+            const productData = {
+                name: document.getElementById('prodName').value,
+                description: document.getElementById('prodDesc').value,
+                icon: document.getElementById('prodIcon').value,
+                type: document.getElementById('prodType').value,
+                version: document.getElementById('prodVersion').value,
+                status: document.getElementById('prodStatus').value,
+                downloadLinks: {
+                    windows: document.getElementById('dlWindows').value || null,
+                    android: document.getElementById('dlAndroid').value || null,
+                    ios: document.getElementById('dlIOS').value || null
+                },
+                lastUpdated: Date.now(),
+                updatedBy: auth.currentUser?.email || 'Admin'
+            };
+            
+            try {
+                await setDoc(doc(db, "system_status", prodID), productData, { merge: true });
+                document.getElementById('productModal').classList.remove('active');
+            } catch (err) {
+                alert("Failed to save product: " + err.message);
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = 'Save Product';
+            }
+        };
+    }
+
+    const addProdBtn = document.getElementById('addProductBtn');
+    if (addProdBtn) {
+        addProdBtn.onclick = () => openProductModal();
+    }
+
+    document.querySelectorAll('.close-modal').forEach(btn => {
+        btn.onclick = () => document.getElementById('productModal').classList.remove('active');
+    });
+};
+
 const populateNavigation = () => {
     const productsDropdown = document.getElementById('nav-products-dropdown');
     const solutionsDropdown = document.getElementById('nav-solutions-dropdown');
@@ -2333,89 +2412,8 @@ const initAeroByte = () => {
                 }
             };
 
-            // Maintenance listeners are now handled within refreshAppManagement for consistency
+            setupProductForm();
 
-            // Maintenance listeners are now handled within refreshAppManagement for consistency
-
-
-            // Product Management Helpers
-            const openProductModal = (product = null) => {
-                const modal = document.getElementById('productModal');
-                const form = document.getElementById('productForm');
-                const title = document.getElementById('productModalTitle');
-                
-                if (!modal || !form) return;
-                
-                form.reset();
-                if (product) {
-                    title.innerHTML = `Edit <span class="gradient-text">${product.name}</span>`;
-                    document.getElementById('prodID').value = product.id;
-                    document.getElementById('prodID').readOnly = true;
-                    document.getElementById('prodName').value = product.name;
-                    document.getElementById('prodDesc').value = product.description || '';
-                    document.getElementById('prodIcon').value = product.icon || 'fas fa-cube';
-                    document.getElementById('prodType').value = product.type || 'product';
-                    document.getElementById('prodVersion').value = product.version || 'v1.0';
-                    document.getElementById('prodStatus').value = product.status || 'active';
-                    document.getElementById('dlWindows').value = product.downloadLinks?.windows || '';
-                    document.getElementById('dlAndroid').value = product.downloadLinks?.android || '';
-                    document.getElementById('dlIOS').value = product.downloadLinks?.ios || '';
-                } else {
-                    title.innerHTML = `Add New <span class="gradient-text">Product</span>`;
-                    document.getElementById('prodID').readOnly = false;
-                }
-                
-                modal.classList.add('active');
-            };
-
-            // Event listener for Add Product button
-            const addProdBtn = document.getElementById('addProductBtn');
-            if (addProdBtn) {
-                addProdBtn.onclick = () => openProductModal();
-            }
-
-            // Close modal handlers
-            document.querySelectorAll('.close-modal').forEach(btn => {
-                btn.onclick = () => document.getElementById('productModal').classList.remove('active');
-            });
-
-            // Handle Product Form Submit
-            const productForm = document.getElementById('productForm');
-            if (productForm) {
-                productForm.onsubmit = async (e) => {
-                    e.preventDefault();
-                    const saveBtn = productForm.querySelector('button[type="submit"]');
-                    saveBtn.disabled = true;
-                    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-                    
-                    const prodID = document.getElementById('prodID').value;
-                    const productData = {
-                        name: document.getElementById('prodName').value,
-                        description: document.getElementById('prodDesc').value,
-                        icon: document.getElementById('prodIcon').value,
-                        type: document.getElementById('prodType').value,
-                        version: document.getElementById('prodVersion').value,
-                        status: document.getElementById('prodStatus').value,
-                        downloadLinks: {
-                            windows: document.getElementById('dlWindows').value || null,
-                            android: document.getElementById('dlAndroid').value || null,
-                            ios: document.getElementById('dlIOS').value || null
-                        },
-                        lastUpdated: Date.now(),
-                        updatedBy: auth.currentUser?.email || 'Admin'
-                    };
-                    
-                    try {
-                        await setDoc(doc(db, "system_status", prodID), productData, { merge: true });
-                        document.getElementById('productModal').classList.remove('active');
-                    } catch (err) {
-                        alert("Failed to save product: " + err.message);
-                    } finally {
-                        saveBtn.disabled = false;
-                        saveBtn.innerHTML = 'Save Product';
-                    }
-                };
-            }
 
             // Promotion Generator
             const genPromoBtn = document.getElementById('genPromoBtn');
