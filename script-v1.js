@@ -69,8 +69,8 @@ const refreshProductStatus = async () => {
                         <div style="display: flex; align-items: center; gap: 15px;">
                             <div class="saas-avatar" style="background: var(--gradient-saas);"><i class="${p.icon || 'fas fa-cube'}"></i></div>
                             <div>
-                                <h3 style="margin: 0; color: #fff; font-size: 1rem;">${p.name}</h3>
-                                <p style="font-size: 0.7rem; color: var(--text-muted); margin-top: 4px;">ID: ${p.id} | Type: ${p.type}</p>
+                                <h3 style="margin: 0; color: #fff; font-size: 1rem;">${p.name || 'Untitled Product'}</h3>
+                                <p style="font-size: 0.7rem; color: var(--text-muted); margin-top: 4px;">ID: ${p.id} | Type: ${p.type || 'N/A'}</p>
                             </div>
                         </div>
                         <div class="saas-status-dot" style="background: ${p.status === 'down' ? '#EF4444' : '#10B981'}; box-shadow: 0 0 10px ${p.status === 'down' ? '#EF444466' : '#10B98166'};"></div>
