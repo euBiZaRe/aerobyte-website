@@ -2577,7 +2577,7 @@ const initAeroByte = () => {
 
             if (!pid) return;
 
-            onSnapshot(doc(db, "products", pid), (snapshot) => {
+            onSnapshot(doc(db, "system_status", pid), (snapshot) => {
                 if (snapshot.exists()) {
                     const data = snapshot.data();
                     const isDown = data.status === 'down';
