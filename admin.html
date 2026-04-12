@@ -419,9 +419,14 @@
                         <input type="text" id="dlIOS" placeholder="iOS URL">
                     </div>
                 </div>
-                <div style="grid-column: span 2; display: flex; justify-content: flex-end; gap: 15px; margin-top: 20px;">
-                    <button type="button" class="saas-manage-btn close-modal">Cancel</button>
-                    <button type="submit" class="btn-primary glow-btn" style="min-width: 150px;">Save Product</button>
+                <div style="grid-column: span 2; display: flex; justify-content: space-between; align-items: center; margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+                    <button type="button" id="deleteProdBtn" class="saas-manage-btn" style="display:none; color: #EF4444; border-color: #EF444444; background: rgba(239, 68, 68, 0.05);">
+                        <i class="fas fa-trash-alt"></i> Delete Product
+                    </button>
+                    <div style="display: flex; gap: 15px;">
+                        <button type="button" class="saas-manage-btn close-modal">Cancel</button>
+                        <button type="submit" class="btn-primary glow-btn" style="min-width: 150px;">Save Product</button>
+                    </div>
                 </div>
             </form>
         </div>

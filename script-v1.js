@@ -231,6 +231,27 @@ const openProductModal = (product = null) => {
     }
     
     modal.classList.add('active');
+    
+    // Toggle delete button
+    const deleteBtn = document.getElementById('deleteProdBtn');
+    if (deleteBtn) {
+        deleteBtn.style.display = product ? 'flex' : 'none';
+        deleteBtn.onclick = async () => {
+            if (confirm(`Are you sure you want to delete ${product.name}? This action cannot be undone.`)) {
+                deleteBtn.disabled = true;
+                deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
+                try {
+                    await deleteDoc(doc(db, "system_status", product.id));
+                    modal.classList.remove('active');
+                    console.log(`🗑️ Product ${product.id} deleted`);
+                } catch (err) {
+                    alert("Delete failed: " + err.message);
+                    deleteBtn.disabled = false;
+                    deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i> Delete Product';
+                }
+            }
+        };
+    }
 };
 
 // Global Submit Handler
