@@ -283,11 +283,14 @@
 
             <!-- Tab 8: Product Status -->
             <div id="tabProductStatus" class="saas-tab-content">
-                <div class="saas-content-header">
+                <div class="saas-content-header" style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
                         <h1 style="font-size: 1.8rem; margin: 0;">Service <span class="gradient-text" style="background: var(--gradient-saas); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">Status</span></h1>
                         <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 5px;">Manage global availability and maintenance windows for each product.</p>
                     </div>
+                    <button id="addProductBtn" class="saas-manage-btn" style="background: var(--gradient-saas); color: #fff; border: none; padding: 10px 20px;">
+                        <i class="fas fa-plus"></i> Add Product
+                    </button>
                 </div>
                 
                 <div id="adminProductStatusBody" class="saas-card-container" style="margin-top: 30px; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
@@ -366,6 +369,63 @@
         <input type="number" id="promoMins" value="0">
         <select id="directProduct"></select>
     </div>
-    <script type="module" src="script-v1.js?v=5.5"></script>
+    <div id="productModal" class="modal-overlay">
+        <div class="modal-container" style="max-width: 800px;">
+            <button class="close-modal">&times;</button>
+            <div class="modal-header">
+                <h2 id="productModalTitle">Add New <span class="gradient-text">Product</span></h2>
+                <p>Define product details, features, and distribution channels.</p>
+            </div>
+            <form id="productForm" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div class="form-group">
+                    <label>Product ID (slug)</label>
+                    <input type="text" id="prodID" placeholder="e.g. aero-proxy" required>
+                </div>
+                <div class="form-group">
+                    <label>Product Name</label>
+                    <input type="text" id="prodName" placeholder="e.g. AeroByte Proxy" required>
+                </div>
+                <div class="form-group" style="grid-column: span 2;">
+                    <label>Description</label>
+                    <textarea id="prodDesc" placeholder="Brief overview of the product..." style="width: 100%; height: 80px; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; padding: 10px; border-radius: 8px;"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Icon (FontAwesome)</label>
+                    <input type="text" id="prodIcon" placeholder="fas fa-microchip" value="fas fa-cube">
+                </div>
+                <div class="form-group">
+                    <label>Product Type</label>
+                    <select id="prodType" style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; padding: 10px; border-radius: 8px;">
+                        <option value="product">Software Product</option>
+                        <option value="solution">Software Solution</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Current Version</label>
+                    <input type="text" id="prodVersion" placeholder="v1.0">
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select id="prodStatus" style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; padding: 10px; border-radius: 8px;">
+                        <option value="active">Active</option>
+                        <option value="down">Maintenance</option>
+                    </select>
+                </div>
+                <div class="form-group" style="grid-column: span 2; border-top: 1px solid var(--border-color); padding-top: 20px;">
+                    <label style="color: var(--primary);">Download Links</label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 10px;">
+                        <input type="text" id="dlWindows" placeholder="Windows URL">
+                        <input type="text" id="dlAndroid" placeholder="Android URL">
+                        <input type="text" id="dlIOS" placeholder="iOS URL">
+                    </div>
+                </div>
+                <div style="grid-column: span 2; display: flex; justify-content: flex-end; gap: 15px; margin-top: 20px;">
+                    <button type="button" class="saas-manage-btn close-modal">Cancel</button>
+                    <button type="submit" class="btn-primary glow-btn" style="min-width: 150px;">Save Product</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <script type="module" src="script-v1.js?v=6.0"></script>
 </body>
 </html>

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta id="meta-description" name="description" content="AeroByte: Premium Software Solutions">
+    <title id="page-title">AeroByte | Loading Product...</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://js.stripe.com/v3/"></script>
+    <link rel="stylesheet" href="styles.css?v=5.0">
+    <style>
+        .loading-skeleton {
+            background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+            background-size: 200% 100%;
+            animation: skeleton-loading 1.5s infinite;
+            border-radius: 8px;
+        }
+        @keyframes skeleton-loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body class="saas-body">
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">AeroByte<span class="accent">.shop</span></a>
+            <button class="mobile-menu-btn" aria-label="Toggle Menu"><i class="fas fa-bars"></i></button>
+            <ul class="nav-links" id="dynamic-nav-links">
+                <!-- Populated by script -->
+                <li class="dropdown">
+                    <a href="#" class="dropdown-trigger">Products <i class="fas fa-chevron-down"></i></a>
+                    <ul class="dropdown-menu" id="nav-products-dropdown"></ul>
+                </li>
+                <li class="dropdown">
+                    <a href="#" class="dropdown-trigger">Solutions <i class="fas fa-chevron-down"></i></a>
+                    <ul class="dropdown-menu" id="nav-solutions-dropdown"></ul>
+                </li>
+                <li><a href="features.html">Features</a></li>
+                <li><a href="marketplace.html">Marketplace</a></li>
+                <li><a href="faq.html">FAQ</a></li>
+                <li><a href="credits.html">Credits</a></li>
+                <li><a href="https://discord.gg/x6XmrRkkEy" target="_blank" title="Join Our Server" style="font-size: 1.2rem; color: #5865F2;"><i class="fab fa-discord"></i></a></li>
+                <li><a href="#" class="btn-primary login-btn">Sign In</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Product Content (Initially Loading) -->
+    <div id="product-page-content">
+        <header class="hero">
+            <div class="hero-content">
+                <div class="badge" id="product-badge">
+                    <span id="product-version">...</span> <span class="status-dot"></span> <span id="product-status">...</span>
+                </div>
+                <h1 class="main-title" id="product-name"><div class="loading-skeleton" style="height: 60px; width: 300px;"></div></h1>
+                <p class="subtitle" id="product-description"><div class="loading-skeleton" style="height: 20px; width: 100%; margin-top: 10px;"></div></p>
+                <div class="hero-actions">
+                    <a href="#pricing" class="btn-primary glow-btn">Access Now</a>
+                    <a href="#features" class="btn-secondary">Explore Features</a>
+                </div>
+            </div>
+            <div class="hero-graphic">
+                <div class="orb orb-1"></div>
+                <div class="orb orb-2"></div>
+                <div id="product-icon-display" style="font-size: 10rem; color: var(--primary); text-shadow: 0 0 50px var(--glow-primary); display: flex; align-items: center; justify-content: center;">
+                    <i id="product-main-icon" class="fas fa-spinner fa-spin"></i>
+                </div>
+            </div>
+        </header>
+
+        <section id="features" class="features-section">
+            <div style="text-align: center; margin-bottom: 60px;">
+                <h2 class="section-title">Why choose <span class="gradient-text" id="product-short-name">...</span></h2>
+                <p class="subtitle">Experience elite engineering and performance.</p>
+            </div>
+            <div class="features-grid" id="product-features-grid">
+                <!-- Populated by script -->
+            </div>
+        </section>
+
+        <section id="download" class="download-section" style="max-width: 1000px; margin: 0 auto; padding: 100px 20px; text-align: center;">
+            <div class="glass-panel" style="padding: 60px; border-radius: 24px;">
+                <h2 class="section-title" style="margin-bottom: 20px;">Deploy <span class="gradient-text">Standard</span></h2>
+                <p class="subtitle" style="margin-bottom: 40px;">Download the official binary straight to your desktop.</p>
+                
+                <div id="download-actions" style="display: flex; flex-wrap: wrap; gap: 20px; justify-content: center;">
+                    <!-- Populated by script -->
+                </div>
+                
+                <p id="system-requirements" style="margin-top: 20px; color: var(--text-muted); font-size: 0.9rem;">*Requires Windows 10/11 x64 and a compatible GPU.</p>
+            </div>
+        </section>
+
+        <section id="pricing" class="pricing-section">
+            <h2 class="section-title">Unlock <span class="gradient-text">Full Potential</span></h2>
+            <div class="pricing-grid">
+                <div class="pricing-card">
+                    <h3>Basic</h3>
+                    <div class="price">Free</div>
+                    <ul class="plan-features">
+                        <li>Community access</li>
+                        <li>Standard performance mode</li>
+                        <li>Basic visualizer features</li>
+                        <li>Public discord support</li>
+                    </ul>
+                    <button class="btn-secondary plan-btn">Current Plan</button>
+                </div>
+                <div class="pricing-card pro-card">
+                    <div class="popular-badge">Elite Choice</div>
+                    <h3>Professional</h3>
+                    <div class="price">Flexible <span class="period">Tiers</span></div>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 20px;">48h, 7d, 30d, 90d, 365d, or Lifetime</p>
+                    <ul class="plan-features pro-features" id="pro-features-list">
+                        <!-- Populated by script -->
+                    </ul>
+                    <button class="btn-primary glow-btn plan-btn checkout-trigger">Choose Duration</button>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Error State -->
+    <div id="product-error" class="hidden" style="min-height: 80vh; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
+        <i class="fas fa-exclamation-triangle fa-5x" style="color: var(--danger); margin-bottom: 30px;"></i>
+        <h1 class="main-title">Product <span class="gradient-text">Not Found</span></h1>
+        <p class="subtitle">The product you are looking for does not exist or has been removed.</p>
+        <a href="index.html" class="btn-primary" style="margin-top: 30px;">Return Home</a>
+    </div>
+
+    <footer>
+        <div class="footer-content">
+            <a href="index.html" class="logo">AeroByte<span class="accent">.shop</span></a>
+            <div style="margin: 10px 0; display: flex; gap: 20px; justify-content: center; font-size: 0.9rem; opacity: 0.7;">
+                <a href="features.html">Features</a>
+                <a href="marketplace.html">Marketplace</a>
+                <a href="faq.html">FAQ</a>
+                <a href="credits.html">Credits</a>
+            </div>
+            <p>&copy; 2026 AeroByte Software. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script type="module" src="script-v1.js?v=6.0"></script>
+</body>
+</html>

@@ -21,6 +21,199 @@ const db = getFirestore(app);
 const STRIPE_PK = 'pk_test_51TFKE1IlExQEZUkSBzHPPiTVBWXwQRvpmW3HlVK7wT35MrB0FDyu2dEzLKvNIre6E70huYkcX5mdgRZtmen2D20700hv4OukTE';
 const BACKEND_URL = 'https://aerobyte-website.onrender.com';
 
+// --- PRODUCT DATA & DYNAMIC UI ---
+let globalProducts = [];
+
+// Listen for product changes site-wide
+onSnapshot(collection(db, "products"), (snapshot) => {
+    globalProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    console.log(`📦 Loaded ${globalProducts.length} products`);
+    
+    // Update UI elements that depend on products
+    populateNavigation();
+    
+    if (window.location.pathname.includes('product.html')) {
+        renderProductPage();
+    }
+    
+    if (window.location.pathname.includes('admin.html')) {
+        refreshProductStatus();
+        refreshLicenses();
+    }
+    
+    if (window.location.pathname.includes('index.html') || window.location.pathname.endsWith('/')) {
+        renderHomeProducts();
+    }
+
+    if (window.location.pathname.includes('solutions.html')) {
+        renderSolutionsProducts();
+    }
+});
+
+const populateNavigation = () => {
+    const productsDropdown = document.getElementById('nav-products-dropdown');
+    const solutionsDropdown = document.getElementById('nav-solutions-dropdown');
+    
+    if (productsDropdown) {
+        const productItems = globalProducts.filter(p => p.type === 'product');
+        productsDropdown.innerHTML = productItems.map(p => `
+            <li><a href="product.html?id=${p.id}">${p.name}</a></li>
+        `).join('') + `
+            <li class="dropdown-divider"></li>
+            <li><a href="solutions.html#products">View All</a></li>
+        `;
+    }
+    
+    if (solutionsDropdown) {
+        const solutionItems = globalProducts.filter(p => p.type === 'solution');
+        solutionsDropdown.innerHTML = solutionItems.map(p => `
+            <li><a href="product.html?id=${p.id}">${p.name}</a></li>
+        `).join('') + `
+            <li class="dropdown-divider"></li>
+            <li><a href="solutions.html#solutions">View All</a></li>
+        `;
+    }
+};
+
+const renderProductPage = () => {
+    const params = new URLSearchParams(window.location.search);
+    const prodID = params.get('id');
+    const loadingContent = document.getElementById('product-page-content');
+    const errorState = document.getElementById('product-error');
+    
+    if (!prodID) {
+        if (loadingContent) loadingContent.classList.add('hidden');
+        if (errorState) errorState.classList.remove('hidden');
+        return;
+    }
+    
+    const product = globalProducts.find(p => p.id === prodID);
+    if (!product) {
+        // If products are loaded but this one isn't there, show error
+        if (globalProducts.length > 0) {
+            if (loadingContent) loadingContent.classList.add('hidden');
+            if (errorState) errorState.classList.remove('hidden');
+        }
+        return;
+    }
+    
+    // Clear error
+    if (errorState) errorState.classList.add('hidden');
+    if (loadingContent) loadingContent.classList.remove('hidden');
+    
+    // Update Meta & Title
+    document.title = `AeroByte | ${product.name}`;
+    const meta = document.getElementById('meta-description');
+    if (meta) meta.setAttribute('content', product.description);
+    
+    // Update Text Content
+    const updateEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    updateEl('product-name', product.name);
+    updateEl('product-short-name', product.name);
+    updateEl('product-description', product.description || '');
+    updateEl('product-version', product.version || 'v1.0');
+    updateEl('product-status', product.status === 'active' ? 'PROFESSIONAL' : 'MAINTENANCE');
+    
+    const badge = document.getElementById('product-badge');
+    if (badge) {
+        badge.className = `badge ${product.status === 'down' ? 'badge-down' : ''}`;
+        const dot = badge.querySelector('.status-dot');
+        if (dot) dot.style.background = product.status === 'active' ? 'var(--primary)' : 'var(--danger)';
+    }
+
+    // Update Icon
+    const iconEl = document.getElementById('product-main-icon');
+    if (iconEl) iconEl.className = `${product.icon || 'fas fa-cube'}`;
+
+    // Render Features
+    const featuresGrid = document.getElementById('product-features-grid');
+    if (featuresGrid && product.features) {
+        featuresGrid.innerHTML = product.features.map(f => `
+            <div class="feature-card">
+                <div class="feature-icon">${f.icon.includes('fa-') ? `<i class="${f.icon}"></i>` : f.icon}</div>
+                <h3>${f.title}</h3>
+                <p>${f.description}</p>
+            </div>
+        `).join('');
+    }
+
+    // Render Download Actions
+    const downloadActions = document.getElementById('download-actions');
+    if (downloadActions && product.downloadLinks) {
+        let html = '';
+        if (product.downloadLinks.windows) {
+            html += `<a href="${product.downloadLinks.windows}" target="_blank" class="btn-primary glow-btn" style="padding: 15px 30px;"><i class="fab fa-windows"></i> Download for Windows</a>`;
+        }
+        if (product.downloadLinks.android) {
+            html += `<a href="${product.downloadLinks.android}" target="_blank" class="btn-secondary" style="padding: 15px 30px;"><i class="fab fa-android"></i> Download for Android</a>`;
+        }
+        if (product.downloadLinks.ios) {
+            html += `<a href="${product.downloadLinks.ios}" target="_blank" class="btn-secondary" style="padding: 15px 30px;"><i class="fab fa-apple"></i> Download for iOS</a>`;
+        }
+        downloadActions.innerHTML = html || '<p>No downloads available for this product yet.</p>';
+    }
+
+    // Render Pro Features in Pricing
+    const proFeaturesList = document.getElementById('pro-features-list');
+    if (proFeaturesList && product.features) {
+        proFeaturesList.innerHTML = product.features.map(f => `
+            <li><strong>${f.title}</strong></li>
+        `).join('') + `<li>Premium 24/7 Support</li>`;
+    }
+};
+
+const renderHomeProducts = () => {
+    const productGrid = document.querySelector('.product-grid');
+    if (!productGrid) return;
+    
+    productGrid.innerHTML = globalProducts.slice(0, 3).map(p => `
+        <div class="product-card">
+            <div>
+                <span class="product-tag">${p.type === 'solution' ? 'Software Solution' : 'Gaming Enhancement'}</span>
+                <h3>${p.name}</h3>
+                <p style="color: var(--text-muted); margin-bottom: 20px;">${p.description}</p>
+            </div>
+            <a href="product.html?id=${p.id}" class="btn-secondary" style="text-align: center;">Explore ${p.name.split(' ').pop()}</a>
+        </div>
+    `).join('');
+};
+
+const renderSolutionsProducts = () => {
+    const prodGrid = document.getElementById('products-grid');
+    const solGrid = document.getElementById('solutions-grid');
+    
+    if (prodGrid) {
+        const items = globalProducts.filter(p => p.type === 'product');
+        prodGrid.innerHTML = items.map(p => `
+            <div class="solution-card">
+                <div class="solution-icon"><i class="${p.icon || 'fas fa-cube'}"></i></div>
+                <h3>${p.name}</h3>
+                <p>${p.description}</p>
+                <div class="solution-footer">
+                    <span class="badge" style="margin:0;">${p.version || 'v1.0'}</span>
+                    <a href="product.html?id=${p.id}" class="btn-primary" style="padding: 8px 20px;">Explore</a>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    if (solGrid) {
+        const items = globalProducts.filter(p => p.type === 'solution');
+        solGrid.innerHTML = items.map(p => `
+            <div class="solution-card">
+                <div class="solution-icon"><i class="${p.icon || 'fas fa-film'}"></i></div>
+                <h3>${p.name}</h3>
+                <p>${p.description}</p>
+                <div class="solution-footer">
+                    <span class="solution-tag expert">FLAGSHIP</span>
+                    <a href="product.html?id=${p.id}" class="solution-btn">Details</a>
+                </div>
+            </div>
+        `).join('');
+    }
+};
+
+
 // --- TOP LEVEL HELPERS (Prioritized) ---
 const generateLicenseKey = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -1516,6 +1709,11 @@ const initAeroByte = () => {
                 if (!container) return;
                 console.log("🔄 License Inventory Syncing...");
 
+                const productSelect = document.getElementById('directProduct');
+                if (productSelect) {
+                    productSelect.innerHTML = globalProducts.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+                }
+
                 try {
                     const [userSnap, licSnap] = await Promise.all([
                         getDocs(collection(db, "users")),
@@ -1531,16 +1729,14 @@ const initAeroByte = () => {
                     usersList.sort((a,b) => (a.discordUsername || a.email || "").localeCompare(b.discordUsername || b.email || ""));
 
                     for (const user of usersList) {
-                        const products = ["RL Bot Trainer", "Among Us Mod Menu", "AeroByte Cinema"];
-                        const productIcons = { "RL Bot Trainer": "fas fa-car-side", "Among Us Mod Menu": "fas fa-user-secret" };
                         let licensesHtml = '';
 
-                        for (const p of products) {
+                        for (const p of globalProducts) {
                             // Extract key with legacy fallback
                             let pKey = null;
-                            if (user.licenseKeys && user.licenseKeys[p]) {
-                                pKey = user.licenseKeys[p];
-                            } else if (p === "RL Bot Trainer" && user.licenseKey) {
+                            if (user.licenseKeys && user.licenseKeys[p.id]) {
+                                pKey = user.licenseKeys[p.id];
+                            } else if (p.id === "rl-bot-trainer" && user.licenseKey) {
                                 pKey = user.licenseKey;
                             }
 
@@ -1548,22 +1744,22 @@ const initAeroByte = () => {
                                 licensesHtml += `
                                     <div class="saas-mini-card">
                                         <div style="display:flex; justify-content:space-between; align-items:center;">
-                                            <span style="font-size:0.6rem; text-transform:uppercase; font-weight:800; color:var(--text-muted);"><i class="${productIcons[p]}"></i> ${p}</span>
+                                            <span style="font-size:0.6rem; text-transform:uppercase; font-weight:800; color:var(--text-muted);"><i class="${p.icon || 'fas fa-cube'}"></i> ${p.name}</span>
                                             <span style="font-size:0.6rem; color:#10B981; font-weight:bold;">Active</span>
                                         </div>
                                         <code class="admin-license-mask" data-key="${pKey}" style="font-family:monospace; font-size:0.75rem; color:var(--primary); margin: 5px 0; cursor:pointer;">••••-••••-••••-••••</code>
                                         <div style="display:flex; gap:8px;">
-                                            <button class="saas-manage-btn action-reset-hwid" data-uid="${user.id}" data-key="${pKey}" data-product="${p}">HWID</button>
-                                            <button class="saas-manage-btn action-regen-key" data-uid="${user.id}" data-key="${pKey}" data-plan="${user.plan || 'Trial'}" data-product="${p}">Regen</button>
-                                            ${pKey && pKey !== 'None' ? `<button class="saas-ban-btn action-ban-hwid" data-uid="${user.id}" data-key="${pKey}" data-product="${p}"><i class="fas fa-hammer"></i> BAN</button>` : ''}
+                                            <button class="saas-manage-btn action-reset-hwid" data-uid="${user.id}" data-key="${pKey}" data-product="${p.id}">HWID</button>
+                                            <button class="saas-manage-btn action-regen-key" data-uid="${user.id}" data-key="${pKey}" data-plan="${user.plan || 'Trial'}" data-product="${p.id}">Regen</button>
+                                            ${pKey && pKey !== 'None' ? `<button class="saas-ban-btn action-ban-hwid" data-uid="${user.id}" data-key="${pKey}" data-product="${p.id}"><i class="fas fa-hammer"></i> BAN</button>` : ''}
                                         </div>
                                     </div>`;
                             } else {
                                 licensesHtml += `
                                     <div class="saas-mini-card" style="border-style: dashed; opacity: 0.8; display: flex; align-items: center; justify-content: center; min-height: 80px;">
-                                        <button class="saas-manage-btn action-gen-key" data-uid="${user.id}" data-product="${p}" data-plan="${user.plan || 'Trial'}" style="width:100%; height:100%; background:transparent; border:none; color:var(--primary); font-size:0.65rem; font-weight:bold; cursor:pointer; flex-direction:column; gap:5px;">
+                                        <button class="saas-manage-btn action-gen-key" data-uid="${user.id}" data-product="${p.id}" data-product-name="${p.name}" data-plan="${user.plan || 'Trial'}" style="width:100%; height:100%; background:transparent; border:none; color:var(--primary); font-size:0.65rem; font-weight:bold; cursor:pointer; flex-direction:column; gap:5px;">
                                             <i class="fas fa-plus-circle" style="font-size: 1rem;"></i>
-                                            <span>ADD ${p.toUpperCase()}</span>
+                                            <span>ADD ${p.name.toUpperCase()}</span>
                                         </button>
                                     </div>`;
                             }
@@ -1571,7 +1767,6 @@ const initAeroByte = () => {
 
                         const row = document.createElement('div');
                         row.className = 'saas-user-row';
-                        // Override grid for inventory view to ensure space
                         row.style.gridTemplateColumns = '300px 1fr'; 
                         
                         row.innerHTML = `
@@ -2070,251 +2265,154 @@ const initAeroByte = () => {
             // Maintenance listeners are now handled within refreshAppManagement for consistency
 
             const refreshProductStatus = async () => {
-                console.log("📡 Product Status Syncing...");
                 const container = document.getElementById('adminProductStatusBody');
-                if (!container) {
-                    console.error("❌ Admin Product Status Container NOT FOUND!");
+                if (!container) return;
+                
+                if (globalProducts.length === 0) {
+                    container.innerHTML = '<div style="padding:40px; text-align:center;"><p style="color:var(--text-muted);">No products found. Add one to get started!</p></div>';
                     return;
                 }
-                
-                const products = [
-                    { id: 'rl-bot-trainer', name: 'RL Bot Trainer', icon: 'fas fa-car-side' },
-                    { id: 'among-us-mod-menu', name: 'Among Us Mod Menu', icon: 'fas fa-user-secret' },
-                    { id: 'cinema', name: 'AeroByte Cinema', icon: 'fas fa-download' }
-                ];
 
-                container.innerHTML = '<div style="padding:40px; text-align:center;"><i class="fas fa-spinner fa-spin fa-2x" style="color:var(--primary); margin-bottom:15px;"></i><p style="color:var(--text-muted);">Syncing with Service Matrix...</p></div>';
-                
                 try {
                     let html = '';
-                    for (const p of products) {
-                        const snap = await getDoc(doc(db, "system_status", p.id));
-                        const data = snap.exists() ? snap.data() : { isDown: false, version: 'v1.0', downloadLink: '#' };
-                        const isDown = data.isDown;
-                        
+                    for (const p of globalProducts) {
                         html += `
                             <div class="saas-card" style="padding: 25px;">
                                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
                                     <div style="display: flex; align-items: center; gap: 15px;">
-                                        <div class="saas-avatar" style="background: var(--gradient-saas);"><i class="${p.icon}"></i></div>
+                                        <div class="saas-avatar" style="background: var(--gradient-saas);"><i class="${p.icon || 'fas fa-cube'}"></i></div>
                                         <div>
                                             <h3 style="margin: 0; color: #fff; font-size: 1rem;">${p.name}</h3>
-                                            <p style="font-size: 0.7rem; color: var(--text-muted); margin-top: 4px;">Service ID: ${p.id}</p>
+                                            <p style="font-size: 0.7rem; color: var(--text-muted); margin-top: 4px;">ID: ${p.id} | Type: ${p.type}</p>
                                         </div>
                                     </div>
-                                    <div class="saas-status-dot" style="background: ${isDown ? '#EF4444' : '#10B981'}; box-shadow: 0 0 10px ${isDown ? '#EF444466' : '#10B98166'};"></div>
+                                    <div class="saas-status-dot" style="background: ${p.status === 'down' ? '#EF4444' : '#10B981'}; box-shadow: 0 0 10px ${p.status === 'down' ? '#EF444466' : '#10B98166'};"></div>
                                 </div>
                                 
-                                <div style="display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px;">
-                                    <div>
-                                        <label style="font-size: 0.65rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Version Number</label>
-                                        <input type="text" class="status-version-input" data-pid="${p.id}" value="${data.version || ''}" placeholder="e.g. v2.0" style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; padding: 8px; border-radius: 6px; font-size: 0.85rem;">
-                                    </div>
-                                    ${p.id === 'cinema' ? `
-                                    <div style="display: flex; flex-direction: column; gap: 12px;">
-                                        <div>
-                                            <label style="font-size: 0.65rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Windows Version & Status</label>
-                                            <div style="display: flex; gap: 8px;">
-                                                <input type="text" class="status-link-windows" data-pid="${p.id}" value="${data.downloadLinkWindows || ''}" placeholder="Windows URL..." style="flex: 1; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; padding: 8px; border-radius: 6px; font-size: 0.85rem;">
-                                                <button class="saas-manage-btn save-platform-url-btn" data-pid="${p.id}" data-platform="Windows" title="Save Windows URL" style="width: 40px; justify-content: center; background: rgba(255,255,255,0.05);"><i class="fas fa-save"></i></button>
-                                                <button class="saas-manage-btn toggle-platform-btn ${data.isDownWindows ? 'is-down' : ''}" data-pid="${p.id}" data-platform="Windows" data-down="${data.isDownWindows || false}" 
-                                                        style="width: 100px; font-size: 0.7rem; background: ${data.isDownWindows ? '#EF444422' : '#10B98122'}; color: ${data.isDownWindows ? '#EF4444' : '#10B981'}; border: 1px solid ${data.isDownWindows ? '#EF444444' : '#10B98144'};">
-                                                    ${data.isDownWindows ? 'Restore' : 'Mark Down'}
-                                                </button>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label style="font-size: 0.65rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Android Version & Status</label>
-                                            <div style="display: flex; gap: 8px;">
-                                                <input type="text" class="status-link-android" data-pid="${p.id}" value="${data.downloadLinkAndroid || ''}" placeholder="Android URL..." style="flex: 1; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; padding: 8px; border-radius: 6px; font-size: 0.85rem;">
-                                                <button class="saas-manage-btn save-platform-url-btn" data-pid="${p.id}" data-platform="Android" title="Save Android URL" style="width: 40px; justify-content: center; background: rgba(255,255,255,0.05);"><i class="fas fa-save"></i></button>
-                                                <button class="saas-manage-btn toggle-platform-btn ${data.isDownAndroid ? 'is-down' : ''}" data-pid="${p.id}" data-platform="Android" data-down="${data.isDownAndroid || false}" 
-                                                        style="width: 100px; font-size: 0.7rem; background: ${data.isDownAndroid ? '#EF444422' : '#10B98122'}; color: ${data.isDownAndroid ? '#EF4444' : '#10B981'}; border: 1px solid ${data.isDownAndroid ? '#EF444444' : '#10B98144'};">
-                                                    ${data.isDownAndroid ? 'Restore' : 'Mark Down'}
-                                                </button>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label style="font-size: 0.65rem; color: var(--text-muted); display: block; margin-bottom: 5px;">iOS Version & Status</label>
-                                            <div style="display: flex; gap: 8px;">
-                                                <input type="text" class="status-link-ios" data-pid="${p.id}" value="${data.downloadLinkIOS || ''}" placeholder="iOS URL..." style="flex: 1; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; padding: 8px; border-radius: 6px; font-size: 0.85rem;">
-                                                <button class="saas-manage-btn save-platform-url-btn" data-pid="${p.id}" data-platform="IOS" title="Save iOS URL" style="width: 40px; justify-content: center; background: rgba(255,255,255,0.05);"><i class="fas fa-save"></i></button>
-                                                <button class="saas-manage-btn toggle-platform-btn ${data.isDownIOS ? 'is-down' : ''}" data-pid="${p.id}" data-platform="IOS" data-down="${data.isDownIOS || false}" 
-                                                        style="width: 100px; font-size: 0.7rem; background: ${data.isDownIOS ? '#EF444422' : '#10B98122'}; color: ${data.isDownIOS ? '#EF4444' : '#10B981'}; border: 1px solid ${data.isDownIOS ? '#EF444444' : '#10B98144'};">
-                                                    ${data.isDownIOS ? 'Restore' : 'Mark Down'}
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    ` : `
-                                    <div>
-                                        <label style="font-size: 0.65rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Download URL</label>
-                                        <div style="display: flex; gap: 8px;">
-                                            <input type="text" class="status-link-input" data-pid="${p.id}" value="${data.downloadLink || ''}" placeholder="https://..." style="flex: 1; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; padding: 8px; border-radius: 6px; font-size: 0.85rem;">
-                                            <button class="saas-manage-btn save-individual-url-btn" data-pid="${p.id}" title="Save URL" style="width: 40px; justify-content: center; background: rgba(255,255,255,0.05);"><i class="fas fa-save"></i></button>
-                                        </div>
-                                    </div>
-                                    `}
+                                <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; font-size: 0.85rem; color: var(--text-muted);">
+                                    <p>Version: <span style="color: #fff;">${p.version || 'v1.0'}</span></p>
+                                    <p>Status: <span style="color: ${p.status === 'down' ? '#EF4444' : '#10B981'};">${p.status === 'active' ? 'Active' : 'Maintenance'}</span></p>
                                 </div>
 
-
                                 <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 15px; border-top: 1px solid var(--border-color);">
-                                    <button class="saas-manage-btn save-status-btn" data-pid="${p.id}" style="font-size: 0.75rem;"><i class="fas fa-save"></i> Save Changes</button>
-                                    <button class="saas-manage-btn toggle-status-btn" 
+                                    <button class="saas-manage-btn edit-product-btn" data-pid="${p.id}" style="font-size: 0.75rem; background: rgba(255,255,255,0.05);"><i class="fas fa-edit"></i> Edit Details</button>
+                                    <button class="saas-manage-btn toggle-product-status-btn" 
                                             data-pid="${p.id}" 
-                                            data-down="${isDown}"
-                                            style="background: ${isDown ? '#10B98122' : '#EF444422'}; color: ${isDown ? '#10B981' : '#EF4444'}; border: 1px solid ${isDown ? '#10B98144' : '#EF444444'}; font-size: 0.75rem;">
-                                        ${isDown ? 'Restore All' : 'Mark All Down'}
+                                            data-status="${p.status}"
+                                            style="background: ${p.status === 'down' ? '#10B98122' : '#EF444422'}; color: ${p.status === 'down' ? '#10B981' : '#EF4444'}; border: 1px solid ${p.status === 'down' ? '#10B98144' : '#EF444444'}; font-size: 0.75rem;">
+                                        ${p.status === 'down' ? 'Restore Service' : 'Mark Maintenance'}
                                     </button>
                                 </div>
                             </div>`;
                     }
                     container.innerHTML = html;
 
-                    // Kill switch logic moved to App Management
+                    // Attach Edit listeners
+                    container.querySelectorAll('.edit-product-btn').forEach(btn => {
+                        btn.onclick = () => {
+                            const pid = btn.getAttribute('data-pid');
+                            const p = globalProducts.find(x => x.id === pid);
+                            if (p) openProductModal(p);
+                        };
+                    });
 
                     // Attach Toggle listeners
-                    container.querySelectorAll('.toggle-status-btn').forEach(btn => {
+                    container.querySelectorAll('.toggle-product-status-btn').forEach(btn => {
                         btn.onclick = async () => {
                             const pid = btn.getAttribute('data-pid');
-                            const currentlyDown = btn.getAttribute('data-down') === 'true';
-                            btn.disabled = true;
-                            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-                            try {
-                                await updateDoc(doc(db, "system_status", pid), { isDown: !currentlyDown, lastUpdated: Date.now() });
-                                refreshProductStatus();
-                            } catch (e) { 
-                                // Fallback if doc doesn't exist
-                                await setDoc(doc(db, "system_status", pid), { isDown: !currentlyDown, lastUpdated: Date.now() });
-                                refreshProductStatus();
-                             }
-                        };
-                    });
-
-                    // Attach Platform Toggle listeners (AeroByte Cinema specific)
-                    container.querySelectorAll('.toggle-platform-btn').forEach(btn => {
-                        btn.onclick = async () => {
-                            const pid = btn.getAttribute('data-pid');
-                            const platform = btn.getAttribute('data-platform');
-                            const currentlyDown = btn.getAttribute('data-down') === 'true';
-                            const field = `isDown${platform}`;
+                            const currentStatus = btn.getAttribute('data-status');
+                            const newStatus = currentStatus === 'active' ? 'down' : 'active';
                             
                             btn.disabled = true;
                             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
                             try {
-                                await updateDoc(doc(db, "system_status", pid), { [field]: !currentlyDown, lastUpdated: Date.now() });
-                                refreshProductStatus();
-                            } catch (e) { 
-                                await setDoc(doc(db, "system_status", pid), { [field]: !currentlyDown, lastUpdated: Date.now() }, { merge: true });
-                                refreshProductStatus();
-                             }
+                                await updateDoc(doc(db, "products", pid), { status: newStatus, lastUpdated: Date.now() });
+                            } catch (e) { alert(e.message); btn.disabled = false; }
                         };
                     });
-
-                    // Attach Platform URL Save listeners (AeroByte Cinema specific)
-                    container.querySelectorAll('.save-platform-url-btn').forEach(btn => {
-                        btn.onclick = async () => {
-                            const pid = btn.getAttribute('data-pid');
-                            const platform = btn.getAttribute('data-platform');
-                            const row = btn.parentElement;
-                            const input = row.querySelector(`.status-link-${platform.toLowerCase()}`);
-                            const url = input.value;
-                            
-                            btn.disabled = true;
-                            const origHTML = btn.innerHTML;
-                            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-                            
-                            try {
-                                const field = `downloadLink${platform}`;
-                                await updateDoc(doc(db, "system_status", pid), { 
-                                    [field]: url, 
-                                    lastUpdated: Date.now(),
-                                    updatedBy: auth.currentUser?.email || 'Admin'
-                                }, { merge: true });
-                                // Visual feedback
-                                btn.innerHTML = '<i class="fas fa-check" style="color: #10B981;"></i>';
-                                setTimeout(() => {
-                                    btn.disabled = false;
-                                    btn.innerHTML = origHTML;
-                                }, 2000);
-                            } catch (e) { 
-                                alert(e.message);
-                                btn.disabled = false;
-                                btn.innerHTML = origHTML;
-                             }
-                        };
-                    });
-
-                    // Attach Individual URL Save listeners (Other products)
-                    container.querySelectorAll('.save-individual-url-btn').forEach(btn => {
-                        btn.onclick = async () => {
-                            const pid = btn.getAttribute('data-pid');
-                            const row = btn.parentElement;
-                            const input = row.querySelector('.status-link-input');
-                            const url = input.value;
-                            
-                            btn.disabled = true;
-                            const origHTML = btn.innerHTML;
-                            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-                            
-                            try {
-                                await updateDoc(doc(db, "system_status", pid), { 
-                                    downloadLink: url, 
-                                    lastUpdated: Date.now(),
-                                    updatedBy: auth.currentUser?.email || 'Admin'
-                                }, { merge: true });
-                                // Visual feedback
-                                btn.innerHTML = '<i class="fas fa-check" style="color: #10B981;"></i>';
-                                setTimeout(() => {
-                                    btn.disabled = false;
-                                    btn.innerHTML = origHTML;
-                                }, 2000);
-                            } catch (e) { 
-                                alert(e.message);
-                                btn.disabled = false;
-                                btn.innerHTML = origHTML;
-                             }
-                        };
-                    });
-
-                    // Attach Save listeners
-                    container.querySelectorAll('.save-status-btn').forEach(btn => {
-                        btn.onclick = async () => {
-                            const pid = btn.getAttribute('data-pid');
-                            const card = btn.closest('.saas-card');
-                            const version = card.querySelector('.status-version-input').value;
-                            
-                            btn.disabled = true;
-                            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-                            
-                            try {
-                                const updateData = {
-                                    version: version,
-                                    lastUpdated: Date.now(),
-                                    updatedBy: auth.currentUser?.email || 'Admin'
-                                };
-                                
-                                if (pid === 'cinema') {
-                                    updateData.downloadLinkWindows = card.querySelector('.status-link-windows').value;
-                                    updateData.downloadLinkAndroid = card.querySelector('.status-link-android').value;
-                                    updateData.downloadLinkIOS = card.querySelector('.status-link-ios').value;
-                                } else {
-                                    const downloadLinkInput = card.querySelector('.status-link-input');
-                                    updateData.downloadLink = downloadLinkInput ? downloadLinkInput.value : '';
-                                }
-
-                                await setDoc(doc(db, "system_status", pid), updateData, { merge: true });
-                                alert(`Changes saved for ${pid}!`);
-                                refreshProductStatus();
-                            } catch (err) { alert(err.message); refreshProductStatus(); }
-                        };
-                    });
-
                 } catch (err) {
-                    console.error("Status Error:", err);
-                    container.innerHTML = `<div style="padding:20px; color:var(--danger);">Error synchronizing status: ${err.message}</div>`;
+                    console.error("Product Status Refresh Error:", err);
                 }
             };
+
+            // Product Management Helpers
+            const openProductModal = (product = null) => {
+                const modal = document.getElementById('productModal');
+                const form = document.getElementById('productForm');
+                const title = document.getElementById('productModalTitle');
+                
+                if (!modal || !form) return;
+                
+                form.reset();
+                if (product) {
+                    title.innerHTML = `Edit <span class="gradient-text">${product.name}</span>`;
+                    document.getElementById('prodID').value = product.id;
+                    document.getElementById('prodID').readOnly = true;
+                    document.getElementById('prodName').value = product.name;
+                    document.getElementById('prodDesc').value = product.description || '';
+                    document.getElementById('prodIcon').value = product.icon || 'fas fa-cube';
+                    document.getElementById('prodType').value = product.type || 'product';
+                    document.getElementById('prodVersion').value = product.version || 'v1.0';
+                    document.getElementById('prodStatus').value = product.status || 'active';
+                    document.getElementById('dlWindows').value = product.downloadLinks?.windows || '';
+                    document.getElementById('dlAndroid').value = product.downloadLinks?.android || '';
+                    document.getElementById('dlIOS').value = product.downloadLinks?.ios || '';
+                } else {
+                    title.innerHTML = `Add New <span class="gradient-text">Product</span>`;
+                    document.getElementById('prodID').readOnly = false;
+                }
+                
+                modal.classList.add('active');
+            };
+
+            // Event listener for Add Product button
+            const addProdBtn = document.getElementById('addProductBtn');
+            if (addProdBtn) {
+                addProdBtn.onclick = () => openProductModal();
+            }
+
+            // Close modal handlers
+            document.querySelectorAll('.close-modal').forEach(btn => {
+                btn.onclick = () => document.getElementById('productModal').classList.remove('active');
+            });
+
+            // Handle Product Form Submit
+            const productForm = document.getElementById('productForm');
+            if (productForm) {
+                productForm.onsubmit = async (e) => {
+                    e.preventDefault();
+                    const saveBtn = productForm.querySelector('button[type="submit"]');
+                    saveBtn.disabled = true;
+                    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+                    
+                    const prodID = document.getElementById('prodID').value;
+                    const productData = {
+                        name: document.getElementById('prodName').value,
+                        description: document.getElementById('prodDesc').value,
+                        icon: document.getElementById('prodIcon').value,
+                        type: document.getElementById('prodType').value,
+                        version: document.getElementById('prodVersion').value,
+                        status: document.getElementById('prodStatus').value,
+                        downloadLinks: {
+                            windows: document.getElementById('dlWindows').value || null,
+                            android: document.getElementById('dlAndroid').value || null,
+                            ios: document.getElementById('dlIOS').value || null
+                        },
+                        lastUpdated: Date.now(),
+                        updatedBy: auth.currentUser?.email || 'Admin'
+                    };
+                    
+                    try {
+                        await setDoc(doc(db, "products", prodID), productData, { merge: true });
+                        document.getElementById('productModal').classList.remove('active');
+                    } catch (err) {
+                        alert("Failed to save product: " + err.message);
+                    } finally {
+                        saveBtn.disabled = false;
+                        saveBtn.innerHTML = 'Save Product';
+                    }
+                };
+            }
 
             // Promotion Generator
             const genPromoBtn = document.getElementById('genPromoBtn');
@@ -2445,22 +2543,22 @@ const initAeroByte = () => {
         // --- GLOBAL PRODUCT STATUS MONITOR ---
         const monitorProductStatus = () => {
             const statusIndicator = document.querySelector('.status-dot');
-            const downloadBtn = document.querySelector('.download-section .btn-primary, .hero-actions .btn-primary:not(.checkout-trigger)');
-            const pricingIndicator = document.querySelectorAll('.plan-features li'); // Might need more specific target
-
-            // Identify current product by URL or page title
             const path = window.location.pathname;
-            let pid = null;
-            if (path.includes('rl-bot-trainer')) pid = 'rl-bot-trainer';
-            if (path.includes('among-us-mod-menu')) pid = 'among-us-mod-menu';
-            if (path.includes('cinema')) pid = 'cinema';
+            let pid = (new URLSearchParams(window.location.search)).get('id');
+
+            // Fallback for legacy pages
+            if (!pid) {
+                if (path.includes('rl-bot-trainer')) pid = 'rl-bot-trainer';
+                if (path.includes('among-us-mod-menu')) pid = 'among-us-mod-menu';
+                if (path.includes('cinema')) pid = 'cinema';
+            }
 
             if (!pid) return;
 
-            onSnapshot(doc(db, "system_status", pid), (snapshot) => {
+            onSnapshot(doc(db, "products", pid), (snapshot) => {
                 if (snapshot.exists()) {
                     const data = snapshot.data();
-                    const isDown = data.isDown;
+                    const isDown = data.status === 'down';
 
                     // 1. Update Status Indicator (Dot)
                     if (statusIndicator) {
@@ -2473,23 +2571,11 @@ const initAeroByte = () => {
                         const badges = document.querySelectorAll('.badge');
                         badges.forEach(b => {
                             const txt = b.textContent;
-                            // Update if it has a version-like string or matches the product name
-                            const isCinemaBadge = pid === 'cinema' && txt.toLowerCase().includes('cinema');
-                            const hasVersion = txt.match(/v\d+(\.\d+)*/i) || txt.toLowerCase().includes('version');
-                            
-                            if (isCinemaBadge || hasVersion) {
-                                // Keep the inner dot if it exists
+                            if (txt.toLowerCase().includes('aero') || txt.toLowerCase().includes('v')) {
                                 const dot = b.querySelector('.status-dot');
-                                const prefix = pid === 'cinema' ? 'AeroByte Cinema ' : 'AeroByte ';
-                                b.innerHTML = `${prefix}${data.version} `;
+                                b.innerHTML = `AeroByte ${data.name} ${data.version} `;
                                 if (dot) b.appendChild(dot);
-                                
-                                // Status suffix
-                                let suffix = 'STREAMING';
-                                if (pid === 'rl-bot-trainer') suffix = 'PROFESSIONAL';
-                                if (pid === 'among-us-mod-menu') suffix = 'STABLE RELEASE';
-                                if (pid === 'cinema') suffix = 'LIVE';
-                                
+                                let suffix = data.type === 'streaming' ? 'STREAMING' : 'STABLE RELEASE';
                                 b.innerHTML += ` ${suffix}`;
                             }
                         });
@@ -2512,145 +2598,79 @@ const initAeroByte = () => {
                                 btn.style.pointerEvents = 'auto';
                                 btn.style.opacity = '1';
                                 btn.style.filter = 'none';
-                                if (btn.getAttribute('data-orig-text')) {
-                                    btn.textContent = btn.getAttribute('data-orig-text');
-                                }
+                                if (btn.getAttribute('data-orig-text')) btn.textContent = btn.getAttribute('data-orig-text');
                                 
-                                // UNIVERSAL LINK HIDING (Clean & Robust)
+                                // Dynamic Download URLs
                                 btn.removeAttribute('href');
                                 btn.style.cursor = 'pointer';
 
-                                if (pid === 'cinema') {
-                                    const winBtn = document.getElementById('download-windows');
-                                    const andBtn = document.getElementById('download-android');
-                                    const iosBtn = document.getElementById('download-ios');
-                                    
-                                    const updatePlatformBtn = (pBtn, pIsDown, pLink) => {
-                                        if (!pBtn) return;
-                                        if (pIsDown) {
-                                            pBtn.classList.add('disabled-btn');
-                                            pBtn.style.pointerEvents = 'none';
-                                            pBtn.style.opacity = '0.5';
-                                            pBtn.style.filter = 'grayscale(1)';
-                                            if (!pBtn.getAttribute('data-orig-text')) pBtn.setAttribute('data-orig-text', pBtn.textContent);
-                                            pBtn.textContent = 'Service Down';
-                                        } else {
-                                            pBtn.classList.remove('disabled-btn');
-                                            pBtn.style.pointerEvents = 'auto';
-                                            pBtn.style.opacity = '1';
-                                            pBtn.style.filter = 'none';
-                                            if (pBtn.getAttribute('data-orig-text')) pBtn.textContent = pBtn.getAttribute('data-orig-text');
-                                            
-                                            // Assign hidden click handler only once
-                                            pBtn.onclick = (e) => {
-                                                e.preventDefault();
-                                                if (pLink && pLink !== "#") window.location.assign(pLink);
-                                            };
-                                        }
-                                    };
-
-                                    // Only update the specific button if it matches a platform
-                                    if (btn === winBtn) updatePlatformBtn(btn, data.isDownWindows, data.downloadLinkWindows);
-                                    if (btn === andBtn) updatePlatformBtn(btn, data.isDownAndroid, data.downloadLinkAndroid);
-                                    if (btn === iosBtn) updatePlatformBtn(btn, data.isDownIOS, data.downloadLinkIOS);
-                                    
-                                } else if (data.downloadLink && data.downloadLink !== '#') {
-                                    btn.onclick = (e) => {
-                                        e.preventDefault();
-                                        window.location.assign(data.downloadLink);
-                                    };
-                                }
+                                const platform = btn.id.replace('download-', '').toLowerCase(); // e.g., 'windows', 'android'
+                                const link = data.downloadLinks ? data.downloadLinks[platform] : data.downloadLinks?.windows;
+                                
+                                btn.onclick = (e) => {
+                                    e.preventDefault();
+                                    if (link && link !== "#") window.location.assign(link);
+                                };
                             }
                         }
                     });
-                    
-                    // 4. Update Hero Style
-                    const badge = document.querySelector('.badge');
-                    if (badge && isDown) {
-                        badge.style.border = '1px solid rgba(239, 68, 68, 0.3)';
-                        badge.style.background = 'rgba(239, 68, 68, 0.1)';
-                        badge.style.color = '#EF4444';
-                    } else if (badge) {
-                        badge.style.border = '';
-                        badge.style.background = '';
-                        badge.style.color = '';
-                    }
                 }
             });
         };
 
         monitorProductStatus();
-    });
 
-    // --- DISCORD OAUTH LOGIC ---
-    const DISCORD_CLIENT_ID = '1486472707825467463';
-    
-    // Force a strict Redirect URI to match Discord Developer Portal exactly (Option A).
-    // Using profile.html as the universal callback destination.
-    let REDIRECT_URI = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-        ? 'http://localhost:3000/profile.html' 
-        : 'https://aerobyte.shop/profile.html';
+        // --- DISCORD OAUTH LOGIC ---
+        const DISCORD_CLIENT_ID = '1486472707825467463';
+        let REDIRECT_URI = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+            ? 'http://localhost:3000/profile.html' 
+            : 'https://aerobyte.shop/profile.html';
 
-    const handleDiscordOAuth = () => {
-        localStorage.setItem('waitingForDiscord', 'true');
-        console.log("🔗 Discord Redirect URI:", REDIRECT_URI);
-        const oauthUrl = `https://discord.com/api/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=token&scope=identify`;
-        window.location.href = oauthUrl;
-    };
+        const handleDiscordOAuth = () => {
+            localStorage.setItem('waitingForDiscord', 'true');
+            const oauthUrl = `https://discord.com/api/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=token&scope=identify`;
+            window.location.href = oauthUrl;
+        };
 
-    // Global listener for Discord buttons (Delegate to body for dynamic modals)
-    document.body.addEventListener('click', (e) => {
-        const discordBtn = e.target.closest('#linkDiscordBtn') || e.target.closest('#discordLoginBtn');
-        if (discordBtn) {
-            handleDiscordOAuth();
-        }
-    });
+        document.body.addEventListener('click', (e) => {
+            const discordBtn = e.target.closest('#linkDiscordBtn') || e.target.closest('#discordLoginBtn');
+            if (discordBtn) handleDiscordOAuth();
+        });
 
-    // (Discord OAuth handle moved inside Auth Listener for reliability)
-
-    // Smooth Scrolling for anchor links
+        // Smooth Scrolling for anchor links
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function (e) {
                 const currentHref = this.getAttribute('href');
-                
-                // If the href was dynamically changed away from an anchor, don't intercept!
                 if(!currentHref || !currentHref.startsWith('#') || currentHref === '#') return;
-                
-                // Otherwise, perfectly safely handle the smooth scroll
                 const targetElement = document.querySelector(currentHref);
                 if(targetElement) {
                     e.preventDefault();
-                    targetElement.scrollIntoView({
-                        behavior: 'smooth'
-                    });
+                    targetElement.scrollIntoView({ behavior: 'smooth' });
                 }
             });
         });
 
-    // Manual Retry Listener
-    document.body.addEventListener('click', (e) => {
-        if (e.target && e.target.id === 'manualRetryStripe') {
-            const statusText = document.getElementById('stripe-status-text');
-            if (statusText) statusText.textContent = "Manual Override Triggered. Initializing...";
-            loadStripeElements();
-        }
-    });
-
-
-    // Profile Logout Listener
-    const profileLogoutBtn = document.getElementById('profileLogoutBtn');
-    if (profileLogoutBtn) {
-        profileLogoutBtn.addEventListener('click', () => {
-            signOut(auth).then(() => {
-                localStorage.removeItem('isLoggedIn');
-                window.location.href = 'index.html';
-            }).catch(err => {
-                console.error("Sign Out Error:", err);
-                alert("Error signing out: " + err.message);
-            });
+        // Manual Retry Listener
+        document.body.addEventListener('click', (e) => {
+            if (e.target && e.target.id === 'manualRetryStripe') {
+                const statusText = document.getElementById('stripe-status-text');
+                if (statusText) statusText.textContent = "Manual Override Triggered. Initializing...";
+                loadStripeElements();
+            }
         });
-    }
-};
+
+        // Profile Logout Listener
+        const profileLogoutBtn = document.getElementById('profileLogoutBtn');
+        if (profileLogoutBtn) {
+            profileLogoutBtn.addEventListener('click', () => {
+                signOut(auth).then(() => {
+                    localStorage.removeItem('isLoggedIn');
+                    window.location.href = 'index.html';
+                }).catch(err => alert("Error signing out: " + err.message));
+            });
+        }
+    }); // End of onAuthStateChanged
+}; // End of initAeroByte
 
 // --- ROBUST BOOTSTRAP ---
 if (document.readyState === 'loading') {
