@@ -25,7 +25,7 @@ const BACKEND_URL = 'https://aerobyte-website.onrender.com';
 let globalProducts = [];
 
 // Listen for product changes site-wide
-onSnapshot(collection(db, "products"), (snapshot) => {
+onSnapshot(collection(db, "system_status"), (snapshot) => {
     globalProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     console.log(`📦 Loaded ${globalProducts.length} products`);
     
@@ -113,7 +113,7 @@ const refreshProductStatus = async () => {
                 btn.disabled = true;
                 btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
                 try {
-                    await updateDoc(doc(db, "products", pid), { status: newStatus, lastUpdated: Date.now() });
+                    await updateDoc(doc(db, "system_status", pid), { status: newStatus, lastUpdated: Date.now() });
                 } catch (e) { alert(e.message); btn.disabled = false; }
             };
         });
@@ -1834,7 +1834,7 @@ const initAeroByte = () => {
                 if (!container) return;
 
                 try {
-                    const q = query(collection(db, "licenses"), orderBy("createdAt", "desc"), limit(10));
+                    const q = query(collection(db, "system_status"), where("type", "==", "solution"), where("status", "==", "active"));
                     const snap = await getDocs(q);
                     
                     if (snap.empty) {
@@ -2406,7 +2406,7 @@ const initAeroByte = () => {
                     };
                     
                     try {
-                        await setDoc(doc(db, "products", prodID), productData, { merge: true });
+                        await setDoc(doc(db, "system_status", prodID), productData, { merge: true });
                         document.getElementById('productModal').classList.remove('active');
                     } catch (err) {
                         alert("Failed to save product: " + err.message);

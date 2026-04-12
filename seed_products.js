@@ -65,7 +65,7 @@ const products = [
 
 async function seed() {
   for (const product of products) {
-    await db.collection('products').doc(product.id).set(product);
+    await db.collection('system_status').doc(product.id).set(product);
     console.log(`Seeded: ${product.name}`);
   }
   process.exit();
