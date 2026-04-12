@@ -30,7 +30,7 @@ onSnapshot(collection(db, "system_status"), (snapshot) => {
     console.log(`📦 Loaded ${globalProducts.length} products`);
     
     // Update UI elements that depend on products
-    populateNavigation();
+    // populateNavigation(); // Disabled to prefer hardcoded paths
     
     if (window.location.pathname.includes('product.html')) {
         renderProductPage();
@@ -41,13 +41,13 @@ onSnapshot(collection(db, "system_status"), (snapshot) => {
         refreshLicenses();
     }
     
-    if (window.location.pathname.includes('index.html') || window.location.pathname.endsWith('/')) {
-        renderHomeProducts();
-    }
+    // if (window.location.pathname.includes('index.html') || window.location.pathname.endsWith('/')) {
+    //     renderHomeProducts();
+    // }
 
-    if (window.location.pathname.includes('solutions.html')) {
-        renderSolutionsProducts();
-    }
+    // if (window.location.pathname.includes('solutions.html')) {
+    //     renderSolutionsProducts();
+    // }
 });
 
 // --- ADMIN REFRESH FUNCTIONS (Global Scope for Listener) ---
@@ -307,10 +307,18 @@ const populateNavigation = () => {
     const productsDropdown = document.getElementById('nav-products-dropdown');
     const solutionsDropdown = document.getElementById('nav-solutions-dropdown');
     
+    // Helper to get filename from ID
+    const getPageFile = (pid) => {
+        if (pid === 'rl-bot-trainer') return 'rl-bot-trainer.html';
+        if (pid === 'among-us-mod-menu') return 'among-us-mod-menu.html';
+        if (pid === 'cinema') return 'cinema.html';
+        return `product.html?id=${pid}`; // Fallback for new products
+    };
+
     if (productsDropdown) {
         const productItems = globalProducts.filter(p => p.type === 'product');
         productsDropdown.innerHTML = productItems.map(p => `
-            <li><a href="product.html?id=${p.id}">${p.name}</a></li>
+            <li><a href="${getPageFile(p.id)}">${p.name}</a></li>
         `).join('') + `
             <li class="dropdown-divider"></li>
             <li><a href="solutions.html#products">View All</a></li>
@@ -320,7 +328,7 @@ const populateNavigation = () => {
     if (solutionsDropdown) {
         const solutionItems = globalProducts.filter(p => p.type === 'solution');
         solutionsDropdown.innerHTML = solutionItems.map(p => `
-            <li><a href="product.html?id=${p.id}">${p.name}</a></li>
+            <li><a href="${getPageFile(p.id)}">${p.name}</a></li>
         `).join('') + `
             <li class="dropdown-divider"></li>
             <li><a href="solutions.html#solutions">View All</a></li>
@@ -419,6 +427,13 @@ const renderHomeProducts = () => {
     const productGrid = document.querySelector('.product-grid');
     if (!productGrid) return;
     
+    const getPageFile = (pid) => {
+        if (pid === 'rl-bot-trainer') return 'rl-bot-trainer.html';
+        if (pid === 'among-us-mod-menu') return 'among-us-mod-menu.html';
+        if (pid === 'cinema') return 'cinema.html';
+        return `product.html?id=${pid}`;
+    };
+
     productGrid.innerHTML = globalProducts.slice(0, 3).map(p => `
         <div class="product-card">
             <div>
@@ -426,7 +441,7 @@ const renderHomeProducts = () => {
                 <h3>${p.name}</h3>
                 <p style="color: var(--text-muted); margin-bottom: 20px;">${p.description}</p>
             </div>
-            <a href="product.html?id=${p.id}" class="btn-secondary" style="text-align: center;">Explore ${p.name.split(' ').pop()}</a>
+            <a href="${getPageFile(p.id)}" class="btn-secondary" style="text-align: center;">Explore ${p.name.split(' ').pop()}</a>
         </div>
     `).join('');
 };
@@ -435,6 +450,13 @@ const renderSolutionsProducts = () => {
     const prodGrid = document.getElementById('products-grid');
     const solGrid = document.getElementById('solutions-grid');
     
+    const getPageFile = (pid) => {
+        if (pid === 'rl-bot-trainer') return 'rl-bot-trainer.html';
+        if (pid === 'among-us-mod-menu') return 'among-us-mod-menu.html';
+        if (pid === 'cinema') return 'cinema.html';
+        return `product.html?id=${pid}`;
+    };
+
     if (prodGrid) {
         const items = globalProducts.filter(p => p.type === 'product');
         prodGrid.innerHTML = items.map(p => `
@@ -444,7 +466,7 @@ const renderSolutionsProducts = () => {
                 <p>${p.description}</p>
                 <div class="solution-footer">
                     <span class="badge" style="margin:0;">${p.version || 'v1.0'}</span>
-                    <a href="product.html?id=${p.id}" class="btn-primary" style="padding: 8px 20px;">Explore</a>
+                    <a href="${getPageFile(p.id)}" class="btn-primary" style="padding: 8px 20px;">Explore</a>
                 </div>
             </div>
         `).join('');
