@@ -50,6 +50,159 @@ onSnapshot(collection(db, "products"), (snapshot) => {
     }
 });
 
+// --- ADMIN REFRESH FUNCTIONS (Global Scope for Listener) ---
+const refreshProductStatus = async () => {
+    const container = document.getElementById('adminProductStatusBody');
+    if (!container) return;
+    
+    if (globalProducts.length === 0) {
+        container.innerHTML = '<div style="padding:40px; text-align:center;"><p style="color:var(--text-muted);">No products found. Add one to get started!</p></div>';
+        return;
+    }
+
+    try {
+        let html = '';
+        for (const p of globalProducts) {
+            html += `
+                <div class="saas-card" style="padding: 25px;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <div class="saas-avatar" style="background: var(--gradient-saas);"><i class="${p.icon || 'fas fa-cube'}"></i></div>
+                            <div>
+                                <h3 style="margin: 0; color: #fff; font-size: 1rem;">${p.name}</h3>
+                                <p style="font-size: 0.7rem; color: var(--text-muted); margin-top: 4px;">ID: ${p.id} | Type: ${p.type}</p>
+                            </div>
+                        </div>
+                        <div class="saas-status-dot" style="background: ${p.status === 'down' ? '#EF4444' : '#10B981'}; box-shadow: 0 0 10px ${p.status === 'down' ? '#EF444466' : '#10B98166'};"></div>
+                    </div>
+                    
+                    <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; font-size: 0.85rem; color: var(--text-muted);">
+                        <p>Version: <span style="color: #fff;">${p.version || 'v1.0'}</span></p>
+                        <p>Status: <span style="color: ${p.status === 'down' ? '#EF4444' : '#10B981'};">${p.status === 'active' ? 'Active' : 'Maintenance'}</span></p>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 15px; border-top: 1px solid var(--border-color);">
+                        <button class="saas-manage-btn edit-product-btn" data-pid="${p.id}" style="font-size: 0.75rem; background: rgba(255,255,255,0.05);"><i class="fas fa-edit"></i> Edit Details</button>
+                        <button class="saas-manage-btn toggle-product-status-btn" 
+                                data-pid="${p.id}" 
+                                data-status="${p.status}"
+                                style="background: ${p.status === 'down' ? '#10B98122' : '#EF444422'}; color: ${p.status === 'down' ? '#10B981' : '#EF4444'}; border: 1px solid ${p.status === 'down' ? '#10B98144' : '#EF444444'}; font-size: 0.75rem;">
+                            ${p.status === 'down' ? 'Restore Service' : 'Mark Maintenance'}
+                        </button>
+                    </div>
+                </div>`;
+        }
+        container.innerHTML = html;
+
+        // Attach Edit listeners
+        container.querySelectorAll('.edit-product-btn').forEach(btn => {
+            btn.onclick = () => {
+                const pid = btn.getAttribute('data-pid');
+                const p = globalProducts.find(x => x.id === pid);
+                if (p) openProductModal(p);
+            };
+        });
+
+        // Attach Toggle listeners
+        container.querySelectorAll('.toggle-product-status-btn').forEach(btn => {
+            btn.onclick = async () => {
+                const pid = btn.getAttribute('data-pid');
+                const currentStatus = btn.getAttribute('data-status');
+                const newStatus = currentStatus === 'active' ? 'down' : 'active';
+                
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                try {
+                    await updateDoc(doc(db, "products", pid), { status: newStatus, lastUpdated: Date.now() });
+                } catch (e) { alert(e.message); btn.disabled = false; }
+            };
+        });
+    } catch (err) {
+        console.error("Product Status Refresh Error:", err);
+    }
+};
+
+const refreshLicenses = async () => {
+    const container = document.getElementById('adminLicenseInventoryBody');
+    if (!container) return;
+    console.log("🔄 License Inventory Syncing...");
+
+    const productSelect = document.getElementById('directProduct');
+    if (productSelect) {
+        productSelect.innerHTML = globalProducts.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+    }
+
+    try {
+        const [userSnap, licSnap] = await Promise.all([
+            getDocs(collection(db, "users")),
+            getDocs(collection(db, "licenses"))
+        ]);
+
+        const usersList = [];
+        userSnap.forEach(docSnap => {
+            usersList.push({ id: docSnap.id, ...docSnap.data() });
+        });
+
+        container.innerHTML = '';
+        usersList.sort((a,b) => (a.discordUsername || a.email || "").localeCompare(b.discordUsername || b.email || ""));
+
+        for (const user of usersList) {
+            let licensesHtml = '';
+
+            for (const p of globalProducts) {
+                let pKey = null;
+                if (user.licenseKeys && user.licenseKeys[p.id]) {
+                    pKey = user.licenseKeys[p.id];
+                } else if (p.id === "rl-bot-trainer" && user.licenseKey) {
+                    pKey = user.licenseKey;
+                }
+
+                if (pKey) {
+                    licensesHtml += `
+                        <div class="saas-mini-card">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-size:0.6rem; text-transform:uppercase; font-weight:800; color:var(--text-muted);"><i class="${p.icon || 'fas fa-cube'}"></i> ${p.name}</span>
+                                <span style="font-size:0.6rem; color:#10B981; font-weight:bold;">Active</span>
+                            </div>
+                            <code class="admin-license-mask" data-key="${pKey}" style="font-family:monospace; font-size:0.75rem; color:var(--primary); margin: 5px 0; cursor:pointer;">••••-••••-••••-••••</code>
+                            <div style="display:flex; gap:8px;">
+                                <button class="saas-manage-btn action-reset-hwid" data-uid="${user.id}" data-key="${pKey}" data-product="${p.id}">HWID</button>
+                                <button class="saas-manage-btn action-regen-key" data-uid="${user.id}" data-key="${pKey}" data-plan="${user.plan || 'Trial'}" data-product="${p.id}">Regen</button>
+                                ${pKey && pKey !== 'None' ? `<button class="saas-ban-btn action-ban-hwid" data-uid="${user.id}" data-key="${pKey}" data-product="${p.id}"><i class="fas fa-hammer"></i> BAN</button>` : ''}
+                            </div>
+                        </div>`;
+                } else {
+                    licensesHtml += `
+                        <div class="saas-mini-card" style="border-style: dashed; opacity: 0.8; display: flex; align-items: center; justify-content: center; min-height: 80px;">
+                            <button class="saas-manage-btn action-gen-key" data-uid="${user.id}" data-product="${p.id}" data-product-name="${p.name}" data-plan="${user.plan || 'Trial'}" style="width:100%; height:100%; background:transparent; border:none; color:var(--primary); font-size:0.65rem; font-weight:bold; cursor:pointer; flex-direction:column; gap:5px;">
+                                <i class="fas fa-plus-circle" style="font-size: 1rem;"></i>
+                                <span>ADD ${p.name.toUpperCase()}</span>
+                            </button>
+                        </div>`;
+                }
+            }
+
+            const row = document.createElement('div');
+            row.className = 'saas-user-row';
+            row.style.gridTemplateColumns = '300px 1fr'; 
+            
+            row.innerHTML = `
+                <div class="saas-user-info" style="min-width: 0;">
+                    <div class="saas-avatar">${(user.discordUsername || user.email || "A").charAt(0).toUpperCase()}</div>
+                    <div style="min-width: 0; overflow: hidden;">
+                        <p style="font-weight: 700; color: #fff; margin:0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${user.discordUsername || 'Unlinked User'}</p>
+                        <p style="font-size: 0.7rem; color: var(--text-muted); margin:0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${user.email}</p>
+                    </div>
+                </div>
+                <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap:15px;">
+                    ${licensesHtml}
+                </div>
+            `;
+            container.appendChild(row);
+        }
+    } catch (err) { console.error("License Error:", err); }
+};
+
 const populateNavigation = () => {
     const productsDropdown = document.getElementById('nav-products-dropdown');
     const solutionsDropdown = document.getElementById('nav-solutions-dropdown');
@@ -1704,88 +1857,6 @@ const initAeroByte = () => {
                 } catch (err) { console.error("Logs Error:", err); }
             };
 
-            const refreshLicenses = async () => {
-                const container = document.getElementById('adminLicenseInventoryBody');
-                if (!container) return;
-                console.log("🔄 License Inventory Syncing...");
-
-                const productSelect = document.getElementById('directProduct');
-                if (productSelect) {
-                    productSelect.innerHTML = globalProducts.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
-                }
-
-                try {
-                    const [userSnap, licSnap] = await Promise.all([
-                        getDocs(collection(db, "users")),
-                        getDocs(collection(db, "licenses"))
-                    ]);
-
-                    const usersList = [];
-                    userSnap.forEach(docSnap => {
-                        usersList.push({ id: docSnap.id, ...docSnap.data() });
-                    });
-
-                    container.innerHTML = '';
-                    usersList.sort((a,b) => (a.discordUsername || a.email || "").localeCompare(b.discordUsername || b.email || ""));
-
-                    for (const user of usersList) {
-                        let licensesHtml = '';
-
-                        for (const p of globalProducts) {
-                            // Extract key with legacy fallback
-                            let pKey = null;
-                            if (user.licenseKeys && user.licenseKeys[p.id]) {
-                                pKey = user.licenseKeys[p.id];
-                            } else if (p.id === "rl-bot-trainer" && user.licenseKey) {
-                                pKey = user.licenseKey;
-                            }
-
-                            if (pKey) {
-                                licensesHtml += `
-                                    <div class="saas-mini-card">
-                                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                                            <span style="font-size:0.6rem; text-transform:uppercase; font-weight:800; color:var(--text-muted);"><i class="${p.icon || 'fas fa-cube'}"></i> ${p.name}</span>
-                                            <span style="font-size:0.6rem; color:#10B981; font-weight:bold;">Active</span>
-                                        </div>
-                                        <code class="admin-license-mask" data-key="${pKey}" style="font-family:monospace; font-size:0.75rem; color:var(--primary); margin: 5px 0; cursor:pointer;">••••-••••-••••-••••</code>
-                                        <div style="display:flex; gap:8px;">
-                                            <button class="saas-manage-btn action-reset-hwid" data-uid="${user.id}" data-key="${pKey}" data-product="${p.id}">HWID</button>
-                                            <button class="saas-manage-btn action-regen-key" data-uid="${user.id}" data-key="${pKey}" data-plan="${user.plan || 'Trial'}" data-product="${p.id}">Regen</button>
-                                            ${pKey && pKey !== 'None' ? `<button class="saas-ban-btn action-ban-hwid" data-uid="${user.id}" data-key="${pKey}" data-product="${p.id}"><i class="fas fa-hammer"></i> BAN</button>` : ''}
-                                        </div>
-                                    </div>`;
-                            } else {
-                                licensesHtml += `
-                                    <div class="saas-mini-card" style="border-style: dashed; opacity: 0.8; display: flex; align-items: center; justify-content: center; min-height: 80px;">
-                                        <button class="saas-manage-btn action-gen-key" data-uid="${user.id}" data-product="${p.id}" data-product-name="${p.name}" data-plan="${user.plan || 'Trial'}" style="width:100%; height:100%; background:transparent; border:none; color:var(--primary); font-size:0.65rem; font-weight:bold; cursor:pointer; flex-direction:column; gap:5px;">
-                                            <i class="fas fa-plus-circle" style="font-size: 1rem;"></i>
-                                            <span>ADD ${p.name.toUpperCase()}</span>
-                                        </button>
-                                    </div>`;
-                            }
-                        }
-
-                        const row = document.createElement('div');
-                        row.className = 'saas-user-row';
-                        row.style.gridTemplateColumns = '300px 1fr'; 
-                        
-                        row.innerHTML = `
-                            <div class="saas-user-info" style="min-width: 0;">
-                                <div class="saas-avatar">${(user.discordUsername || user.email || "A").charAt(0).toUpperCase()}</div>
-                                <div style="min-width: 0; overflow: hidden;">
-                                    <p style="font-weight: 700; color: #fff; margin:0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${user.discordUsername || 'Unlinked User'}</p>
-                                    <p style="font-size: 0.7rem; color: var(--text-muted); margin:0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${user.email}</p>
-                                </div>
-                            </div>
-                            <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap:15px;">
-                                ${licensesHtml}
-                            </div>
-                        `;
-                        container.appendChild(row);
-                    }
-                } catch (err) { console.error("License Error:", err); }
-            };
-
             const refreshDashboard = async () => {
                 if (!tbody) return;
                 console.log("🔄 User Database Syncing...");
@@ -2264,76 +2335,8 @@ const initAeroByte = () => {
 
             // Maintenance listeners are now handled within refreshAppManagement for consistency
 
-            const refreshProductStatus = async () => {
-                const container = document.getElementById('adminProductStatusBody');
-                if (!container) return;
-                
-                if (globalProducts.length === 0) {
-                    container.innerHTML = '<div style="padding:40px; text-align:center;"><p style="color:var(--text-muted);">No products found. Add one to get started!</p></div>';
-                    return;
-                }
+            // Maintenance listeners are now handled within refreshAppManagement for consistency
 
-                try {
-                    let html = '';
-                    for (const p of globalProducts) {
-                        html += `
-                            <div class="saas-card" style="padding: 25px;">
-                                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
-                                    <div style="display: flex; align-items: center; gap: 15px;">
-                                        <div class="saas-avatar" style="background: var(--gradient-saas);"><i class="${p.icon || 'fas fa-cube'}"></i></div>
-                                        <div>
-                                            <h3 style="margin: 0; color: #fff; font-size: 1rem;">${p.name}</h3>
-                                            <p style="font-size: 0.7rem; color: var(--text-muted); margin-top: 4px;">ID: ${p.id} | Type: ${p.type}</p>
-                                        </div>
-                                    </div>
-                                    <div class="saas-status-dot" style="background: ${p.status === 'down' ? '#EF4444' : '#10B981'}; box-shadow: 0 0 10px ${p.status === 'down' ? '#EF444466' : '#10B98166'};"></div>
-                                </div>
-                                
-                                <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; font-size: 0.85rem; color: var(--text-muted);">
-                                    <p>Version: <span style="color: #fff;">${p.version || 'v1.0'}</span></p>
-                                    <p>Status: <span style="color: ${p.status === 'down' ? '#EF4444' : '#10B981'};">${p.status === 'active' ? 'Active' : 'Maintenance'}</span></p>
-                                </div>
-
-                                <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 15px; border-top: 1px solid var(--border-color);">
-                                    <button class="saas-manage-btn edit-product-btn" data-pid="${p.id}" style="font-size: 0.75rem; background: rgba(255,255,255,0.05);"><i class="fas fa-edit"></i> Edit Details</button>
-                                    <button class="saas-manage-btn toggle-product-status-btn" 
-                                            data-pid="${p.id}" 
-                                            data-status="${p.status}"
-                                            style="background: ${p.status === 'down' ? '#10B98122' : '#EF444422'}; color: ${p.status === 'down' ? '#10B981' : '#EF4444'}; border: 1px solid ${p.status === 'down' ? '#10B98144' : '#EF444444'}; font-size: 0.75rem;">
-                                        ${p.status === 'down' ? 'Restore Service' : 'Mark Maintenance'}
-                                    </button>
-                                </div>
-                            </div>`;
-                    }
-                    container.innerHTML = html;
-
-                    // Attach Edit listeners
-                    container.querySelectorAll('.edit-product-btn').forEach(btn => {
-                        btn.onclick = () => {
-                            const pid = btn.getAttribute('data-pid');
-                            const p = globalProducts.find(x => x.id === pid);
-                            if (p) openProductModal(p);
-                        };
-                    });
-
-                    // Attach Toggle listeners
-                    container.querySelectorAll('.toggle-product-status-btn').forEach(btn => {
-                        btn.onclick = async () => {
-                            const pid = btn.getAttribute('data-pid');
-                            const currentStatus = btn.getAttribute('data-status');
-                            const newStatus = currentStatus === 'active' ? 'down' : 'active';
-                            
-                            btn.disabled = true;
-                            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-                            try {
-                                await updateDoc(doc(db, "products", pid), { status: newStatus, lastUpdated: Date.now() });
-                            } catch (e) { alert(e.message); btn.disabled = false; }
-                        };
-                    });
-                } catch (err) {
-                    console.error("Product Status Refresh Error:", err);
-                }
-            };
 
             // Product Management Helpers
             const openProductModal = (product = null) => {
