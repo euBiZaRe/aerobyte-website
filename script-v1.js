@@ -517,10 +517,14 @@ const parseMessageLinks = (text) => {
 
 const updateGlobalUI = (data) => {
     const isCinemaPage = window.location.pathname.includes('cinema.html');
+    const isApp = window.location.search.includes('app=true') || navigator.userAgent.includes('AeroByteApp');
 
-    // 1. Handle Global Broadcast
+    // 1. Handle Global Broadcast (Web & App)
     let broadcastBanner = document.getElementById('global-broadcast-banner');
-    if (data.broadcast_active && !data.maintenance_mode && isCinemaPage) {
+    const showWebBroadcast = data.broadcast_active && !data.maintenance_mode && isCinemaPage && !isApp;
+    const showAppBroadcast = data.app_broadcast_active && isApp;
+
+    if (showWebBroadcast || showAppBroadcast) {
         document.body.classList.add('has-broadcast');
         if (!broadcastBanner) {
             broadcastBanner = document.createElement('div');
@@ -528,10 +532,11 @@ const updateGlobalUI = (data) => {
             broadcastBanner.className = 'global-broadcast-banner';
             document.body.prepend(broadcastBanner);
         }
+        const message = showAppBroadcast ? data.app_broadcast_message : data.broadcast_message;
         broadcastBanner.innerHTML = `
             <div class="broadcast-content">
                 <i class="fas fa-bullhorn broadcast-icon"></i>
-                <span class="broadcast-text">${parseMessageLinks(data.broadcast_message)}</span>
+                <span class="broadcast-text">${parseMessageLinks(message)}</span>
             </div>
         `;
         broadcastBanner.style.display = 'block';
@@ -2343,7 +2348,7 @@ const initAeroByte = () => {
                     }
 
                     if (broadcastToggleBtn && broadcastMsgInput) {
-                        const isBroadcastActive = configSnap.exists() && configSnap.data().broadcast_active === true;
+                        const isBroadcastActive = configSnap.exists() && configSnap.data().app_broadcast_active === true;
                         
                         broadcastToggleBtn.disabled = false;
                         broadcastToggleBtn.textContent = isBroadcastActive ? 'STOP BROADCAST' : 'START BROADCAST';
@@ -2353,14 +2358,14 @@ const initAeroByte = () => {
                         
                         broadcastSaveBtn.disabled = false;
                         broadcastSaveBtn.innerHTML = '<i class="fas fa-rss"></i> Update Broadcast';
-                        broadcastMsgInput.value = (configSnap.exists() ? configSnap.data().broadcast_message : "") || "";
+                        broadcastMsgInput.value = (configSnap.exists() ? configSnap.data().app_broadcast_message : "") || "";
 
                         broadcastToggleBtn.onclick = async () => {
                             broadcastToggleBtn.disabled = true;
                             broadcastToggleBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
                             try {
                                 await setDoc(doc(db, "config", "global"), { 
-                                    broadcast_active: !isBroadcastActive 
+                                    app_broadcast_active: !isBroadcastActive 
                                 }, { merge: true });
                                 refreshAppManagement();
                             } catch (e) { alert(e.message); broadcastToggleBtn.disabled = false; }
@@ -2371,9 +2376,9 @@ const initAeroByte = () => {
                             broadcastSaveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Pushing...';
                             try {
                                 await setDoc(doc(db, "config", "global"), { 
-                                    broadcast_message: broadcastMsgInput.value 
+                                    app_broadcast_message: broadcastMsgInput.value 
                                 }, { merge: true });
-                                alert("Broadcast message updated!");
+                                alert("App broadcast message updated!");
                                 refreshAppManagement();
                             } catch (e) { alert(e.message); broadcastSaveBtn.disabled = false; }
                         };
