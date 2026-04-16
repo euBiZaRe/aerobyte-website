@@ -516,33 +516,11 @@ const parseMessageLinks = (text) => {
 };
 
 const updateGlobalUI = (data) => {
-    // 1. Handle Maintenance Mode
-    let maintOverlay = document.getElementById('global-maintenance-overlay');
-    if (data.maintenance_mode) {
-        if (!maintOverlay) {
-            maintOverlay = document.createElement('div');
-            maintOverlay.id = 'global-maintenance-overlay';
-            maintOverlay.className = 'maintenance-overlay';
-            document.body.appendChild(maintOverlay);
-        }
-        maintOverlay.innerHTML = `
-            <div class="maintenance-card glass-panel">
-                <div class="maintenance-icon"><i class="fas fa-tools"></i></div>
-                <h2>System <span class="gradient-text">Maintenance</span></h2>
-                <div class="maintenance-message">${parseMessageLinks(data.maintenance_message || "AeroByte is currently undergoing maintenance.")}</div>
-                <p class="maintenance-footer">We'll be back shortly!</p>
-            </div>
-        `;
-        document.body.style.overflow = 'hidden';
-        maintOverlay.style.display = 'flex';
-    } else if (maintOverlay) {
-        maintOverlay.style.display = 'none';
-        document.body.style.overflow = '';
-    }
+    const isCinemaPage = window.location.pathname.includes('cinema.html');
 
-    // 2. Handle Global Broadcast
+    // 1. Handle Global Broadcast
     let broadcastBanner = document.getElementById('global-broadcast-banner');
-    if (data.broadcast_active && !data.maintenance_mode) {
+    if (data.broadcast_active && !data.maintenance_mode && isCinemaPage) {
         document.body.classList.add('has-broadcast');
         if (!broadcastBanner) {
             broadcastBanner = document.createElement('div');
